@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
-import { Feather } from "@expo/vector-icons";
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 import { Home } from "../screens/Home";
 import { Music } from "../screens/Music";
@@ -26,7 +26,7 @@ export function Routes() {
           name="Home" 
           component={Home} 
           options={{
-            tabBarIcon: ({ size, color }) => <Feather name="home" size={size} color={color} />,
+            tabBarIcon: ({ size, color }) => <Icon name="home" size={size} color={color} />,
             tabBarHideOnKeyboard: true,
           }}
         />
@@ -34,7 +34,7 @@ export function Routes() {
           name="Music" 
           component={Music} 
           options={{
-            tabBarIcon: ({ size, color }) => <Feather name="music" size={size} color={color} />,
+            tabBarIcon: ({ size, color }) => <Icon name="music" size={size} color={color} />,
             tabBarHideOnKeyboard: true,
           }}
         />
@@ -42,7 +42,7 @@ export function Routes() {
           name="Profile" 
           component={Profile}
           options={{
-            tabBarIcon: ({ size, color }) => <Feather name="user" size={size} color={color} />,
+            tabBarIcon: ({ size, color }) => <Icon name="user" size={size} color={color} />,
             tabBarHideOnKeyboard: true,
           }}
         />

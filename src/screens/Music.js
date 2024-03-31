@@ -1,11 +1,17 @@
-// Music.js
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, FlatList, Text, TouchableOpacity, Modal, Button, TouchableWithoutFeedback, Alert } from 'react-native';
-import Icon from 'react-native-vector-icons/Feather';
-import SongForm from '../components/SongForm'; // Import the new merged form
-import Card from '../components/Card';
+import { View, Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
-import { Platform } from 'react-native';
+import SearchBar from '../components/SearchBar';
+import SongList from '../components/SongList';
+import FloatingButton from '../components/FloatingButton';
+import SongFormModal from '../components/SongFormModal';
+import SongOptionsModal from '../components/SongOptionsModal';
+import RatingModal from '../components/RatingModal';
+
+// Constants
+const DATA_FILE = 'musicnexus_data.json'; // File name for json data file
+const SAVE_PATH = FileSystem.documentDirectory; // Path for json data file
+const fileUri = SAVE_PATH + DATA_FILE; // Full path for json data file
 
 export function Music() {
     const [searchText, setSearchText] = useState('');
@@ -14,28 +20,20 @@ export function Music() {
     const [songs, setSongs] = useState([]);
     const [selectedSong, setSelectedSong] = useState(null);
     const [isSongOptionsVisible, setSongOptionsVisible] = useState(false);
+    const [isRatingModalVisible, setRatingModalVisible] = useState(false); // State for RatingModal
+    const [ratingSong, setRatingSong] = useState(null); // State for the song being rated
 
+    // Load songs from file system
     useEffect(() => {
         const fetchSongs = async () => {
-            if (Platform.OS === 'web') {
-                const savedSongs = localStorage.getItem('songs');
-                if (savedSongs) {
-                    setSongs(JSON.parse(savedSongs));
-                }
-            } else {
-                try {
-                    const fileUri = FileSystem.documentDirectory + 'songs.json';
-                    const fileInfo = await FileSystem.getInfoAsync(fileUri);
-                    if (!fileInfo.exists) {
-                        await FileSystem.writeAsStringAsync(fileUri, JSON.stringify([]));
-                    }
-                    const result = await FileSystem.readAsStringAsync(fileUri);
-                    if (result) {
-                        setSongs(JSON.parse(result));
-                    }
-                } catch (error) {
-                    console.error(error);
-                }
+            const fileInfo = await FileSystem.getInfoAsync(fileUri);
+            if (!fileInfo.exists) {
+                await FileSystem.writeAsStringAsync(fileUri, JSON.stringify([]));
+            }
+
+            const result = await FileSystem.readAsStringAsync(fileUri);
+            if (result) {
+                setSongs(JSON.parse(result));
             }
         };
 
@@ -46,68 +44,46 @@ export function Music() {
         const searchMatch = song.title.toLowerCase().includes(searchText.toLowerCase()) ||
             song.album.toLowerCase().includes(searchText.toLowerCase()) ||
             song.artist.toLowerCase().includes(searchText.toLowerCase());
-        return searchMatch && (!showUnrated || !song.rated);
+        
+        // Adjust the condition to consider songs with a rating of 0 as unrated
+        const isUnrated = showUnrated && song.rating === 0;
+        
+        return searchMatch && (!showUnrated || isUnrated);
     });
 
-    const handleFabPress = () => {
+    const handleFloatButtonPress = () => {
         setModalVisible(true);
-        setSelectedSong(null); // Ensure selectedSong is reset when adding a new song
+        setSelectedSong(null);
     };
+
+    const [lastId, setLastId] = useState(0);
 
     const handleFormSubmit = async (song) => {
-        const newSongs = [...songs, song];
+        const newSong = { ...song, id: lastId + 1, rating: 0 }; // Set rating to 0 for new songs
+        const newSongs = [...songs, newSong];
         setSongs(newSongs);
-        if (Platform.OS === 'web') {
-            localStorage.setItem('songs', JSON.stringify(newSongs));
-        } else {
-            try {
-                const fileUri = FileSystem.documentDirectory + 'songs.json';
-                await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(newSongs));
-            } catch (error) {
-                console.error(error);
-            }
-        }
+        setLastId(lastId + 1);
+        await FileSystem.writeAsStringAsync(SAVE_PATH + DATA_FILE, JSON.stringify(newSongs));
         setModalVisible(false);
-    };
-
-    const handleModalBackgroundPress = () => {
-        setModalVisible(false);
-        setSelectedSong(null); // Reset the selected song
-        setSongOptionsVisible(false); // Also reset the song options visibility
     };
 
     const handleCardPress = (song) => {
+        setRatingSong(song);
+        setRatingModalVisible(true);
+    };
+
+    const handleLongPress = (song) => {
         setSelectedSong(song);
         setSongOptionsVisible(true);
-    };
+    };    
 
     const handleEditSong = () => {
         setModalVisible(true);
     };
 
-    const handleEditFormSubmit = (updatedSong) => {
-        const updatedSongs = songs.map(song => song.title === selectedSong.title ? updatedSong : song);
-        setSongs(updatedSongs);
-
-        if (Platform.OS === 'web') {
-            localStorage.setItem('songs', JSON.stringify(updatedSongs));
-        } else {
-            try {
-                const fileUri = FileSystem.documentDirectory + 'songs.json';
-                FileSystem.writeAsStringAsync(fileUri, JSON.stringify(updatedSongs));
-            } catch (error) {
-                console.error(error);
-            }
-        }
-
-        setModalVisible(false);
-        setSongOptionsVisible(false); // Close the Song Options popup
-        setSelectedSong(null); // Clear the selected song
-    };
-
     const handleDeleteSong = () => {
         if (!selectedSong) return;
-    
+
         Alert.alert(
             "Delete Song",
             `Are you sure you want to delete "${selectedSong.title}"?`,
@@ -119,23 +95,12 @@ export function Music() {
                 },
                 {
                     text: "Delete",
-                    onPress: () => {
-                        const updatedSongs = songs.filter(song => song.title !== selectedSong.title);
+                    onPress: async () => {
+                        const updatedSongs = songs.filter(song => song.id !== selectedSong.id);
                         setSongs(updatedSongs);
-    
-                        if (Platform.OS === 'web') {
-                            localStorage.setItem('songs', JSON.stringify(updatedSongs));
-                        } else {
-                            try {
-                                const fileUri = FileSystem.documentDirectory + 'songs.json';
-                                FileSystem.writeAsStringAsync(fileUri, JSON.stringify(updatedSongs));
-                            } catch (error) {
-                                console.error(error);
-                            }
-                        }
-    
+                        await FileSystem.writeAsStringAsync(SAVE_PATH + DATA_FILE, JSON.stringify(updatedSongs));
                         setSongOptionsVisible(false);
-                        setSelectedSong(null); // Clear the selected song
+                        setSelectedSong(null);
                     }
                 }
             ],
@@ -143,83 +108,76 @@ export function Music() {
         );
     };
 
+    const handleEditFormSubmit = async (updatedSong) => {
+        // Find the original song in the songs array to preserve its rating
+        const originalSong = songs.find(song => song.id === selectedSong.id);
+        // Preserve the original rating if it exists, otherwise use the updated song's rating
+        const preservedRating = originalSong ? originalSong.rating : updatedSong.rating;
+        // Create a new song object with the updated details but keep the original rating
+        const updatedSongWithRating = { ...updatedSong, id: selectedSong.id, rating: preservedRating };
+        // Replace the original song with the updated song in the songs array (Preserve the original id)
+        const updatedSongs = songs.map(song => song.id === selectedSong.id ? updatedSongWithRating : song);
+        // Update the state with the updated songs array
+        setSongs(updatedSongs);
+        // Write the updated songs array to the file system
+        await FileSystem.writeAsStringAsync(SAVE_PATH + DATA_FILE, JSON.stringify(updatedSongs));
+        // Close the modal
+        setModalVisible(false);
+        // Clear the selected song
+        setSongOptionsVisible(false);
+        setSelectedSong(null);
+    };
+
+    const handleEditPress = (song) => {
+        setSelectedSong(song);
+        setSongOptionsVisible(true);
+    };
+
+    const handleRatingSelect = (rating) => {
+        const updatedSongs = songs.map(song => song.id === ratingSong.id ? { ...song, rating } : song);
+        setSongs(updatedSongs);
+        setRatingModalVisible(false);
+        setRatingSong(null);
+        FileSystem.writeAsStringAsync(SAVE_PATH + DATA_FILE, JSON.stringify(updatedSongs));
+    };
+
     return (
         <View style={{ flex: 1, alignItems: 'center', backgroundColor: '#090909', padding: 16 }}>
-            <TextInput
-                placeholder="Search"
-                placeholderTextColor='white'
-                style={{
-                    backgroundColor: '#1e272e',
-                    borderRadius: 8,
-                    color: 'white',
-                    height: 48,
-                    paddingHorizontal: 16,
-                    marginTop: 32,
-                    marginBottom: 16,
-                    width: '80%',
-                }}
-                onChangeText={text => setSearchText(text)}
+            <SearchBar
+                searchText={searchText}
+                setSearchText={setSearchText}
+                showUnrated={showUnrated}
+                setShowUnrated={setShowUnrated}
             />
-            <TouchableOpacity onPress={() => setShowUnrated(!showUnrated)}>
-                <Text style={{ color: showUnrated ? 'white' : 'gray', marginBottom: 16 }}>Unrated</Text>
-            </TouchableOpacity>
-            <FlatList
-                data={filteredSongs}
-                keyExtractor={(item) => item.title}
-                renderItem={({ item }) => <Card song={item} onCardPress={() => handleCardPress(item)} />}
-                style={{ width: '100%' }}
+            <SongList
+                filteredSongs={filteredSongs}
+                handleCardPress={handleCardPress}
+                handleEditPress={handleEditPress}
+                handleLongPress={handleLongPress}
             />
-            <View style={{ position: 'absolute', bottom: 20, right: 30 }}>
-                <TouchableOpacity onPress={handleFabPress} style={{ backgroundColor: 'green', borderRadius: 50, padding: 10 }}>
-                    <Icon name="plus" size={30} color="white" />
-                </TouchableOpacity>
-            </View>
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={isModalVisible}
-                onRequestClose={() => {
-                    setModalVisible(!isModalVisible);
-                }}
-            >
-                <TouchableWithoutFeedback onPress={handleModalBackgroundPress}>
-                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                        <TouchableWithoutFeedback onPress={() => {}}>
-                            <View>
-                                <SongForm
-                                    song={selectedSong}
-                                    onSubmit={selectedSong ? handleEditFormSubmit : handleFormSubmit}
-                                    isEditMode={!!selectedSong}
-                                />
-                            </View>
-                        </TouchableWithoutFeedback>
-                    </View>
-                </TouchableWithoutFeedback>
-            </Modal>
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={isSongOptionsVisible}
-                onRequestClose={() => {
-                    setSongOptionsVisible(false);
-                }}
-            >
-                <TouchableWithoutFeedback onPress={() => setSongOptionsVisible(false)}>
-                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                        <TouchableWithoutFeedback onPress={() => {}}>
-                            <View style={{ backgroundColor: '#1e272e', borderRadius: 8, padding: 16, width: '80%' }}>
-                                <Text style={{ color: 'white', fontSize: 16, marginBottom: 16 }}>Song Options</Text>
-                                <TouchableOpacity onPress={handleEditSong} style={{ backgroundColor: 'blue', borderRadius: 8, padding: 10, marginBottom: 16 }}>
-                                    <Text style={{ color: 'white', textAlign: 'center' }}>Edit Song</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={handleDeleteSong} style={{ backgroundColor: 'red', borderRadius: 8, padding: 10 }}>
-                                    <Text style={{ color: 'white', textAlign: 'center' }}>Delete Song</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </TouchableWithoutFeedback>
-                    </View>
-                </TouchableWithoutFeedback>
-            </Modal>
+            <FloatingButton onPress={handleFloatButtonPress} />
+            <SongFormModal
+                isModalVisible={isModalVisible}
+                setModalVisible={setModalVisible}
+                selectedSong={selectedSong}
+                handleFormSubmit={handleFormSubmit}
+                handleEditFormSubmit={handleEditFormSubmit}
+                onCancel={() => setModalVisible(false)}
+            />
+            <SongOptionsModal
+                isSongOptionsVisible={isSongOptionsVisible}
+                setSongOptionsVisible={setSongOptionsVisible}
+                handleEditSong={handleEditSong}
+                handleDeleteSong={handleDeleteSong}
+            />
+            {ratingSong && ( // Only render RatingModal if ratingSong is not null
+                <RatingModal
+                    isVisible={isRatingModalVisible}
+                    onClose={() => setRatingModalVisible(false)}
+                    onRatingSelect={handleRatingSelect}
+                    selectedSong={ratingSong}
+                />
+            )}
         </View>
     );
 }

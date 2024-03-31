@@ -1,8 +1,7 @@
-// SongForm.js
 import React from 'react';
 import { View, TextInput, Button, StyleSheet, Dimensions } from 'react-native';
 
-const SongForm = ({ song, onSubmit, isEditMode = false }) => {
+const SongForm = ({ song, onSubmit, isEditMode = false, onCancel }) => {
     const [title, setTitle] = React.useState(isEditMode ? song.title : '');
     const [artist, setArtist] = React.useState(isEditMode ? song.artist : '');
     const [album, setAlbum] = React.useState(isEditMode ? song.album : '');
@@ -19,30 +18,34 @@ const SongForm = ({ song, onSubmit, isEditMode = false }) => {
                 value={title}
                 onChangeText={setTitle}
                 style={styles.input}
-                placeholderTextColor="white"
+                placeholderTextColor="grey"
             />
             <TextInput
                 placeholder="Artist"
                 value={artist}
                 onChangeText={setArtist}
                 style={styles.input}
-                placeholderTextColor="white"
+                placeholderTextColor="grey"
             />
             <TextInput
                 placeholder="Album"
                 value={album}
                 onChangeText={setAlbum}
                 style={styles.input}
-                placeholderTextColor="white"
+                placeholderTextColor="grey"
             />
             <TextInput
                 placeholder="Release Date"
                 value={release}
                 onChangeText={setRelease}
                 style={styles.input}
-                placeholderTextColor="white"
+                placeholderTextColor="grey"
             />
             <Button title={isEditMode ? "Save Changes" : "Add Song"} onPress={handleSubmit} />
+            {/* Wrap the Cancel Button in a View with marginTop */}
+            <View style={styles.cancelButtonContainer}>
+                <Button title="Cancel" onPress={onCancel} color="red" />
+            </View>
         </View>
     );
 };
@@ -64,6 +67,10 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#34495e',
         textAlignVertical: 'center',
+    },
+    // Style for the Cancel button container
+    cancelButtonContainer: {
+        marginTop: 10, // Adjust the marginTop as needed
     },
 });
 
