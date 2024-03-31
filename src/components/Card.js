@@ -1,53 +1,33 @@
+// Card.js
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
+import Icon from 'react-native-vector-icons/Feather';
 
-const Card = ({ result }) => {
- return (
-    <View style={styles.card}>
-      <Image
-        source={{ uri: result.coverArtUrl }}
-        style={styles.coverArt}
-      />
-      <View style={styles.textContainer}>
-        <Text style={styles.title}>{result.title}</Text>
-        <Text style={styles.artist}>Artist: {result['artist-credit'][0].name}</Text>
-        <Text style={styles.album}>Album: {result['release-group'].title}</Text>
-      </View>
-    </View>
- );
+const Card = ({ song, onCardPress }) => {
+    return (
+        <TouchableOpacity onPress={onCardPress} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e272e', borderRadius: 8, padding: 16, marginBottom: 16, width: '100%' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Image
+                    source={{ uri: 'https://via.placeholder.com/50' }} // Use a URL for the placeholder image
+                    style={{ width: 50, height: 50, marginRight: 16 }}
+                />
+                <View>
+                    <Text style={{ color: 'white', fontSize: 16 }}>{song.title}</Text>
+                    <Text style={{ color: 'white', fontSize: 12 }}>Artist: {song.artist}</Text>
+                    <Text style={{ color: 'white', fontSize: 12 }}>Album: {song.album}</Text>
+                    <Text style={{ color: 'white', fontSize: 12 }}>{song.release}</Text>
+                </View>
+            </View>
+            <View style={{ flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center' }}>
+                <TouchableOpacity>
+                    <Icon name="star" size={24} color="yellow" />
+                </TouchableOpacity>
+                <TouchableOpacity style={{ marginTop: 16 }}>
+                    <Icon name="plus-circle" size={24} color="white" />
+                </TouchableOpacity>
+            </View>
+        </TouchableOpacity>
+    );
 };
-
-const styles = StyleSheet.create({
-    card: {
-       flexDirection: 'row',
-       alignItems: 'center',
-       marginBottom: 10,
-       padding: 10,
-       borderRadius: 8,
-       backgroundColor: '#1e272e',
-       width: '100%', // Make the card occupy the full width of its parent
-    },
-    coverArt: {
-       width: 50,
-       height: 50,
-       marginRight: 10,
-    },
-    textContainer: {
-       flex: 1,
-       flexWrap: 'wrap', // Allow text to wrap within the available space
-    },
-    title: {
-       color: 'white',
-       fontSize: 16,
-    },
-    artist: {
-       color: 'white',
-       fontSize: 12,
-    },
-    album: {
-       color: 'white',
-       fontSize: 12,
-    },
-   });
 
 export default Card;

@@ -4,7 +4,6 @@ import { Feather } from "@expo/vector-icons";
 
 import { Home } from "../screens/Home";
 import { Music } from "../screens/Music";
-import { Explore } from "../screens/Explore";
 import { Profile } from "../screens/Profile";
 
 const { Navigator, Screen } = createBottomTabNavigator();
@@ -36,14 +35,6 @@ export function Routes() {
           component={Music} 
           options={{
             tabBarIcon: ({ size, color }) => <Feather name="music" size={size} color={color} />,
-            tabBarHideOnKeyboard: true,
-          }}
-        />
-        <Screen 
-          name="Explore" 
-          component={Explore} 
-          options={{
-            tabBarIcon: ({ size, color }) => <Feather name="compass" size={size} color={color} />,
             tabBarHideOnKeyboard: true,
           }}
         />
