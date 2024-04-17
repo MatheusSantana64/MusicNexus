@@ -1,3 +1,6 @@
+// The RatingModal component is a reusable modal component that allows users to rate a song.
+// It displays a modal with a star rating component and a submit button.
+
 import React, { useState, useEffect } from 'react';
 import { Modal, View, TouchableOpacity, Text, TouchableWithoutFeedback, StyleSheet } from 'react-native';
 import { Rating } from 'react-native-ratings';

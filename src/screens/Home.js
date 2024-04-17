@@ -1,3 +1,5 @@
+// This file is the home screen of the application. For now, it displays the list of unrated songs and favorite songs.
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import * as FileSystem from 'expo-file-system';

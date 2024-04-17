@@ -1,3 +1,6 @@
+// The SongOptionsModal component is a reusable modal component that displays options for a song.
+// It allows users to edit or delete a song by providing buttons for each action.
+
 import React from 'react';
 import { Modal, TouchableWithoutFeedback, View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 

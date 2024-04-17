@@ -1,3 +1,5 @@
+// This file contains the Profile screen, which allows the user to delete all songs in the database, check stats, and more personal information.
+
 import React from 'react';
 import { View, Button, Alert } from 'react-native';
 import * as SQLite from 'expo-sqlite';

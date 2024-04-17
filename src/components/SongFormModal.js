@@ -1,3 +1,6 @@
+// The SongFormModal component is a reusable modal component that displays a song form.
+// It allows users to add or edit song information by providing input fields for the song title, artist, album, and release date.
+
 import React from 'react';
 import { Modal, TouchableWithoutFeedback, StyleSheet, View } from 'react-native';
 import SongForm from './SongForm';

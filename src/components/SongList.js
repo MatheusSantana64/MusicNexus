@@ -1,3 +1,6 @@
+// The SongList component is a reusable component that renders a list of songs.
+// It uses the FlatList component to render a list of songs as Card components.
+
 import React from 'react';
 import { FlatList } from 'react-native';
 import Card from './Card';

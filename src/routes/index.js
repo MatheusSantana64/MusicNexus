@@ -1,3 +1,5 @@
+// This file is responsible for creating the navigation routes of the application.
+
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import Icon from 'react-native-vector-icons/FontAwesome';

@@ -1,3 +1,6 @@
+// The SongForm component is a reusable form component that allows users to add or edit song information.
+// It includes input fields for the song title, artist, album, and release date.
+
 import React from 'react';
 import { View, TextInput, Button, StyleSheet, Dimensions, TouchableOpacity, } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';

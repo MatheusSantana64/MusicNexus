@@ -1,25 +1,30 @@
+// The SearchBar component is a reusable component that renders a search bar with a text input field and a toggle button.
+// It allows users to search for songs by title, artist, or album, and toggle the display of unrated songs.
+
 import React from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
 
 const SearchBar = ({ searchText, setSearchText, showUnrated, setShowUnrated }) => {
- const toggleShowUnrated = () => setShowUnrated(!showUnrated);
+    // Function to toggle the display of unrated songs
+    const toggleShowUnrated = () => setShowUnrated(!showUnrated);
 
- return (
-    <View style={styles.container}>
-        <View style={styles.inputContainer}>
-            <TextInput
-                placeholder="Search"
-                placeholderTextColor='white'
-                style={styles.input}
-                onChangeText={setSearchText}
-            />
+    // Render the search bar with a text input field and a toggle button
+    return (
+        <View style={styles.container}>
+            <View style={styles.inputContainer}>
+                <TextInput
+                    placeholder="Search"
+                    placeholderTextColor='white'
+                    style={styles.input}
+                    onChangeText={setSearchText}
+                />
+            </View>
+            
+            <TouchableOpacity onPress={toggleShowUnrated} style={styles.toggleButton}>
+                <Text style={[styles.toggleText, showUnrated ? {color: 'red'} : {}]}>Not Rated</Text>
+            </TouchableOpacity>
         </View>
-        
-        <TouchableOpacity onPress={toggleShowUnrated} style={styles.toggleButton}>
-            <Text style={[styles.toggleText, showUnrated ? {color: 'red'} : {}]}>Not Rated</Text>
-        </TouchableOpacity>
-    </View>
- );
+    );
 };
 
 const styles = StyleSheet.create({

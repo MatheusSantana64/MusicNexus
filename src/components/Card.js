@@ -1,3 +1,6 @@
+// The Card component is a reusable component that renders a card with song information.
+// It displays the song title, artist, album, release date, rating, and an edit icon.
+
 import React from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';

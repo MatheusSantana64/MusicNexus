@@ -1,3 +1,6 @@
+// The FloatingButton component is a reusable component that renders a floating action button with a plus icon.
+// It allows users to add new songs by pressing the button.
+
 import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
