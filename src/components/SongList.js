@@ -6,7 +6,12 @@ const SongList = ({ filteredSongs, handleCardPress, handleEditPress, handleLongP
     return (
         <FlatList
             data={filteredSongs}
-            renderItem={({ item }) => <Card song={item} onCardPress={() => handleCardPress(item)} onEditPress={() => handleEditPress(item)} onLongPress={() => handleLongPress(item)} />}
+            renderItem={({ item }) => 
+                <Card song={item} 
+                    onCardPress={() => handleCardPress(item)} 
+                    onEditPress={() => handleEditPress(item)} 
+                    onLongPress={() => handleLongPress(item)} 
+                />}
             style={{ width: '100%' }}
         />
     );

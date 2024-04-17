@@ -19,7 +19,14 @@ const Card = ({ song, onCardPress, onEditPress, onLongPress }) => {
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Icon name="star" size={24} color={song.rating === 0 ? 'red' : 'yellow'} />
+                    <Icon name="star" size={24} color={
+                        song.rating === 0 ? 'grey' :
+                        song.rating <= 2.5 ? 'red' :
+                        song.rating > 2.5 && song.rating <= 5 ? 'orange' :
+                        song.rating > 5 && song.rating <= 7.5 ? 'yellow' :
+                        song.rating > 7.5 && song.rating < 10 ? 'green' :
+                        'blue'
+                    } />
                     <Text style={{ color: 'white', fontSize: 16, marginLeft: 5 }}>{song.rating ? (song.rating.toFixed(1)) : 'N/A'}</Text>
                 </View>
                 <TouchableOpacity onPress={onEditPress} style={{ marginLeft: 5 }}>

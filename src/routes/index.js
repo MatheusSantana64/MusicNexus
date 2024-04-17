@@ -24,15 +24,15 @@ export function Routes() {
              height: 64, // Nav menu height
            }
          }}>
-         <Screen 
+         {/*<Screen 
            name="Home" 
            component={Home} 
            options={{
              tabBarIcon: ({ size, color }) => <Icon name="home" size={size} color={color} />,
              tabBarHideOnKeyboard: true,
            }}
-         />
-         <Screen 
+          />*/}
+         <Screen
            name="Music" 
            component={Music} 
            options={{
