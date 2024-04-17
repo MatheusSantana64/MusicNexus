@@ -16,6 +16,25 @@ import RatingModal from '../components/RatingModal';
 // Open or create the database
 const db = SQLite.openDatabase('musicnexus.db');
 
+// Initialize the database with necessary tables
+const initDatabase = () => {
+    db.transaction(tx => {
+        // Create songs table
+        tx.executeSql(`
+            CREATE TABLE IF NOT EXISTS songs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                artist TEXT NOT NULL,
+                album TEXT NOT NULL,
+                release TEXT NOT NULL,
+                rating INTEGER NOT NULL
+            );
+        `);
+    }, (error) => {
+        console.log("Error initializing database: ", error);
+    });
+};
+
 export function Music() {
     const [searchText, setSearchText] = useState(''); // State for search text
     const [showUnrated, setShowUnrated] = useState(false); // State for showing unrated songs
@@ -27,6 +46,10 @@ export function Music() {
     const [isModalVisible, setModalVisible] = useState(false); // State for SongFormModal visibility
     const [isSongOptionsVisible, setSongOptionsVisible] = useState(false); // State for SongOptionsModal visibility
     const [isRatingModalVisible, setRatingModalVisible] = useState(false); // State for RatingModal visibility
+
+    useEffect(() => {
+        initDatabase();
+    }, []);
 
     // Fetch songs from the SQLite database
     const fetchSongs = async () => {
