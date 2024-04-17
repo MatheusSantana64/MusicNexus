@@ -1,0 +1,47 @@
+// This file contains the code to initialize the SQLite database.
+// It creates the songs, tags, and song_tags tables if they do not already exist.
+
+import * as SQLite from 'expo-sqlite';
+
+// Open or create the database
+const db = SQLite.openDatabase('musicnexus.db');
+
+export const initDatabase = () => {
+    db.transaction(tx => {
+        // Create songs table
+        tx.executeSql(`
+            CREATE TABLE IF NOT EXISTS songs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                artist TEXT NOT NULL,
+                album TEXT NOT NULL,
+                release TEXT NOT NULL,
+                rating INTEGER NOT NULL
+            );
+        `);
+
+        // Create tags table
+        tx.executeSql(`
+            CREATE TABLE IF NOT EXISTS tags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                color TEXT NOT NULL
+            );
+        `);
+
+        // Create song_tags table
+        tx.executeSql(`
+            CREATE TABLE IF NOT EXISTS song_tags (
+                song_id INTEGER,
+                tag_id INTEGER,
+                FOREIGN KEY(song_id) REFERENCES songs(id),
+                FOREIGN KEY(tag_id) REFERENCES tags(id),
+                PRIMARY KEY(song_id, tag_id)
+            );
+        `);
+    }, (error) => {
+        console.log("Error initializing database: ", error);
+    });
+};
+
+export { db };

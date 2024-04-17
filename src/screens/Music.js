@@ -6,34 +6,13 @@ import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Alert } from 'react-native';
 import * as SQLite from 'expo-sqlite';
+import { initDatabase, db } from '../databaseSetup';
 import SearchBar from '../components/SearchBar';
 import SongList from '../components/SongList';
 import FloatingButton from '../components/FloatingButton';
 import SongFormModal from '../components/SongFormModal';
 import SongOptionsModal from '../components/SongOptionsModal';
 import RatingModal from '../components/RatingModal';
-
-// Open or create the database
-const db = SQLite.openDatabase('musicnexus.db');
-
-// Initialize the database with necessary tables
-const initDatabase = () => {
-    db.transaction(tx => {
-        // Create songs table
-        tx.executeSql(`
-            CREATE TABLE IF NOT EXISTS songs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                artist TEXT NOT NULL,
-                album TEXT NOT NULL,
-                release TEXT NOT NULL,
-                rating INTEGER NOT NULL
-            );
-        `);
-    }, (error) => {
-        console.log("Error initializing database: ", error);
-    });
-};
 
 export function Music() {
     const [searchText, setSearchText] = useState(''); // State for search text
