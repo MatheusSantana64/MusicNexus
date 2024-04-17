@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Alert } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import * as SQLite from 'expo-sqlite';
 import SearchBar from '../components/SearchBar';
 import SongList from '../components/SongList';
 import FloatingButton from '../components/FloatingButton';
@@ -8,68 +9,78 @@ import SongFormModal from '../components/SongFormModal';
 import SongOptionsModal from '../components/SongOptionsModal';
 import RatingModal from '../components/RatingModal';
 
-// Constants
-const DATA_FILE = 'musicnexus_data.json';       // File name for json data file
-const SAVE_PATH = FileSystem.documentDirectory; // Path for json data file
-const fileUri = SAVE_PATH + DATA_FILE;          // Full path for json data file
+// Open or create the database
+const db = SQLite.openDatabase('musicnexus.db');
 
 export function Music() {
-    const [searchText, setSearchText] = useState('');                       // State for search text
-    const [showUnrated, setShowUnrated] = useState(false);                  // State for showing unrated songs
+    const [searchText, setSearchText] = useState(''); // State for search text
+    const [showUnrated, setShowUnrated] = useState(false); // State for showing unrated songs
     
-    const [songs, setSongs] = useState([]);                                 // State for songs array
-    const [selectedSong, setSelectedSong] = useState(null);                 // State for selected song to edit
-    const [ratingSong, setRatingSong] = useState(null);                     // State for the song being rated
+    const [songs, setSongs] = useState([]); // State for songs array
+    const [selectedSong, setSelectedSong] = useState(null); // State for selected song to edit
+    const [ratingSong, setRatingSong] = useState(null); // State for the song being rated
     
-    const [isModalVisible, setModalVisible] = useState(false);              // State for SongFormModal visibility
-    const [isSongOptionsVisible, setSongOptionsVisible] = useState(false);  // State for SongOptionsModal visibility
-    const [isRatingModalVisible, setRatingModalVisible] = useState(false);  // State for RatingModal visibility
+    const [isModalVisible, setModalVisible] = useState(false); // State for SongFormModal visibility
+    const [isSongOptionsVisible, setSongOptionsVisible] = useState(false); // State for SongOptionsModal visibility
+    const [isRatingModalVisible, setRatingModalVisible] = useState(false); // State for RatingModal visibility
 
-    // Load songs from file system
-    useEffect(() => {
-        const fetchSongs = async () => {                                            // Async function to fetch songs
-            const fileInfo = await FileSystem.getInfoAsync(fileUri);                // Check if the file exists
-            if (!fileInfo.exists) {
-                await FileSystem.writeAsStringAsync(fileUri, JSON.stringify([]));   // Create the file if it doesn't exist
-            }
+    // Fetch songs from the SQLite database
+    const fetchSongs = async () => {
+        db.transaction(tx => {
+            tx.executeSql(
+                'SELECT * FROM songs',
+                [],
+                (_, { rows: { _array } }) => {
+                    console.log("Fetched songs:", _array); // Debugging statement
+                    setSongs(_array);
+                },
+                (_, error) => console.log('Error fetching songs:', error)
+            );
+        });
+    };
 
-            const result = await FileSystem.readAsStringAsync(fileUri);             // Read the file contents
-            if (result) {
-                setSongs(JSON.parse(result));                                       // Parse the JSON data and set the songs state
-            }
-        };
-
-        fetchSongs();                                                               // Call the async function
-    }, []);
+    // Use useFocusEffect to refresh songs when the screen comes into focus
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchSongs();
+        }, [])
+    );
 
     // Filter songs (Search and Filters)
     const filteredSongs = songs.filter(song => {
         const searchMatch = song.title.toLowerCase().includes(searchText.toLowerCase()) ||
             song.album.toLowerCase().includes(searchText.toLowerCase()) ||
-            song.artist.toLowerCase().includes(searchText.toLowerCase());   // Check if the song's title, album, or artist contains the search text
+            song.artist.toLowerCase().includes(searchText.toLowerCase()); // Check if the song's title, album, or artist contains the search text
         
-        const isUnrated = showUnrated && song.rating === 0;                 // Check if the song is unrated and the filter is enabled
+        const isUnrated = showUnrated && song.rating === 0; // Check if the song is unrated and the filter is enabled
         
-        return searchMatch && (!showUnrated || isUnrated);                  // Return the song if it matches the search and filter criteria
+        return searchMatch && (!showUnrated || isUnrated); // Return the song if it matches the search and filter criteria
     });
 
     // Press Floating Button (Add New Song)
     const handleFloatButtonPress = () => {
-        setModalVisible(true);  // Show the SongFormModal
-        setSelectedSong(null);  // Clear the selected song
+        setModalVisible(true); // Show the SongFormModal
+        setSelectedSong(null); // Clear the selected song
     };
-
-    // State for the last song id (Used to generate new song ids)
-    const [lastId, setLastId] = useState(0);
 
     // Handle Form Submit (Add New Song)
     const handleFormSubmit = async (song) => {
-        const newSong = { ...song, id: lastId + 1, rating: 0 }; // Set rating to 0 for new songs
-        const newSongs = [...songs, newSong];                   // Add the new song to the songs array
-        setSongs(newSongs);                                     // Update the songs state with the new songs array
-        setLastId(lastId + 1);                                  // Update the last id state
-        await FileSystem.writeAsStringAsync(SAVE_PATH + DATA_FILE, JSON.stringify(newSongs)); // Write the new songs array to the file system
-        setModalVisible(false);                                 // Close the modal
+        const newSong = { ...song, rating: 0 }; // Assuming rating is 0 for new songs
+
+        db.transaction(tx => {
+            tx.executeSql(
+                'INSERT INTO songs (title, artist, album, release, rating) VALUES (?, ?, ?, ?, ?)',
+                [newSong.title, newSong.artist, newSong.album, newSong.release, newSong.rating],
+                () => {
+                    console.log('Song added successfully');
+                    // Close the modal
+                    setModalVisible(false);
+                    // Refresh the list of songs
+                    fetchSongs();
+                },
+                (_, error) => console.log('Error adding song:', error)
+            );
+        });
     };
 
     // Handle Card Press (Rating)
@@ -91,48 +102,63 @@ export function Music() {
 
     // Handle Delete Song (Delete Song)
     const handleDeleteSong = () => {
-        if (!selectedSong) return; // Return if no song is selected
-
-        // Show an alert to confirm the deletion
+        if (!selectedSong) return;
+    
         Alert.alert(
             "Delete Song",
             `Are you sure you want to delete "${selectedSong.title}"?`,
             [
                 {
-                    // Cancel button (Close the alert)
                     text: "Cancel",
                     onPress: () => console.log("Cancel Pressed"),
                     style: "cancel"
                 },
                 {
-                    // Delete button (Delete the song from the songs array and write the updated array to the file system)
                     text: "Delete",
                     onPress: async () => {
-                        const updatedSongs = songs.filter(song => song.id !== selectedSong.id); // Filter out the selected song
-                        setSongs(updatedSongs); // Update the songs state with the updated songs array
-                        await FileSystem.writeAsStringAsync(SAVE_PATH + DATA_FILE, JSON.stringify(updatedSongs)); // Write the updated songs array to the file system
-                        setSongOptionsVisible(false); // Close the modal
-                        setSelectedSong(null); // Clear the selected song
+                        db.transaction(tx => {
+                            tx.executeSql(
+                                'DELETE FROM songs WHERE id = ?',
+                                [selectedSong.id],
+                                () => {
+                                    const updatedSongs = songs.filter(song => song.id !== selectedSong.id);
+                                    setSongs(updatedSongs);
+                                    setSongOptionsVisible(false);
+                                    setSelectedSong(null);
+                                },
+                                (_, error) => console.log('Error deleting song:', error)
+                            );
+                        });
                     }
                 }
             ],
-            { cancelable: true } // Allow the alert to be dismissed by tapping outside of it
+            { cancelable: true }
         );
     };
 
     // Handle Edit Form Submit (Update Song Details)
     const handleEditFormSubmit = async (updatedSong) => {
-        const originalSong = songs.find(song => song.id === selectedSong.id); // Find the original song by id
-        const preservedRating = originalSong ? originalSong.rating : updatedSong.rating; // Preserve the original rating if it exists
-        const updatedSongWithRating = { ...updatedSong, id: selectedSong.id, rating: preservedRating }; // Preserve the original rating
-        const updatedSongs = songs.map(song => song.id === selectedSong.id ? updatedSongWithRating : song); // Update the selected song
-        setSongs(updatedSongs); // Update the songs state with the updated songs array
-        await FileSystem.writeAsStringAsync(SAVE_PATH + DATA_FILE, JSON.stringify(updatedSongs)); // Write the updated songs array to the file system
+        // Ensure the updatedSong object includes the id and rating
+        const songWithIdAndRating = { ...updatedSong, id: selectedSong.id, rating: selectedSong.rating };
 
-        // Close the modal and clear the selected song
-        setModalVisible(false);         // Close the modal
-        setSongOptionsVisible(false);   // Close the SongOptionsModal
-        setSelectedSong(null);          // Clear the selected song
+        // Update the songs state with the updated song
+        const updatedSongs = songs.map(song => song.id === selectedSong.id ? songWithIdAndRating : song);
+        setSongs(updatedSongs);
+
+        // Update the song in the SQLite database
+        db.transaction(tx => {
+            tx.executeSql(
+                'UPDATE songs SET title = ?, artist = ?, album = ?, release = ?, rating = ? WHERE id = ?',
+                [songWithIdAndRating.title, songWithIdAndRating.artist, songWithIdAndRating.album, songWithIdAndRating.release, songWithIdAndRating.rating, songWithIdAndRating.id],
+                () => {
+                    console.log('Song updated successfully');
+                    setModalVisible(false); // Close the modal
+                    setSongOptionsVisible(false); // Close the song options modal if open
+                    setSelectedSong(null); // Clear the selected song
+                },
+                (_, error) => console.log('Error updating song:', error)
+            );
+        });
     };
 
     // Handle Edit Press (Edit Song Details)
@@ -143,15 +169,24 @@ export function Music() {
 
     // Handle Rating Select (Update Song Rating)
     const handleRatingSelect = (rating) => {
-        const updatedSongs = songs.map(song => song.id === ratingSong.id ? { ...song, rating } : song); // Update the rating of the selected song
-        setSongs(updatedSongs); // Update the songs state with the updated songs array
+        // Update the rating of the selected song in the SQLite database
+        db.transaction(tx => {
+            tx.executeSql(
+                'UPDATE songs SET rating = ? WHERE id = ?',
+                [rating, ratingSong.id],
+                () => {
+                    // Update the songs state with the updated rating
+                    console.log('Song rating updated successfully');
+                    const updatedSongs = songs.map(song => song.id === ratingSong.id ? { ...song, rating } : song);
+                    setSongs(updatedSongs);
 
-        // Close the RatingModal and clear the rating song
-        setRatingModalVisible(false);
-        setRatingSong(null);
-        
-        // Write the updated songs array to the file system
-        FileSystem.writeAsStringAsync(SAVE_PATH + DATA_FILE, JSON.stringify(updatedSongs));
+                    // Close the RatingModal and clear the rating song
+                    setRatingModalVisible(false);
+                    setRatingSong(null);
+                },
+                (_, error) => console.log('Error updating song rating:', error)
+            );
+        });
     };
 
     // Render the Music screen components (SearchBar, SongList, FloatingButton, Modals)

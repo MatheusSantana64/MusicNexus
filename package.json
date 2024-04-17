@@ -17,6 +17,7 @@
     "expo": "~50.0.14",
     "expo-document-picker": "~11.10.1",
     "expo-file-system": "~16.0.8",
+    "expo-sqlite": "~13.4.0",
     "expo-status-bar": "~1.11.1",
     "musicbrainz-api": "^0.14.0",
     "react": "18.2.0",

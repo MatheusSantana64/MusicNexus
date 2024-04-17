@@ -1,14 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, TouchableOpacity, Text, TouchableWithoutFeedback } from 'react-native';
+import { Modal, View, TouchableOpacity, Text, TouchableWithoutFeedback, StyleSheet } from 'react-native';
 import { Rating } from 'react-native-ratings';
 
 const RatingModal = ({ isVisible, onClose, onRatingSelect, selectedSong }) => {
+    // State to hold the rating value
     const [rating, setRating] = useState(0);
 
-    // Reset rating to the current rating of the selected song or 0 if no song is selected
+    // Update the rating state when the selected song changes
     useEffect(() => {
+        // Show the rating of the selected song or 0 if no song is selected
         setRating(selectedSong ? selectedSong.rating : 0);
     }, [selectedSong]);
+
+    // Function to handle the submission of the rating
+    const handleRatingSubmit = () => {
+        onRatingSelect(rating);
+    };
 
     return (
         <Modal
@@ -18,21 +25,21 @@ const RatingModal = ({ isVisible, onClose, onRatingSelect, selectedSong }) => {
             onRequestClose={onClose}
         >
             <TouchableWithoutFeedback onPress={onClose}>
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <View style={styles.modalContainer}>
                     <TouchableWithoutFeedback onPress={() => {}}>
-                        <View style={{ backgroundColor: '#1e272e', borderRadius: 8, padding: 16, width: '80%' }}>
+                        <View style={styles.ratingContainer}>
                             <Rating
                                 showRating
-                                ratingCount={10} // Number of stars
-                                fractions={1} // Allow half stars
-                                jumpValue={0.5} // Only allow ratings in increments of 0.5
-                                imageSize={30} // Size of the stars
-                                tintColor='#1e272e' // Background color of the stars
-                                startingValue={rating} // Set the initial rating as the current rating of the song
-                                onFinishRating={(rating) => setRating(rating)} // Update the rating when the user selects a new rating
+                                ratingCount={10}
+                                fractions={1}
+                                jumpValue={0.5}
+                                imageSize={30}
+                                tintColor='#1e272e'
+                                startingValue={rating}
+                                onFinishRating={(rating) => setRating(rating)}
                             />
-                            <TouchableOpacity onPress={() => onRatingSelect(rating)} style={{ backgroundColor: 'blue', borderRadius: 8, padding: 10, marginTop: 16 }}>
-                                <Text style={{ color: 'white', textAlign: 'center' }}>Submit Rating</Text>
+                            <TouchableOpacity onPress={handleRatingSubmit} style={styles.submitButton}>
+                                <Text style={styles.submitText}>Submit Rating</Text>
                             </TouchableOpacity>
                         </View>
                     </TouchableWithoutFeedback>
@@ -41,5 +48,30 @@ const RatingModal = ({ isVisible, onClose, onRatingSelect, selectedSong }) => {
         </Modal>
     );
 };
+
+const styles = StyleSheet.create({
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    ratingContainer: {
+        backgroundColor: '#1e272e',
+        borderRadius: 8,
+        padding: 16,
+        width: '80%',
+    },
+    submitButton: {
+        backgroundColor: 'blue',
+        borderRadius: 8,
+        padding: 10,
+        marginTop: 16,
+    },
+    submitText: {
+        color: 'white',
+        textAlign: 'center',
+    },
+});
 
 export default RatingModal;

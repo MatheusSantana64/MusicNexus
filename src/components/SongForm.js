@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TextInput, Button, StyleSheet, Dimensions, TouchableOpacity, Text } from 'react-native';
+import { View, TextInput, Button, StyleSheet, Dimensions, TouchableOpacity, } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const SongForm = ({ song, onSubmit, isEditMode = false, onCancel }) => {

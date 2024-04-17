@@ -1,25 +1,27 @@
 import React from 'react';
 import { View, Button, Alert } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import * as SQLite from 'expo-sqlite';
+
+// Open or create the database
+const db = SQLite.openDatabase('musicnexus.db');
 
 export function Profile() {
-    // Function to handle the deletion of the database
-    const handleDeleteDatabase = async () => {
+    // Function to handle the deletion of all songs in the database
+    const handleDeleteAllSongs = async () => {
         try {
-            // Construct the file path
-            const filePath = FileSystem.documentDirectory + 'musicnexus_data.json';
-
-            // Check if the file exists
-            const fileInfo = await FileSystem.getInfoAsync(filePath);
-            if (fileInfo.exists) {
-                // Delete the file
-                await FileSystem.deleteAsync(filePath);
-                Alert.alert("Success", "Database deleted successfully.");
-            } else {
-                Alert.alert("Error", "Database file does not exist.");
-            }
+            await new Promise((resolve, reject) => {
+                db.transaction(tx => {
+                    tx.executeSql(
+                        'DELETE FROM songs',
+                        [],
+                        () => resolve(),
+                        (_, error) => reject(error)
+                    );
+                });
+            });
+            Alert.alert('Success', 'All songs have been deleted.');
         } catch (error) {
-            Alert.alert("Error", "Failed to delete the database.");
+            Alert.alert('Error', 'Failed to delete all songs.');
         }
     };
 
@@ -35,8 +37,8 @@ export function Profile() {
             }}
         >
             <Button
-                title="Delete Database"
-                onPress={handleDeleteDatabase}
+                title="Delete All Songs"
+                onPress={handleDeleteAllSongs}
                 color="#FF0000"
             />
         </View>
