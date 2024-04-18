@@ -1,4 +1,5 @@
-// Card.js
+// This file contains the Card component which is used to display a song's information in a card format.
+// It includes the song's title, artist, album, release date, rating, and an edit button that allows users to edit the song's information or delete.
 
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
@@ -18,15 +19,20 @@ const Card = ({ song, onCardPress, onEditPress, onLongPress }) => {
         if (song.rating <= 2.5) return 'red';
         if (song.rating > 2.5 && song.rating <= 5) return 'orange';
         if (song.rating > 5 && song.rating <= 7.5) return 'yellow';
-        if (song.rating > 7.5 && song.rating < 10) return 'green';
-        return 'blue';
+        if (song.rating > 7.5 && song.rating < 10) return 'lime';
+        return 'turquoise';
     };
 
     return (
-        <TouchableOpacity onPress={onCardPress} onLongPress={onLongPress} style={styles.cardContainer}>
+        <TouchableOpacity 
+            onPress={onCardPress}
+            onLongPress={onLongPress} 
+            delayLongPress={100}
+            style={styles.cardContainer}
+        >
             <View style={styles.songInfoContainer}>
                 <Image
-                    source={{ uri: 'https://via.placeholder.com/50' }} // Use a URL for the placeholder image
+                    source={{ uri: 'https://via.placeholder.com/50' }} // URL for the placeholder image
                     style={styles.image}
                 />
                 <View style={styles.songInfoTextContainer}>

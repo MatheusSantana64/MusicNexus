@@ -16,6 +16,8 @@ import RatingModal from '../components/RatingModal';
 export function Music() {
     const [searchText, setSearchText] = useState(''); // State for search text
     const [showUnrated, setShowUnrated] = useState(false); // State for showing unrated songs
+    const [orderBy, setOrderBy] = useState('title'); // Default order is by title
+    const [orderDirection, setOrderDirection] = useState('asc'); // Default to ascending
     
     const [songs, setSongs] = useState([]); // State for songs array
     const [selectedSong, setSelectedSong] = useState(null); // State for selected song to edit
@@ -25,21 +27,21 @@ export function Music() {
     const [isSongOptionsVisible, setSongOptionsVisible] = useState(false); // State for SongOptionsModal visibility
     const [isRatingModalVisible, setRatingModalVisible] = useState(false); // State for RatingModal visibility
 
-    useEffect(() => {
-        initDatabase();
-    }, []);
+    useEffect(() => {   // Use useEffect to initialize the database when the component mounts
+        initDatabase(); // Call the initDatabase function to create the songs table
+    }, []);             // Empty dependency array to run the effect only once
 
     // Fetch songs from the SQLite database
-    const fetchSongs = async () => {
-        db.transaction(tx => {
-            tx.executeSql(
-                'SELECT * FROM songs',
-                [],
-                (_, { rows: { _array } }) => {
-                    console.log("Fetched songs:", _array); // Debugging statement
-                    setSongs(_array);
+    const fetchSongs = async () => {    // Define an async function to fetch songs
+        db.transaction(tx => {          // Start a database transaction
+            tx.executeSql(              // Execute SQL query to fetch all songs
+                'SELECT * FROM songs',  // Query to fetch all songs
+                [],                     // No parameters
+                (_, { rows: { _array } }) => {              // Success callback
+                    console.log("Fetched songs:", _array);  // Debugging statement
+                    setSongs(_array);                       // Update the songs state with the fetched songs
                 },
-                (_, error) => console.log('Error fetching songs:', error)
+                (_, error) => console.log('Error fetching songs:', error) // Error callback
             );
         });
     };
@@ -61,6 +63,28 @@ export function Music() {
         
         return searchMatch && (!showUnrated || isUnrated); // Return the song if it matches the search and filter criteria
     });
+
+    // Sort songs based on the selected order and direction
+    const sortSongs = (songs, orderDirection) => {
+        let sortedSongs = [...songs];
+        switch (orderBy) {
+            case 'artist':
+                sortedSongs.sort((a, b) => a.artist.localeCompare(b.artist));
+                break;
+            case 'release':
+                sortedSongs.sort((a, b) => new Date(a.release) - new Date(b.release));
+                break;
+            case 'rating':
+                sortedSongs.sort((a, b) => b.rating - a.rating);
+                break;
+            default:
+                sortedSongs.sort((a, b) => a.title.localeCompare(b.title));
+        }
+        return orderDirection === 'desc' ? sortedSongs.reverse() : sortedSongs;
+    };    
+
+    // Sort the filtered songs based on the selected order and direction
+    const sortedSongs = sortSongs(filteredSongs, orderDirection);
 
     // Press Floating Button (Add New Song)
     const handleFloatButtonPress = () => {
@@ -199,17 +223,21 @@ export function Music() {
     return (
         <View style={{ flex: 1, alignItems: 'center', backgroundColor: '#090909', padding: 16 }}>
             <SearchBar
-                searchText={searchText}         // Pass the searchText state (Search Text)
-                setSearchText={setSearchText}   // Pass the setSearchText function (Update Search Text)
-                showUnrated={showUnrated}       // Pass the showUnrated state (Toggle Filter)
-                setShowUnrated={setShowUnrated} // Pass the setShow Unrated function (Toggle Filter)
+                searchText={searchText}                 // Pass the searchText state (Search Text)
+                setSearchText={setSearchText}           // Pass the setSearchText function (Update Search Text)
+                showUnrated={showUnrated}               // Pass the showUnrated state (Toggle Filter)
+                setShowUnrated={setShowUnrated}         // Pass the setShow Unrated function (Toggle Filter)
+                setOrderBy={setOrderBy}                 // Pass the setOrderBy function (Update Order)
+                setOrderDirection={setOrderDirection}   // Pass the setOrderDirection function (Update Order)
             />
 
             <SongList
-                filteredSongs={filteredSongs}       // Pass the filteredSongs array (Search and Filters)
+                sortedSongs={sortedSongs}         // Pass the sortedSongs array (Search and Filters)
                 handleCardPress={handleCardPress}   // Pass the handleCardPress function (Rating)
                 handleEditPress={handleEditPress}   // Pass the handleEditPress function (Edit Song Details)
                 handleLongPress={handleLongPress}   // Pass the handleLongPress function (Edit/Delete)
+                orderBy={orderBy}                   // Pass the orderBy state here
+                orderDirection={orderDirection}     // Pass the orderDirection state
             />
 
             <FloatingButton onPress={handleFloatButtonPress} />
@@ -230,7 +258,7 @@ export function Music() {
                 handleDeleteSong={handleDeleteSong}             // Pass the handleDeleteSong function (Delete Song)
             />
 
-            {ratingSong && ( // Only render RatingModal if ratingSong is not null
+            {ratingSong && (                                        // Only render RatingModal if ratingSong is not null
                 <RatingModal
                     isVisible={isRatingModalVisible}                // Pass the isRatingModalVisible state (Show/Hide Modal)
                     onClose={() => setRatingModalVisible(false)}    // Pass the setRatingModalVisible function (Show/Hide Modal)
