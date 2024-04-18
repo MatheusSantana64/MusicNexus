@@ -5,7 +5,6 @@
 import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Alert } from 'react-native';
-import * as SQLite from 'expo-sqlite';
 import { initDatabase, db } from '../databaseSetup';
 import SearchBar from '../components/SearchBar';
 import SongList from '../components/SongList';
@@ -73,6 +72,7 @@ export function Music() {
     const handleFormSubmit = async (song) => {
         const newSong = { ...song, rating: 0 }; // Assuming rating is 0 for new songs
 
+        // Add the new song to the SQLite database
         db.transaction(tx => {
             tx.executeSql(
                 'INSERT INTO songs (title, artist, album, release, rating) VALUES (?, ?, ?, ?, ?)',
@@ -89,13 +89,13 @@ export function Music() {
         });
     };
 
-    // Handle Card Press (Rating)
+    // Handle Card Press (Show Rating Modal)
     const handleCardPress = (song) => {
         setRatingSong(song);
         setRatingModalVisible(true);
     };
 
-    // Handle Long Press (Edit/Delete)
+    // Handle Long Press (Show Edit/Delete Modal)
     const handleLongPress = (song) => {
         setSelectedSong(song);
         setSongOptionsVisible(true);
