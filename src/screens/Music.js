@@ -1,6 +1,5 @@
 // This file contains the Music screen component, which is responsible for rendering the Music screen components (SearchBar, SongList, FloatingButton, Modals).
 // The Music screen allows users to search for songs, filter songs by rating, add new songs, edit song details, delete songs, and rate songs.
-// The screen uses SQLite to store and retrieve song data, and it uses modals for adding, editing, and rating songs.
 
 import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -14,34 +13,36 @@ import SongOptionsModal from '../components/SongOptionsModal';
 import RatingModal from '../components/RatingModal';
 
 export function Music() {
-    const [searchText, setSearchText] = useState(''); // State for search text
-    const [showUnrated, setShowUnrated] = useState(false); // State for showing unrated songs
-    const [orderBy, setOrderBy] = useState('title'); // Default order is by title
-    const [orderDirection, setOrderDirection] = useState('asc'); // Default to ascending
+    // Define state variables
+    const [searchText, setSearchText] = useState('');
+    const [showUnrated, setShowUnrated] = useState(false);
+    const [orderBy, setOrderBy] = useState('title');
+    const [orderDirection, setOrderDirection] = useState('asc');
     
-    const [songs, setSongs] = useState([]); // State for songs array
-    const [selectedSong, setSelectedSong] = useState(null); // State for selected song to edit
-    const [ratingSong, setRatingSong] = useState(null); // State for the song being rated
+    const [songs, setSongs] = useState([]);
+    const [selectedSong, setSelectedSong] = useState(null);
+    const [ratingSong, setRatingSong] = useState(null);
     
-    const [isModalVisible, setModalVisible] = useState(false); // State for SongFormModal visibility
-    const [isSongOptionsVisible, setSongOptionsVisible] = useState(false); // State for SongOptionsModal visibility
-    const [isRatingModalVisible, setRatingModalVisible] = useState(false); // State for RatingModal visibility
+    const [isModalVisible, setModalVisible] = useState(false);
+    const [isSongOptionsVisible, setSongOptionsVisible] = useState(false);
+    const [isRatingModalVisible, setRatingModalVisible] = useState(false);
 
-    useEffect(() => {   // Use useEffect to initialize the database when the component mounts
-        initDatabase(); // Call the initDatabase function to create the songs table
-    }, []);             // Empty dependency array to run the effect only once
+    // Initialize the SQLite database
+    useEffect(() => {
+        initDatabase();
+    }, []);
 
     // Fetch songs from the SQLite database
-    const fetchSongs = async () => {    // Define an async function to fetch songs
-        db.transaction(tx => {          // Start a database transaction
-            tx.executeSql(              // Execute SQL query to fetch all songs
-                'SELECT * FROM songs',  // Query to fetch all songs
-                [],                     // No parameters
-                (_, { rows: { _array } }) => {              // Success callback
-                    console.log("Fetched songs:", _array);  // Debugging statement
-                    setSongs(_array);                       // Update the songs state with the fetched songs
+    const fetchSongs = async () => {
+        db.transaction(tx => {
+            tx.executeSql(
+                'SELECT * FROM songs',
+                [],
+                (_, { rows: { _array } }) => {
+                    console.log("Fetched songs:", _array);
+                    setSongs(_array);
                 },
-                (_, error) => console.log('Error fetching songs:', error) // Error callback
+                (_, error) => console.log('Error fetching songs:', error)
             );
         });
     };
@@ -57,11 +58,11 @@ export function Music() {
     const filteredSongs = songs.filter(song => {
         const searchMatch = song.title.toLowerCase().includes(searchText.toLowerCase()) ||
             song.album.toLowerCase().includes(searchText.toLowerCase()) ||
-            song.artist.toLowerCase().includes(searchText.toLowerCase()); // Check if the song's title, album, or artist contains the search text
+            song.artist.toLowerCase().includes(searchText.toLowerCase());
         
-        const isUnrated = showUnrated && song.rating === 0; // Check if the song is unrated and the filter is enabled
+        const isUnrated = showUnrated && song.rating === 0;
         
-        return searchMatch && (!showUnrated || isUnrated); // Return the song if it matches the search and filter criteria
+        return searchMatch && (!showUnrated || isUnrated);
     });
 
     // Sort songs based on the selected order and direction
@@ -88,13 +89,13 @@ export function Music() {
 
     // Press Floating Button (Add New Song)
     const handleFloatButtonPress = () => {
-        setModalVisible(true); // Show the SongFormModal
-        setSelectedSong(null); // Clear the selected song
+        setModalVisible(true);
+        setSelectedSong(null);
     };
 
     // Handle Form Submit (Add New Song)
     const handleFormSubmit = async (song) => {
-        const newSong = { ...song, rating: 0 }; // Assuming rating is 0 for new songs
+        const newSong = { ...song, rating: 0 };
 
         // Add the new song to the SQLite database
         db.transaction(tx => {
@@ -103,9 +104,9 @@ export function Music() {
                 [newSong.title, newSong.artist, newSong.album, newSong.release, newSong.rating],
                 () => {
                     console.log('Song added successfully');
-                    // Close the modal
+                    
                     setModalVisible(false);
-                    // Refresh the list of songs
+                    
                     fetchSongs();
                 },
                 (_, error) => console.log('Error adding song:', error)
@@ -123,7 +124,7 @@ export function Music() {
     const handleLongPress = (song) => {
         setSelectedSong(song);
         setSongOptionsVisible(true);
-    };    
+    };
 
     // Handle Edit Song (Edit Song Details)
     const handleEditSong = () => {
@@ -168,23 +169,20 @@ export function Music() {
 
     // Handle Edit Form Submit (Update Song Details)
     const handleEditFormSubmit = async (updatedSong) => {
-        // Ensure the updatedSong object includes the id and rating
         const songWithIdAndRating = { ...updatedSong, id: selectedSong.id, rating: selectedSong.rating };
 
-        // Update the songs state with the updated song
         const updatedSongs = songs.map(song => song.id === selectedSong.id ? songWithIdAndRating : song);
         setSongs(updatedSongs);
 
-        // Update the song in the SQLite database
         db.transaction(tx => {
             tx.executeSql(
                 'UPDATE songs SET title = ?, artist = ?, album = ?, release = ?, rating = ? WHERE id = ?',
                 [songWithIdAndRating.title, songWithIdAndRating.artist, songWithIdAndRating.album, songWithIdAndRating.release, songWithIdAndRating.rating, songWithIdAndRating.id],
                 () => {
                     console.log('Song updated successfully');
-                    setModalVisible(false); // Close the modal
-                    setSongOptionsVisible(false); // Close the song options modal if open
-                    setSelectedSong(null); // Clear the selected song
+                    setModalVisible(false);
+                    setSongOptionsVisible(false);
+                    setSelectedSong(null);
                 },
                 (_, error) => console.log('Error updating song:', error)
             );
@@ -193,24 +191,20 @@ export function Music() {
 
     // Handle Edit Press (Edit Song Details)
     const handleEditPress = (song) => {
-        setSelectedSong(song);          // Set the selected song
-        setSongOptionsVisible(true);    // Show the SongOptionsModal
+        setSelectedSong(song);
+        setSongOptionsVisible(true);
     };
 
     // Handle Rating Select (Update Song Rating)
     const handleRatingSelect = (rating) => {
-        // Update the rating of the selected song in the SQLite database
         db.transaction(tx => {
             tx.executeSql(
                 'UPDATE songs SET rating = ? WHERE id = ?',
                 [rating, ratingSong.id],
                 () => {
-                    // Update the songs state with the updated rating
                     console.log('Song rating updated successfully');
                     const updatedSongs = songs.map(song => song.id === ratingSong.id ? { ...song, rating } : song);
                     setSongs(updatedSongs);
-
-                    // Close the RatingModal and clear the rating song
                     setRatingModalVisible(false);
                     setRatingSong(null);
                 },
@@ -223,47 +217,47 @@ export function Music() {
     return (
         <View style={{ flex: 1, alignItems: 'center', backgroundColor: '#090909', padding: 16 }}>
             <SearchBar
-                searchText={searchText}                 // Pass the searchText state (Search Text)
-                setSearchText={setSearchText}           // Pass the setSearchText function (Update Search Text)
-                showUnrated={showUnrated}               // Pass the showUnrated state (Toggle Filter)
-                setShowUnrated={setShowUnrated}         // Pass the setShow Unrated function (Toggle Filter)
-                setOrderBy={setOrderBy}                 // Pass the setOrderBy function (Update Order)
-                setOrderDirection={setOrderDirection}   // Pass the setOrderDirection function (Update Order)
+                searchText={searchText}
+                setSearchText={setSearchText}
+                showUnrated={showUnrated}
+                setShowUnrated={setShowUnrated}
+                setOrderBy={setOrderBy}
+                setOrderDirection={setOrderDirection}
             />
 
             <SongList
-                sortedSongs={sortedSongs}         // Pass the sortedSongs array (Search and Filters)
-                handleCardPress={handleCardPress}   // Pass the handleCardPress function (Rating)
-                handleEditPress={handleEditPress}   // Pass the handleEditPress function (Edit Song Details)
-                handleLongPress={handleLongPress}   // Pass the handleLongPress function (Edit/Delete)
-                orderBy={orderBy}                   // Pass the orderBy state here
-                orderDirection={orderDirection}     // Pass the orderDirection state
+                sortedSongs={sortedSongs}
+                handleCardPress={handleCardPress}
+                handleEditPress={handleEditPress}
+                handleLongPress={handleLongPress}
+                orderBy={orderBy}
+                orderDirection={orderDirection}
             />
 
             <FloatingButton onPress={handleFloatButtonPress} />
 
             <SongFormModal
-                isModalVisible={isModalVisible}             // Pass the isModalVisible state (Show/Hide Modal)
-                setModalVisible={setModalVisible}           // Pass the setModalVisible function (Show/Hide Modal)
-                selectedSong={selectedSong}                 // Pass the selectedSong state (Song to Edit)
-                handleFormSubmit={handleFormSubmit}         // Pass the handleFormSubmit function (Add New Song)
-                handleEditFormSubmit={handleEditFormSubmit} // Pass the handleEditFormSubmit function (Update Song Details)
-                onCancel={() => setModalVisible(false)}     // Pass the onCancel function (Close Modal)
+                isModalVisible={isModalVisible}
+                setModalVisible={setModalVisible}
+                selectedSong={selectedSong}
+                handleFormSubmit={handleFormSubmit}
+                handleEditFormSubmit={handleEditFormSubmit}
+                onCancel={() => setModalVisible(false)}
             />
 
             <SongOptionsModal
-                isSongOptionsVisible={isSongOptionsVisible}     // Pass the isSongOptionsVisible state (Show/Hide Modal)
-                setSongOptionsVisible={setSongOptionsVisible}   // Pass the setSongOptionsVisible function (Show/Hide Modal)
-                handleEditSong={handleEditSong}                 // Pass the handleEditSong function (Edit Song Details)
-                handleDeleteSong={handleDeleteSong}             // Pass the handleDeleteSong function (Delete Song)
+                isSongOptionsVisible={isSongOptionsVisible}
+                setSongOptionsVisible={setSongOptionsVisible}
+                handleEditSong={handleEditSong}
+                handleDeleteSong={handleDeleteSong}
             />
 
-            {ratingSong && (                                        // Only render RatingModal if ratingSong is not null
+            {ratingSong && (
                 <RatingModal
-                    isVisible={isRatingModalVisible}                // Pass the isRatingModalVisible state (Show/Hide Modal)
-                    onClose={() => setRatingModalVisible(false)}    // Pass the setRatingModalVisible function (Show/Hide Modal)
-                    onRatingSelect={handleRatingSelect}             // Pass the handleRatingSelect function (Update Song Rating)
-                    selectedSong={ratingSong}                       // Pass the ratingSong state (Song to Rate)
+                    isVisible={isRatingModalVisible}
+                    onClose={() => setRatingModalVisible(false)}
+                    onRatingSelect={handleRatingSelect}
+                    selectedSong={ratingSong}
                 />
             )}
         </View>
