@@ -6,14 +6,21 @@ import { View, TextInput, Button, StyleSheet, Dimensions, TouchableOpacity, } fr
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const SongForm = ({ song, onSubmit, isEditMode = false, onCancel }) => {
-    const [title, setTitle] = React.useState(isEditMode ? song.title : '');
-    const [artist, setArtist] = React.useState(isEditMode ? song.artist : '');
-    const [album, setAlbum] = React.useState(isEditMode ? song.album : '');
-    const [release, setRelease] = React.useState(isEditMode ? song.release : new Date().toISOString().split('T')[0]);
+    const [title, setTitle] = React.useState(isEditMode && song.title !== "Unknown Title" ? song.title : '');
+    const [artist, setArtist] = React.useState(isEditMode && song.artist !== "Unknown Artist" ? song.artist : '');
+    const [album, setAlbum] = React.useState(isEditMode && song.album !== "Unknown Album" ? song.album : '');
+    const [release, setRelease] = React.useState(isEditMode && song.release !== "1900-01-01" ? song.release : new Date().toISOString().split('T')[0]);
     const [datePickerVisible, setDatePickerVisible] = React.useState(false);
 
     const handleSubmit = () => {
-        onSubmit({ title, artist, album, release });
+        // Check for empty or undefined values and set them to "Unknown"
+        const songData = {
+            title: title || "Unknown Title",
+            artist: artist || "Unknown Artist",
+            album: album || "Unknown Album",
+            release: release || "1900-01-01",
+        };
+        onSubmit(songData);
     };
 
     return (

@@ -2,17 +2,10 @@
 // It includes the song's title, artist, album, release date, rating, and an edit button that allows users to edit the song's information or delete.
 
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 
 const Card = ({ song, onCardPress, onEditPress, onLongPress }) => {
-    // Function to render song information with a fallback text
-    const renderSongInfo = (info, fallbackText) => (
-        <Text style={styles.songInfo}>
-            {song[info] ? song[info] : fallbackText}
-        </Text>
-    );
-
     // Function to render the color of the rating based on its value
     const renderRatingColor = () => {
         if (song.rating === 0) return 'grey';
@@ -31,15 +24,11 @@ const Card = ({ song, onCardPress, onEditPress, onLongPress }) => {
             style={styles.cardContainer}
         >
             <View style={styles.songInfoContainer}>
-                <Image
-                    source={{ uri: 'https://via.placeholder.com/50' }} // URL for the placeholder image
-                    style={styles.image}
-                />
                 <View style={styles.songInfoTextContainer}>
                     <Text style={styles.songTitle}>{song.title || 'Unknown Title'}</Text>
-                    {renderSongInfo('artist', 'Unknown Artist')}
-                    {renderSongInfo('album', 'Unknown Album')}
-                    {renderSongInfo('release', 'Unknown Release Date')}
+                    <Text style={styles.songInfo}>{song.artist || 'Unknown Artist'}</Text>
+                    <Text style={styles.songInfo}>{song.album || 'Unknown Album'}</Text>
+                    <Text style={styles.songInfo}>{song.release || 'Unknown Release Date'}</Text>
                 </View>
             </View>
             
@@ -109,4 +98,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Card;
+export default React.memo(Card);

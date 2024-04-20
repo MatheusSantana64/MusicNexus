@@ -1,14 +1,18 @@
 // This file contains the Profile screen, which allows the user to delete all songs in the database, check stats, and more personal information.
 
-import React from 'react';
-import { View, Button, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Button, Alert, Text, Modal, StyleSheet } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { initDatabase } from '../databaseSetup'; // Import the initDatabase function
-import { db } from '../databaseSetup'; // Import the db variable
+import { initDatabase } from '../databaseSetup';
+import { db } from '../databaseSetup';
 
 export function Profile() {
+    const [importProgress, setImportProgress] = useState(0);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [totalSongs, setTotalSongs] = useState(0);
+
     // Function to handle the deletion of all songs in the database
     const handleDeleteData = async () => {
         try {
@@ -80,7 +84,7 @@ export function Profile() {
         }
     };
 
-    // Function to handle the backup of all songs in the database
+    // Function to handle the backup of all songs in the database to a JSON file
     const handleBackupData = async () => {
         try {
             // Fetch all songs from the database
@@ -117,8 +121,10 @@ export function Profile() {
         }
     };
 
+    // Function to handle the import of all songs from a JSON file
     const handleImportData = async () => {
-        console.log("Attempting to import data..."); // Log statement to confirm function call
+        console.log("Attempting to import data...");
+        setIsModalVisible(true); // Show the modal when the import starts
         try {
             const result = await DocumentPicker.getDocumentAsync({
                 type: 'application/json',
@@ -129,20 +135,13 @@ export function Profile() {
                 const fileContent = await FileSystem.readAsStringAsync(result.assets[0].uri);
                 console.log("File read successfully, content length:", fileContent.length);
 
-                let songs;
-                try {
-                    songs = JSON.parse(fileContent);
-                    console.log("JSON parsed successfully, number of songs:", songs.length);
-                } catch (error) {
-                    console.error("Error parsing JSON:", error);
-                    Alert.alert('Error', 'Failed to parse the JSON file. Error: ' + error.message);
-                    return;
-                }
+                let songs = JSON.parse(fileContent);
+                console.log("JSON parsed successfully, number of songs:", songs.length);
+                setTotalSongs(songs.length);
 
-                // Insert the imported songs into the database
+                console.log(`Starting import of ${songs.length} songs...`);
+
                 await insertSongsIntoDatabase(songs);
-
-                Alert.alert('Success', 'Songs have been imported successfully.');
             } else {
                 console.log("No file selected.");
                 Alert.alert('Error', 'No file selected.');
@@ -150,20 +149,55 @@ export function Profile() {
         } catch (error) {
             console.error('Import process failed:', error);
             Alert.alert('Error', 'Failed to import songs. Error: ' + error.message);
+        } finally {
+            setIsModalVisible(false);
         }
     };
 
-    const insertSongsIntoDatabase = async (songs) => {
-        db.transaction(tx => {
-            songs.forEach(song => {
-                // Adjust the INSERT statement to exclude the 'id' field
-                tx.executeSql(
-                    'INSERT INTO songs (title, artist, album, release, rating) VALUES (?, ?, ?, ?, ?)',
-                    [song.title, song.artist, song.album, song.release, song.rating],
-                    () => console.log('Song imported successfully'),
-                    (_, error) => console.log('Error importing song:', error)
-                );
-            });
+    const insertSongsIntoDatabase = (songs) => {
+        return new Promise((resolve) => {
+            let insertedSongs = 0;
+            let errors = [];
+
+            const insertSong = (song) => {
+                return new Promise((resolve) => {
+                    db.transaction(tx => {
+                        const title = (typeof song.title === 'string' ? song.title : "Unknown Title").replace(/'/g, "''");
+                        const artist = (typeof song.artist === 'string' ? song.artist : "Unknown Artist").replace(/'/g, "''");
+                        const album = (typeof song.album === 'string' ? song.album : "Unknown Album").replace(/'/g, "''");
+                        const release = song.release || "1900-01-01";
+                        const rating = song.rating || 0;
+                        const sql = `INSERT INTO songs (title, artist, album, release, rating) VALUES ('${title}', '${artist}', '${album}', '${release}', ${rating})`;
+
+                        tx.executeSql(
+                            sql,
+                            [],
+                            () => {
+                                insertedSongs++;
+                                const progress = (insertedSongs / songs.length) * 100;
+                                setImportProgress(progress);
+                                resolve();
+                            },
+                            (_, error) => {
+                                errors.push(error);
+                                resolve();
+                            }
+                        );
+                    });
+                });
+            };
+
+            Promise.all(songs.map(insertSong))
+                .then(() => {
+                    if (errors.length > 0) {
+                        console.log('Some songs failed to insert:', errors);
+                        Alert.alert('Error', 'Some songs failed to insert.');
+                    } else {
+                        console.log('All songs inserted successfully');
+                        Alert.alert('Success', 'Songs have been imported successfully.');
+                    }
+                    resolve();
+                });
         });
     };
 
@@ -173,26 +207,82 @@ export function Profile() {
                 flex: 1,
                 alignItems: 'center',
                 justifyContent: 'flex-end',
-                paddingBottom: 64,
+                paddingBottom: 16,
                 backgroundColor: '#090909',
                 padding: 16,
             }}
         >
-            <Button
-                title="Delete Data"
-                onPress={handleDeleteData}
-                color="#FF0000"
-            />
-            <Button
-                title="Backup Songs"
-                onPress={handleBackupData}
-                color="#00FF00"
-            />
-            <Button
-                title="Import Songs"
-                onPress={handleImportData}
-                color="#0000FF"
-            />
+            <View style={{ marginBottom: 10, width: '80%' }}>
+                <Button
+                    title="Backup Songs"
+                    onPress={handleBackupData}
+                    color="green"
+                    style={{ width: '100%' }}
+                />
+            </View>
+            <View style={{ marginBottom: 10, width: '80%' }}>
+                <Button
+                    title="Import Songs"
+                    onPress={handleImportData}
+                    color="blue"
+                    style={{ width: '100%' }}
+                />
+            </View>
+            <View style={{ marginBottom: 10, width: '80%' }}>
+                <Button
+                    title="Delete Data"
+                    onPress={handleDeleteData}
+                    color="red"
+                    style={{ width: '100%' }}
+                />
+            </View>
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={isModalVisible}
+                onRequestClose={() => {
+                    setIsModalVisible(!isModalVisible);
+                }}
+            >
+                <View style={styles.centeredView}>
+                    <View style={styles.modalView}>
+                        <Text style={styles.modalText}>Importing {totalSongs} songs...</Text>
+                        <Text style={styles.modalText}>Please keep the app open.</Text>
+                        <Text style={styles.modalText}>Progress: {importProgress.toFixed(2)}%</Text>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    centeredView: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        marginTop: 22,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    modalView: {
+        margin: 20,
+        backgroundColor: "#1e272e",
+        borderRadius: 20,
+        padding: 35,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5
+    },
+    modalText: {
+        marginBottom: 15,
+        textAlign: "center",
+        color: 'white',
+        fontSize: 16,
+    }
+});

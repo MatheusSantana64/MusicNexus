@@ -20,6 +20,11 @@ export const initDatabase = () => {
             );
         `);
 
+        // Create indexes for faster searching
+        tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_title_artist_album ON songs(title, artist, album);');
+        tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_rating ON songs(rating);');
+        tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_release ON songs(release);');
+
         // Create tags table
         tx.executeSql(`
             CREATE TABLE IF NOT EXISTS tags (

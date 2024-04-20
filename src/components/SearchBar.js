@@ -2,13 +2,26 @@
 // It allows users to search for songs by title, artist, or album, and toggle the display of unrated songs.
 
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, Keyboard } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 
-const SearchBar = ({ searchText, setSearchText, showUnrated, setShowUnrated, setOrderBy, setOrderDirection }) => {
-    const [order, setOrder] = useState('title'); // Default order is by title
-    const [orderDirection, setOrderDirectionState] = useState('asc'); // Default to ascending
+const SearchBar = ({ setSearchText, showUnrated, setShowUnrated, setOrderBy, setOrderDirection }) => {
+    const [inputText, setInputText] = useState('');
+    const [order, setOrder] = useState('title');
+    const [orderDirection, setOrderDirectionState] = useState('asc');
 
+    // Function to handle the Enter key press
+    const handleEnterPress = () => {
+        setSearchText(inputText);
+        Keyboard.dismiss();
+    };
+
+    // Function to clear the search input
+    const clearSearchInput = () => {
+        setInputText('');
+        setSearchText('');
+    };    
+    
     // Function to toggle the order and update the button text
     const toggleOrder = () => {
         let newOrder;
@@ -48,14 +61,13 @@ const SearchBar = ({ searchText, setSearchText, showUnrated, setShowUnrated, set
     const toggleOrderDirection = () => {
         const newDirection = orderDirection === 'asc' ? 'desc' : 'asc';
         setOrderDirectionState(newDirection);
-        setOrderDirection(newDirection); // Update the order direction in the parent component
+        setOrderDirection(newDirection); 
     };
 
     // Function to determine the color based on the order direction state
     const getOrderDirectionColor = () => {
         return orderDirection === 'asc' ? 'springgreen' : 'tomato';
     };
-
 
     return (
         <View style={styles.container}>
@@ -64,8 +76,15 @@ const SearchBar = ({ searchText, setSearchText, showUnrated, setShowUnrated, set
                     placeholder="Search"
                     placeholderTextColor='white'
                     style={styles.input}
-                    onChangeText={setSearchText}
+                    value={inputText} // Bind the TextInput value to the inputText state
+                    onChangeText={setInputText} // Update the input text state
+                    onSubmitEditing={handleEnterPress} // Trigger the search on Enter key press
                 />
+                {inputText && (
+                    <TouchableOpacity onPress={clearSearchInput} style={styles.clearButton}>
+                        <Icon name="x" size={30} color="white" />
+                    </TouchableOpacity>
+                )}
             </View>
             
             <View style={styles.buttonsContainer}>
@@ -109,7 +128,7 @@ const styles = StyleSheet.create({
         height: 32,
         paddingHorizontal: 16,
         width: '100%',
-        fontSize: 12,
+        fontSize: 16,
     },
     buttonsContainer: {
         flexDirection: 'row',
@@ -133,6 +152,10 @@ const styles = StyleSheet.create({
     },
     orderDirectionButton: {
         marginLeft: 10,
+    },
+    clearButton: {
+        position: 'absolute',
+        right: 10,
     },
 });
 

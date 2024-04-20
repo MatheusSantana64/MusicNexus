@@ -18,11 +18,11 @@ export function Music() {
     const [showUnrated, setShowUnrated] = useState(false);
     const [orderBy, setOrderBy] = useState('title');
     const [orderDirection, setOrderDirection] = useState('asc');
-    
+
     const [songs, setSongs] = useState([]);
     const [selectedSong, setSelectedSong] = useState(null);
     const [ratingSong, setRatingSong] = useState(null);
-    
+
     const [isModalVisible, setModalVisible] = useState(false);
     const [isSongOptionsVisible, setSongOptionsVisible] = useState(false);
     const [isRatingModalVisible, setRatingModalVisible] = useState(false);
@@ -32,12 +32,29 @@ export function Music() {
         initDatabase();
     }, []);
 
-    // Fetch songs from the SQLite database
-    const fetchSongs = async () => {
+    // Fetch songs from the SQLite database with dynamic query and pagination
+    const fetchSongs = async (searchText, showUnrated, orderBy, orderDirection) => {
+        let query = 'SELECT * FROM songs';
+        let params = [];
+
+        // Add WHERE clause for search text
+        if (searchText) {
+            query += ' WHERE title LIKE ? OR artist LIKE ? OR album LIKE ?';
+            params.push(`%${searchText}%`, `%${searchText}%`, `%${searchText}%`);
+        }
+
+        // Add WHERE clause for unrated songs
+        if (showUnrated) {
+            query += searchText ? ' AND rating = 0' : ' WHERE rating = 0';
+        }
+
+        // Add ORDER BY clause
+        query += ' ORDER BY ' + orderBy + ' ' + orderDirection;
+
         db.transaction(tx => {
             tx.executeSql(
-                'SELECT * FROM songs',
-                [],
+                query,
+                params,
                 (_, { rows: { _array } }) => {
                     console.log("Fetched songs:", _array);
                     setSongs(_array);
@@ -47,11 +64,16 @@ export function Music() {
         });
     };
 
-    // Use useFocusEffect to refresh songs when the screen comes into focus
+    // Fetch songs on component mount and when the search text, show unrated, order by, or order direction changes
+    useEffect(() => {
+        fetchSongs(searchText, showUnrated, orderBy, orderDirection);
+    }, [searchText, showUnrated, orderBy, orderDirection]);
+
+    // Use useFocusEffect to call fetchSongs whenever the Music screen comes into focus
     useFocusEffect(
         React.useCallback(() => {
-            fetchSongs();
-        }, [])
+            fetchSongs(searchText, showUnrated, orderBy, orderDirection);
+        }, [searchText, showUnrated, orderBy, orderDirection])
     );
 
     // Filter songs (Search and Filters)
@@ -107,7 +129,7 @@ export function Music() {
                     
                     setModalVisible(false);
                     
-                    fetchSongs();
+                    fetchSongs(searchText, showUnrated, orderBy, orderDirection);;
                 },
                 (_, error) => console.log('Error adding song:', error)
             );
@@ -215,7 +237,7 @@ export function Music() {
 
     // Render the Music screen components (SearchBar, SongList, FloatingButton, Modals)
     return (
-        <View style={{ flex: 1, alignItems: 'center', backgroundColor: '#090909', padding: 16 }}>
+        <View style={{ flex: 1, alignItems: 'center', backgroundColor: '#090909', paddingHorizontal: 16, paddingTop: 16 }}>
             <SearchBar
                 searchText={searchText}
                 setSearchText={setSearchText}

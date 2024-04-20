@@ -1,7 +1,7 @@
 // The SongList component is a reusable component that renders a list of songs.
 // It uses the FlatList component to render a list of songs as Card components.
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { FlatList } from 'react-native';
 import Card from './Card';
 
@@ -12,6 +12,11 @@ const SongList = ({ sortedSongs, handleCardPress, handleEditPress, handleLongPre
         return item.id ? item.id.toString() : `fallback-key-${index}`;
     };
 
+    // Wrap the functions with useCallback to prevent unnecessary re-renders
+    const handleCardPressCallback = useCallback(handleCardPress, []);
+    const handleEditPressCallback = useCallback(handleEditPress, []);
+    const handleLongPressCallback = useCallback(handleLongPress, []);
+
     // Render the list of songs
     return (
         <FlatList
@@ -19,11 +24,15 @@ const SongList = ({ sortedSongs, handleCardPress, handleEditPress, handleLongPre
             keyExtractor={keyExtractor}
             renderItem={({ item }) =>
                 <Card song={item}
-                    onCardPress={() => handleCardPress(item)}
-                    onEditPress={() => handleEditPress(item)}
-                    onLongPress={() => handleLongPress(item)}
+                    onCardPress={() => handleCardPressCallback(item)}
+                    onEditPress={() => handleEditPressCallback(item)}
+                    onLongPress={() => handleLongPressCallback(item)}
                 />}
             style={{ width: '100%' }}
+            removeClippedSubviews={true}
+            windowSize={10}
+            maxToRenderPerBatch={10}
+            initialNumToRender={10}
         />
     );
 };
