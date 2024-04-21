@@ -15,9 +15,9 @@ import RatingModal from '../components/RatingModal';
 export function Music() {
     // Define state variables
     const [searchText, setSearchText] = useState('');
-    const [showUnrated, setShowUnrated] = useState(false);
     const [orderBy, setOrderBy] = useState('title');
     const [orderDirection, setOrderDirection] = useState('asc');
+    const [ratingRange, setRatingRange] = useState({ min: 0, max: 10 });
 
     const [songs, setSongs] = useState([]);
     const [selectedSong, setSelectedSong] = useState(null);
@@ -27,82 +27,79 @@ export function Music() {
     const [isSongOptionsVisible, setSongOptionsVisible] = useState(false);
     const [isRatingModalVisible, setRatingModalVisible] = useState(false);
 
+    const [offset, setOffset] = useState(0);
+    const [hasMoreSongs, setHasMoreSongs] = useState(true);
+
     // Initialize the SQLite database
     useEffect(() => {
         initDatabase();
     }, []);
 
     // Fetch songs from the SQLite database with dynamic query and pagination
-    const fetchSongs = async (searchText, showUnrated, orderBy, orderDirection) => {
+    const fetchSongs = async (searchText, orderBy, orderDirection, offset = 0, isScroll = false, ratingRange = { min: 0, max: 10 }) => {
+        if (!isScroll) {
+            setSongs([]);
+            setOffset(0);
+        }
+
         let query = 'SELECT * FROM songs';
         let params = [];
+    
+        // Split search text into individual words
+        const searchWords = searchText.split(' '); 
 
         // Add WHERE clause for search text
-        if (searchText) {
-            query += ' WHERE title LIKE ? OR artist LIKE ? OR album LIKE ?';
-            params.push(`%${searchText}%`, `%${searchText}%`, `%${searchText}%`);
+        if (searchWords.length > 0) {
+            query += ' WHERE ';
+            const conditions = searchWords.map((word, index) => {
+                const placeholder = `word${index}`;
+                params.push(`%${word}%`, `%${word}%`, `%${word}%`);
+                return `(title LIKE ? OR artist LIKE ? OR album LIKE ?)`;
+            }).join(' AND ');
+            query += conditions;
         }
-
-        // Add WHERE clause for unrated songs
-        if (showUnrated) {
-            query += searchText ? ' AND rating = 0' : ' WHERE rating = 0';
+    
+        // Add WHERE clause for rating range
+        if (ratingRange.min !== 0 || ratingRange.max !== 10) {
+            query += ' AND rating >= ? AND rating <= ?';
+            params.push(ratingRange.min, ratingRange.max);
         }
-
+        
         // Add ORDER BY clause
-        query += ' ORDER BY ' + orderBy + ' ' + orderDirection;
-
+        query += ' ORDER BY ' + orderBy + ' ' + orderDirection + ', title ASC';
+    
+        // Add LIMIT and OFFSET clauses
+        query += ' LIMIT 100 OFFSET ?';
+        params.push(offset);
+    
         db.transaction(tx => {
             tx.executeSql(
                 query,
                 params,
                 (_, { rows: { _array } }) => {
                     console.log("Fetched songs:", _array);
-                    setSongs(_array);
+                    console.log("Executing SQL query:", query, "with parameters:", params);
+                    setSongs(prevSongs => [...prevSongs, ..._array]);
+                    setHasMoreSongs(_array.length >= 100);
                 },
                 (_, error) => console.log('Error fetching songs:', error)
             );
         });
+    };    
+
+    // Fetch more songs when the user scrolls down the list
+    const fetchMoreSongs = () => {
+        const newOffset = offset + 20;
+        fetchSongs(searchText, orderBy, orderDirection, newOffset, true, ratingRange);
+        setOffset(newOffset);
     };
 
     // Fetch songs when the screen is focused
     useFocusEffect(
         React.useCallback(() => {
-            fetchSongs(searchText, showUnrated, orderBy, orderDirection);
-        }, [searchText, showUnrated, orderBy, orderDirection])
+            fetchSongs(searchText, orderBy, orderDirection, 0, false, ratingRange);
+        }, [searchText, orderBy, orderDirection, ratingRange])
     );
-
-    // Filter songs (Search and Filters)
-    const filteredSongs = songs.filter(song => {
-        const searchMatch = song.title.toLowerCase().includes(searchText.toLowerCase()) ||
-            song.album.toLowerCase().includes(searchText.toLowerCase()) ||
-            song.artist.toLowerCase().includes(searchText.toLowerCase());
-        
-        const isUnrated = showUnrated && song.rating === 0;
-        
-        return searchMatch && (!showUnrated || isUnrated);
-    });
-
-    // Sort songs based on the selected order and direction
-    const sortSongs = (songs, orderDirection) => {
-        let sortedSongs = [...songs];
-        switch (orderBy) {
-            case 'artist':
-                sortedSongs.sort((a, b) => a.artist.localeCompare(b.artist));
-                break;
-            case 'release':
-                sortedSongs.sort((a, b) => new Date(a.release) - new Date(b.release));
-                break;
-            case 'rating':
-                sortedSongs.sort((a, b) => b.rating - a.rating);
-                break;
-            default:
-                sortedSongs.sort((a, b) => a.title.localeCompare(b.title));
-        }
-        return orderDirection === 'desc' ? sortedSongs.reverse() : sortedSongs;
-    };    
-
-    // Sort the filtered songs based on the selected order and direction
-    const sortedSongs = sortSongs(filteredSongs, orderDirection);
 
     // Press Floating Button (Add New Song)
     const handleFloatButtonPress = () => {
@@ -124,7 +121,7 @@ export function Music() {
                     
                     setModalVisible(false);
                     
-                    fetchSongs(searchText, showUnrated, orderBy, orderDirection);;
+                    fetchSongs(searchText, showUnrated, orderBy, orderDirection, 0, false);
                 },
                 (_, error) => console.log('Error adding song:', error)
             );
@@ -237,19 +234,21 @@ export function Music() {
             <SearchBar
                 searchText={searchText}
                 setSearchText={setSearchText}
-                showUnrated={showUnrated}
-                setShowUnrated={setShowUnrated}
                 setOrderBy={setOrderBy}
                 setOrderDirection={setOrderDirection}
+                ratingRange={ratingRange}
+                setRatingRange={setRatingRange}            
             />
 
             <SongList
-                sortedSongs={sortedSongs}
+                songs={songs}
                 handleCardPress={handleCardPress}
                 handleEditPress={handleEditPress}
                 handleLongPress={handleLongPress}
                 orderBy={orderBy}
                 orderDirection={orderDirection}
+                fetchMoreSongs={fetchMoreSongs}
+                hasMoreSongs={hasMoreSongs}
             />
 
             <FloatingButton onPress={handleFloatButtonPress} />

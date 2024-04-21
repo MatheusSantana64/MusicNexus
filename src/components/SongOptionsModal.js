@@ -2,7 +2,8 @@
 // It allows users to edit or delete a song by providing buttons for each action.
 
 import React from 'react';
-import { Modal, TouchableWithoutFeedback, View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { TouchableWithoutFeedback, View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import Modal from 'react-native-modal';
 
 const SongOptionsModal = ({
     isSongOptionsVisible,
@@ -17,30 +18,35 @@ const SongOptionsModal = ({
     // Render the modal with the song options
     return (
         <Modal
-            animationType="slide"
-            transparent={true}
-            visible={isSongOptionsVisible}
-            onRequestClose={handleModalClose}
+            isVisible={isSongOptionsVisible}
+            onBackdropPress={handleModalClose}
+            onBackButtonPress={handleModalClose}
+            useNativeDriverForBackdrop={true}
+            hideModalContentWhileAnimating={true}
+            animationInTiming={100}
+            animationOutTiming={100}
+            children={
+                <TouchableWithoutFeedback onPress={handleModalClose}>
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                        <TouchableWithoutFeedback onPress={() => {}}>
+                            <View style={styles.optionsContainer}>
+
+                                <Text style={styles.optionsTitle}>Song Options</Text>
+
+                                <TouchableOpacity onPress={handleEditSong} style={styles.editButton}>
+                                    <Text style={styles.optionText}>Edit Song</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity onPress={handleDeleteSong} style={styles.deleteButton}>
+                                    <Text style={styles.optionText}>Delete Song</Text>
+                                </TouchableOpacity>
+
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            }
         >
-            <TouchableWithoutFeedback onPress={handleModalClose}>
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <TouchableWithoutFeedback onPress={() => {}}>
-                        <View style={styles.optionsContainer}>
-
-                            <Text style={styles.optionsTitle}>Song Options</Text>
-
-                            <TouchableOpacity onPress={handleEditSong} style={styles.editButton}>
-                                <Text style={styles.optionText}>Edit Song</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity onPress={handleDeleteSong} style={styles.deleteButton}>
-                                <Text style={styles.optionText}>Delete Song</Text>
-                            </TouchableOpacity>
-
-                        </View>
-                    </TouchableWithoutFeedback>
-                </View>
-            </TouchableWithoutFeedback>
         </Modal>
     );
 };

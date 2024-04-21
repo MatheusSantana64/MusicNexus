@@ -3,8 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, TouchableOpacity, Text, TouchableWithoutFeedback, StyleSheet } from 'react-native';
-import { Rating } from 'react-native-ratings';
-import Modal from 'react-native-modal';
+import { Rating } from 'react-native-ratings'; // https://www.npmjs.com/package/react-native-ratings
+import Modal from 'react-native-modal'; // https://www.npmjs.com/package/react-native-modal
 
 const RatingModal = ({ isVisible, onClose, onRatingSelect, selectedSong }) => {
     // State to hold the rating value
@@ -29,44 +29,50 @@ const RatingModal = ({ isVisible, onClose, onRatingSelect, selectedSong }) => {
             onBackdropPress={onClose}
             onBackButtonPress={onClose}
             style={styles.modalContainer}
-            backdropOpacity={0.5}
-        >
-            <TouchableWithoutFeedback onPress={onClose}>
-                <View style={styles.modalContainer}>
-                    <TouchableWithoutFeedback onPress={() => {}}>
-                        <View style={styles.ratingContainer}>
-                            <Rating
-                                showRating
-                                ratingCount={10}
-                                fractions={1}
-                                jumpValue={0.5}
-                                imageSize={30}
-                                tintColor='#1e272e'
-                                startingValue={rating}
-                                onFinishRating={(rating) => setRating(rating)}
-                            />
-                            <TouchableOpacity onPress={handleRatingSubmit} style={styles.submitButton}>
-                                <Text style={styles.submitText}>Submit Rating</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </TouchableWithoutFeedback>
-                </View>
-            </TouchableWithoutFeedback>
+            useNativeDriverForBackdrop={true}
+            hideModalContentWhileAnimating={true}
+            animationInTiming={100}
+            animationOutTiming={100}
+            children={
+                <TouchableWithoutFeedback onPress={onClose}>
+                    <View style={styles.modalContainer}>
+                        <TouchableWithoutFeedback onPress={() => {}}>
+                            <View style={styles.ratingContainer}>
+                                <Rating
+                                    showRating
+                                    ratingCount={10}
+                                    fractions={1}
+                                    jumpValue={0.5}
+                                    imageSize={30}
+                                    tintColor='#1e272e'
+                                    startingValue={rating}
+                                    onFinishRating={(rating) => setRating(rating)}
+                                />
+                                <TouchableOpacity onPress={handleRatingSubmit} style={styles.submitButton}>
+                                    <Text style={styles.submitText}>Submit Rating</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            }
+        > 
         </Modal>
     );
 };
 
 const styles = StyleSheet.create({
     modalContainer: {
-        flex: 1,
-        justifyContent: 'center',
+        margin: 0,
+        width: '100%',
         alignItems: 'center',
     },
     ratingContainer: {
-        backgroundColor: '#1e272e',
+        backgroundColor: '#1e272e',  
         borderRadius: 8,
         padding: 16,
         width: '80%',
+        alignItems: 'stretch', // 'stretch' is necessary for stars to look fine for some reason
     },
     submitButton: {
         backgroundColor: 'blue',

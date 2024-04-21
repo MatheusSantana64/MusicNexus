@@ -2,7 +2,7 @@
 // It includes the song's title, artist, album, release date, rating, and an edit button that allows users to edit the song's information or delete.
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 
 const Card = ({ song, onCardPress, onEditPress, onLongPress }) => {
@@ -23,6 +23,12 @@ const Card = ({ song, onCardPress, onEditPress, onLongPress }) => {
             delayLongPress={100}
             style={styles.cardContainer}
         >
+            <Image
+                source={require('../../assets/placeholder60.png')} // URL for the placeholder image
+                resizeMode="cover"
+                resizeMethod="resize"
+                style={styles.image}
+            />
             <View style={styles.songInfoContainer}>
                 <View style={styles.songInfoTextContainer}>
                     <Text style={styles.songTitle}>{song.title || 'Unknown Title'}</Text>
@@ -61,9 +67,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     image: {
-        width: 65,
-        height: 65,
-        marginRight: 20,
+        width: 60,
+        height: 60,
+        marginRight: 10,
     },
     songInfoTextContainer: {
         flex: 1,

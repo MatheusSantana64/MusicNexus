@@ -6,8 +6,7 @@ import { View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import Card from './Card';
 
-const SongList = ({ sortedSongs, handleCardPress, handleEditPress, handleLongPress }) => {
-
+const SongList = ({ songs, handleCardPress, handleEditPress, handleLongPress, fetchMoreSongs, hasMoreSongs }) => {
     // Wrap the functions with useCallback to prevent unnecessary re-renders
     const handleCardPressCallback = useCallback(handleCardPress, []);
     const handleEditPressCallback = useCallback(handleEditPress, []);
@@ -15,21 +14,31 @@ const SongList = ({ sortedSongs, handleCardPress, handleEditPress, handleLongPre
 
     const CARD_HEIGHT = 90;
 
+    const handleScroll = (event) => {
+        const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+        const isEndReached = layoutMeasurement.height + contentOffset.y >= contentSize.height - 2000;
+        if (isEndReached && hasMoreSongs) {
+            fetchMoreSongs();
+        }
+    };
+
     // Render the list of songs
     return (
-        <View style={{height: '100%', width: '100%',}}>
+        <View style={{flex: 1, height: '100%', width: '100%',}}>
             <FlashList
-                data={sortedSongs}
+                data={songs}
                 renderItem={({ item }) =>
                     <Card song={item}
                         onCardPress={() => handleCardPressCallback(item)}
                         onEditPress={() => handleEditPressCallback(item)}
                         onLongPress={() => handleLongPressCallback(item)}
                     />}
-                keyExtractor={(item) => item.id.toString()}
+                keyExtractor={item => item.id}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
                 removeClippedSubviews={true}
-                windowSize={1}
-                maxToRenderPerBatch={10}
+                windowSize={21}
+                maxToRenderPerBatch={100}
                 initialNumToRender={10}
                 getItemLayout={(_, index) => (
                     {length: CARD_HEIGHT, offset: CARD_HEIGHT * index, index}

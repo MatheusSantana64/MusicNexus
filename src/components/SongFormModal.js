@@ -2,8 +2,9 @@
 // It allows users to add or edit song information by providing input fields for the song title, artist, album, and release date.
 
 import React from 'react';
-import { Modal, TouchableWithoutFeedback, StyleSheet, View } from 'react-native';
+import { TouchableWithoutFeedback, StyleSheet, View } from 'react-native';
 import SongForm from './SongForm';
+import Modal from 'react-native-modal';
 
 const SongFormModal = ({
  isModalVisible,
@@ -26,25 +27,30 @@ const SongFormModal = ({
     // Render the modal with the song form
     return (
         <Modal
-            animationType="slide"
-            transparent={true}
-            visible={isModalVisible}
-            onRequestClose={handleModalClose}
+            isVisible={isModalVisible}
+            onBackdropPress={handleModalClose}
+            onBackButtonPress={handleModalClose}
+            useNativeDriverForBackdrop={true}
+            hideModalContentWhileAnimating={true}
+            animationInTiming={100}
+            animationOutTiming={100}
+            children={
+                <TouchableWithoutFeedback onPress={handleModalClose}>
+                    <View style={styles.modalContainer}>
+                        <TouchableWithoutFeedback onPress={() => {}}>
+                            <View>
+                                <SongForm
+                                    song={selectedSong}
+                                    onSubmit={handleFormSubmitWrapper}
+                                    isEditMode={!!selectedSong}
+                                    onCancel={handleModalClose}
+                                />
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            }
         >
-            <TouchableWithoutFeedback onPress={handleModalClose}>
-                <View style={styles.modalContainer}>
-                    <TouchableWithoutFeedback onPress={() => {}}>
-                        <View>
-                            <SongForm
-                                song={selectedSong}
-                                onSubmit={handleFormSubmitWrapper}
-                                isEditMode={!!selectedSong}
-                                onCancel={handleModalClose}
-                            />
-                        </View>
-                    </TouchableWithoutFeedback>
-                </View>
-            </TouchableWithoutFeedback>
         </Modal>
     );
 };
