@@ -4,12 +4,14 @@
 import React, { useState, useCallback } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Keyboard } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import Modal from 'react-native-modal';
 import RangeSlider from 'rn-range-slider'; 
 
 const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, setRatingRange }) => {
     const [inputText, setInputText] = useState('');
     const [order, setOrder] = useState('title');
     const [orderDirection, setOrderDirectionState] = useState('asc');
+    const [modalVisible, setModalVisible] = useState(false); // State for modal visibility
 
     // Add state for the slider values
     const [low, setLow] = useState(0);
@@ -20,7 +22,11 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
         setLow(low);
         setHigh(high);
         setRatingRange({ min: low, max: high }); // Update the parent component's state
-    }, []);    
+    }, []);
+
+    const toggleModal = () => {
+        setModalVisible(!modalVisible);
+    };
 
     // Function to handle the Enter key press
     const handleEnterPress = () => {
@@ -81,6 +87,22 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
         return orderDirection === 'asc' ? 'springgreen' : 'tomato';
     };
 
+    // Function to reset the rating range
+    const resetRatingRange = () => {
+        setLow(0);
+        setHigh(10);
+        setRatingRange({ min: 0, max: 10 }); // Update the parent component's state
+        toggleModal();
+    };
+
+    // Function to reset the rating range
+    const notRatedRange = () => {
+        setLow(0);
+        setHigh(0);
+        setRatingRange({ min: 0, max: 0 }); // Update the parent component's state
+        toggleModal();
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.inputContainer}>
@@ -103,21 +125,49 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
             </View>
             
             <View style={styles.buttonsContainer}>
-                <Text style={{ color: 'white', marginRight: 8 }}>Rating: {low} - {high}</Text>
-                <RangeSlider
-                    style={styles.slider}
-                    min={0}
-                    max={10}
-                    step={0.5}
-                    floatingLabel
-                    renderThumb={() => <View style={{ height: 20, width: 20, backgroundColor: 'lightgray', borderRadius: 10 }} />}
-                    renderRail={() => <View style={{ height: 10, width: '100%', backgroundColor: 'gray', borderRadius: 10 }} />}
-                    renderRailSelected={() => <View style={{ height: 10, width: '100%', backgroundColor: 'darkblue' }} />}
-                    renderLabel={value => <Text style={{ color: 'white' }}>{value}</Text>}
-                    onSliderTouchEnd={handleValueChange}
-                    low={low}
-                    high={high}
-                />
+            <TouchableOpacity onPress={toggleModal} style={styles.ratingTextContainer}>
+                    <Text style={{ color: 'white', marginRight: 8 }}>Rating: {low} - {high}</Text>
+                </TouchableOpacity>
+                <Modal
+                    isVisible={modalVisible}
+                    onBackdropPress={toggleModal}
+                    onBackButtonPress={toggleModal}
+                    style={styles.modalContainer}
+                    useNativeDriverForBackdrop={true}
+                    hideModalContentWhileAnimating={true}
+                    animationInTiming={100}
+                    animationOutTiming={100}
+                >
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Rating:</Text>
+                        <Text style={styles.modalSubtitle}>{low} ~ {high}</Text>
+                        <View style={styles.sliderContainer}>
+                            <RangeSlider
+                                style={styles.slider}
+                                min={0}
+                                max={10}
+                                step={0.5}
+                                floatingLabel={false}
+                                renderThumb={() => <View style={{ height: 40, width: 40, backgroundColor: 'lightgray', borderRadius: 20 }} />}
+                                renderRail={() => <View style={{ height: 30, width: '100%', backgroundColor: 'gray', borderRadius: 15 }} />}
+                                renderRailSelected={() => <View style={{ height: 30, width: '100%', backgroundColor: 'darkblue' }} />}
+                                renderLabel={value => <Text style={{ fontSize: 32, color: 'aqua' }}>{value}</Text>}
+                                onSliderTouchEnd={handleValueChange}
+                                low={low}
+                                high={high}
+                            />
+                        </View>
+                        <TouchableOpacity onPress={resetRatingRange} style={styles.resetButton}>
+                            <Text style={styles.closeText}>Show All Songs</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={notRatedRange} style={styles.notRatedButton}>
+                            <Text style={styles.closeText}>Show Not Rated</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={toggleModal} style={styles.closeButton}>
+                            <Text style={styles.closeText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Modal>
                 
                 <View style={styles.orderButtonsContainer}>
                     <TouchableOpacity onPress={toggleOrder} style={styles.orderButton}>
@@ -189,9 +239,64 @@ const styles = StyleSheet.create({
     searchButton: {
         marginLeft: 10,
     },
+
+    modalContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: '#1e272e',
+        padding: 20,
+        borderRadius: 8,
+        width: '100%',
+        alignItems: 'center', // Center the content horizontally
+        justifyContent: 'center', // Center the content vertically
+    },
+    modalTitle: {
+        color: 'white',
+        fontSize: 24,
+    },
+    modalSubtitle: {
+        color: 'white',
+        fontSize: 28,
+        marginBottom: 32,
+    },
+    sliderContainer: { // Adjusted container for the slider
+        width: '100%', // Ensure the container takes the full width
+        height: 50, // Define a specific height for the slider container
+        justifyContent: 'center', // Center the slider vertically
+        alignItems: 'center', // Center the slider horizontally
+        marginBottom: 16,
+    },
     slider: {
         width: '100%',
         flex: 1,
+    },
+    resetButton: {
+        marginTop: 60,
+        backgroundColor: 'darkgreen',
+        borderRadius: 8,
+        padding: 10,
+        width: '80%',
+    },
+    notRatedButton: {
+        marginTop: 10,
+        backgroundColor: 'darkred',
+        borderRadius: 8,
+        padding: 10,
+        width: '80%',
+    },
+    closeButton: {
+        marginTop: 10,
+        backgroundColor: 'rebeccapurple',
+        borderRadius: 8,
+        padding: 10,
+        width: '80%',
+    },
+    closeText: {
+        color: 'white',
+        fontSize: 16,
+        textAlign: 'center',
     },
 });
 
