@@ -48,13 +48,12 @@ const Card = ({ song, onCardPress, onEditPress, onLongPress }) => {
 const styles = StyleSheet.create({
     cardContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         backgroundColor: '#1e272e',
         borderRadius: 8,
         padding: 10,
         marginBottom: 10,
         width: '100%',
+        height: 80,
     },
     songInfoContainer: {
         flexDirection: 'row',

@@ -2,8 +2,9 @@
 // It displays a modal with a star rating component and a submit button.
 
 import React, { useState, useEffect } from 'react';
-import { Modal, View, TouchableOpacity, Text, TouchableWithoutFeedback, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, TouchableWithoutFeedback, StyleSheet } from 'react-native';
 import { Rating } from 'react-native-ratings';
+import Modal from 'react-native-modal';
 
 const RatingModal = ({ isVisible, onClose, onRatingSelect, selectedSong }) => {
     // State to hold the rating value
@@ -11,21 +12,24 @@ const RatingModal = ({ isVisible, onClose, onRatingSelect, selectedSong }) => {
 
     // Update the rating state when the selected song changes
     useEffect(() => {
+        console.log(`Song rating updated successfully for song: ${selectedSong.title} by ${selectedSong.artist}, New Rating: ${rating}`);
         // Show the rating of the selected song or 0 if no song is selected
         setRating(selectedSong ? selectedSong.rating : 0);
     }, [selectedSong]);
 
     // Function to handle the submission of the rating
     const handleRatingSubmit = () => {
+        console.log(`Rating submitted for song: ${selectedSong.title} by ${selectedSong.artist}, Rating: ${rating}`);
         onRatingSelect(rating);
     };
 
     return (
         <Modal
-            animationType="slide"
-            transparent={true}
-            visible={isVisible}
-            onRequestClose={onClose}
+            isVisible={isVisible}
+            onBackdropPress={onClose}
+            onBackButtonPress={onClose}
+            style={styles.modalContainer}
+            backdropOpacity={0.5}
         >
             <TouchableWithoutFeedback onPress={onClose}>
                 <View style={styles.modalContainer}>
@@ -57,7 +61,6 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
     },
     ratingContainer: {
         backgroundColor: '#1e272e',

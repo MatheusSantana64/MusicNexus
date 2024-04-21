@@ -1,5 +1,5 @@
 // This file contains the code to initialize the SQLite database.
-// It creates the songs, tags, and song_tags tables if they do not already exist.
+// It creates the songs, indexes, tags, and song_tags tables if they do not already exist.
 
 import * as SQLite from 'expo-sqlite';
 
@@ -24,6 +24,9 @@ export const initDatabase = () => {
         tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_title_artist_album ON songs(title, artist, album);');
         tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_rating ON songs(rating);');
         tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_release ON songs(release);');
+        tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_title ON songs(title);');
+        tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_artist ON songs(artist);');
+        tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_album ON songs(album);');
 
         // Create tags table
         tx.executeSql(`

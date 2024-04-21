@@ -64,12 +64,7 @@ export function Music() {
         });
     };
 
-    // Fetch songs on component mount and when the search text, show unrated, order by, or order direction changes
-    useEffect(() => {
-        fetchSongs(searchText, showUnrated, orderBy, orderDirection);
-    }, [searchText, showUnrated, orderBy, orderDirection]);
-
-    // Use useFocusEffect to call fetchSongs whenever the Music screen comes into focus
+    // Fetch songs when the screen is focused
     useFocusEffect(
         React.useCallback(() => {
             fetchSongs(searchText, showUnrated, orderBy, orderDirection);
@@ -138,6 +133,7 @@ export function Music() {
 
     // Handle Card Press (Show Rating Modal)
     const handleCardPress = (song) => {
+        console.log(`Song selected for rating: ${song.title} by ${song.artist}`);
         setRatingSong(song);
         setRatingModalVisible(true);
     };
@@ -224,7 +220,7 @@ export function Music() {
                 'UPDATE songs SET rating = ? WHERE id = ?',
                 [rating, ratingSong.id],
                 () => {
-                    console.log('Song rating updated successfully');
+                    console.log(`Song rating updated successfully for song: ${ratingSong.title} by ${ratingSong.artist}, New Rating: ${rating}`);
                     const updatedSongs = songs.map(song => song.id === ratingSong.id ? { ...song, rating } : song);
                     setSongs(updatedSongs);
                     setRatingModalVisible(false);
