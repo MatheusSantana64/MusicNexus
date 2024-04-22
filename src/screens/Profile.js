@@ -5,13 +5,33 @@ import { View, Button, Alert, Text, Modal, StyleSheet } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { initDatabase } from '../databaseSetup';
-import { db } from '../databaseSetup';
+import { db, initDatabase } from '../database/databaseSetup';
 
 export function Profile() {
     const [importProgress, setImportProgress] = useState(0);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [totalSongs, setTotalSongs] = useState(0);
+
+    // Add this function inside the Profile component in Profile.js
+    const handleDeleteCache = async () => {
+        try {
+            const directoryUri = FileSystem.cacheDirectory;
+            const { size, exists, isDirectory, uri } = await FileSystem.getInfoAsync(directoryUri);
+            if (exists && isDirectory) {
+                const files = await FileSystem.readDirectoryAsync(directoryUri);
+                for (const file of files) {
+                    const fileUri = `${directoryUri}${file}`;
+                    await FileSystem.deleteAsync(fileUri, { idempotent: true });
+                }
+                Alert.alert('Success', 'Cache deleted successfully.');
+            } else {
+                Alert.alert('Error', 'Cache directory does not exist or is not a directory.');
+            }
+        } catch (error) {
+            console.error('Error deleting cache:', error);
+            Alert.alert('Error', 'Failed to delete cache. Error: ' + error.message);
+        }
+    };
 
     // Function to handle the deletion of all songs in the database
     const handleDeleteData = async () => {
@@ -233,6 +253,14 @@ export function Profile() {
                     title="Delete Data"
                     onPress={handleDeleteData}
                     color="red"
+                    style={{ width: '100%' }}
+                />
+            </View>
+            <View style={{ marginBottom: 10, width: '80%' }}>
+                <Button
+                    title="Delete Cache"
+                    onPress={handleDeleteCache}
+                    color="purple"
                     style={{ width: '100%' }}
                 />
             </View>

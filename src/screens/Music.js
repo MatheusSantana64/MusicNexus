@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Alert } from 'react-native';
-import { initDatabase, db } from '../databaseSetup';
+import { initDatabase, db } from '../database/databaseSetup';
 import SearchBar from '../components/SearchBar';
 import SongList from '../components/SongList';
 import FloatingButton from '../components/FloatingButton';
@@ -107,21 +107,19 @@ export function Music() {
         setSelectedSong(null);
     };
 
-    // Handle Form Submit (Add New Song)
+    // In Music.js, modify the handleFormSubmit function
     const handleFormSubmit = async (song) => {
-        const newSong = { ...song, rating: 0 };
+        const newSong = { ...song, rating: 0, cover_path: '' };
 
         // Add the new song to the SQLite database
         db.transaction(tx => {
             tx.executeSql(
-                'INSERT INTO songs (title, artist, album, release, rating) VALUES (?, ?, ?, ?, ?)',
-                [newSong.title, newSong.artist, newSong.album, newSong.release, newSong.rating],
-                () => {
+                'INSERT INTO songs (title, artist, album, release, rating, cover_path) VALUES (?, ?, ?, ?, ?, ?)',
+                [newSong.title, newSong.artist, newSong.album, newSong.release, newSong.rating, newSong.cover_path],
+                async () => {
                     console.log('Song added successfully');
-                    
                     setModalVisible(false);
-                    
-                    fetchSongs(searchText, showUnrated, orderBy, orderDirection, 0, false);
+                    fetchSongs(searchText, orderBy, orderDirection, 0, false);
                 },
                 (_, error) => console.log('Error adding song:', error)
             );
@@ -144,6 +142,35 @@ export function Music() {
     // Handle Edit Song (Edit Song Details)
     const handleEditSong = () => {
         setModalVisible(true);
+    };
+
+    // Handle Edit Form Submit (Update Song Details)
+    const handleEditFormSubmit = async (updatedSong) => {
+        const songWithIdAndRating = { ...updatedSong, id: selectedSong.id, rating: selectedSong.rating };
+    
+        const updatedSongs = songs.map(song => song.id === selectedSong.id ? songWithIdAndRating : song);
+        setSongs(updatedSongs);
+    
+        db.transaction(tx => {
+            tx.executeSql(
+                'UPDATE songs SET title = ?, artist = ?, album = ?, release = ?, rating = ?, cover_path = ? WHERE id = ?',
+                [songWithIdAndRating.title, songWithIdAndRating.artist, songWithIdAndRating.album, songWithIdAndRating.release, songWithIdAndRating.rating, '', songWithIdAndRating.id],
+                () => {
+                    console.log('Song updated successfully');
+                    setModalVisible(false);
+                    setSongOptionsVisible(false);
+                    setSelectedSong(null);
+                    fetchSongs(searchText, orderBy, orderDirection, 0, false);
+                },
+                (_, error) => console.log('Error updating song:', error)
+            );
+        });
+    };
+    
+    // Handle Edit Press (Edit Song Details)
+    const handleEditPress = (song) => {
+        setSelectedSong(song);
+        setSongOptionsVisible(true);
     };
 
     // Handle Delete Song (Delete Song)
@@ -180,34 +207,6 @@ export function Music() {
             ],
             { cancelable: true }
         );
-    };
-
-    // Handle Edit Form Submit (Update Song Details)
-    const handleEditFormSubmit = async (updatedSong) => {
-        const songWithIdAndRating = { ...updatedSong, id: selectedSong.id, rating: selectedSong.rating };
-
-        const updatedSongs = songs.map(song => song.id === selectedSong.id ? songWithIdAndRating : song);
-        setSongs(updatedSongs);
-
-        db.transaction(tx => {
-            tx.executeSql(
-                'UPDATE songs SET title = ?, artist = ?, album = ?, release = ?, rating = ? WHERE id = ?',
-                [songWithIdAndRating.title, songWithIdAndRating.artist, songWithIdAndRating.album, songWithIdAndRating.release, songWithIdAndRating.rating, songWithIdAndRating.id],
-                () => {
-                    console.log('Song updated successfully');
-                    setModalVisible(false);
-                    setSongOptionsVisible(false);
-                    setSelectedSong(null);
-                },
-                (_, error) => console.log('Error updating song:', error)
-            );
-        });
-    };
-
-    // Handle Edit Press (Edit Song Details)
-    const handleEditPress = (song) => {
-        setSelectedSong(song);
-        setSongOptionsVisible(true);
     };
 
     // Handle Rating Select (Update Song Rating)
@@ -267,6 +266,7 @@ export function Music() {
                 setSongOptionsVisible={setSongOptionsVisible}
                 handleEditSong={handleEditSong}
                 handleDeleteSong={handleDeleteSong}
+                selectedSong={selectedSong}
             />
 
             {ratingSong && (

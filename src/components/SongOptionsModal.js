@@ -4,16 +4,27 @@
 import React from 'react';
 import { TouchableWithoutFeedback, View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import Modal from 'react-native-modal';
+import { generateCacheKey } from '../api/MusicBrainzAPI';
+import { deleteImageFromCache } from '../utils/cacheManager';
 
 const SongOptionsModal = ({
     isSongOptionsVisible,
     setSongOptionsVisible,
     handleEditSong,
     handleDeleteSong,
+    selectedSong,
 }) => {
 
     // Function to handle the closing of the modal when the user taps outside of it
     const handleModalClose = () => setSongOptionsVisible(false);
+
+    // Function to handle the delete of the cover image for the selected song
+    const handleDeleteCover = () => {
+        console.log(`Deleting cover for song: Artist - ${selectedSong.artist}, Album - ${selectedSong.album}`);
+        const cacheKey = generateCacheKey(selectedSong.artist, selectedSong.album);
+        deleteImageFromCache(cacheKey);
+        setSongOptionsVisible(false);
+    };
 
     // Render the modal with the song options
     return (
@@ -41,6 +52,9 @@ const SongOptionsModal = ({
                                     <Text style={styles.optionText}>Delete Song</Text>
                                 </TouchableOpacity>
 
+                                <TouchableOpacity onPress={handleDeleteCover} style={styles.reloadButton}>
+                                    <Text style={styles.optionText}>Reload Cover</Text>
+                                </TouchableOpacity>
                             </View>
                         </TouchableWithoutFeedback>
                     </View>
@@ -84,6 +98,12 @@ const styles = StyleSheet.create({
     optionText: {
         color: 'white',
         textAlign: 'center',
+    },
+    reloadButton: {
+        backgroundColor: 'green',
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 16,
     },
 });   
 

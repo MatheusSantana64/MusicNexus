@@ -28,12 +28,12 @@ const SongList = ({ songs, handleCardPress, handleEditPress, handleLongPress, fe
             <FlashList
                 data={songs}
                 renderItem={({ item }) =>
-                    <Card song={item}
+                    <Card key={item.id} song={item}
                         onCardPress={() => handleCardPressCallback(item)}
                         onEditPress={() => handleEditPressCallback(item)}
                         onLongPress={() => handleLongPressCallback(item)}
                     />}
-                keyExtractor={item => item.id}
+                keyExtractor={item => item.id.toString()}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 removeClippedSubviews={true}

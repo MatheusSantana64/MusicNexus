@@ -16,7 +16,8 @@ export const initDatabase = () => {
                 artist TEXT NOT NULL,
                 album TEXT NOT NULL,
                 release TEXT NOT NULL,
-                rating INTEGER NOT NULL
+                rating INTEGER NOT NULL,
+                cover_path TEXT
             );
         `);
 
