@@ -110,7 +110,7 @@ export function Music() {
     // In Music.js, modify the handleFormSubmit function
     const handleFormSubmit = async (song) => {
         const newSong = { ...song, rating: 0, cover_path: '' };
-
+    
         // Add the new song to the SQLite database
         db.transaction(tx => {
             tx.executeSql(
@@ -118,8 +118,7 @@ export function Music() {
                 [newSong.title, newSong.artist, newSong.album, newSong.release, newSong.rating, newSong.cover_path],
                 async () => {
                     console.log('Song added successfully');
-                    setModalVisible(false);
-                    fetchSongs(searchText, orderBy, orderDirection, 0, false);
+                    fetchSongs(searchText, orderBy, orderDirection, 0, false, ratingRange);
                 },
                 (_, error) => console.log('Error adding song:', error)
             );
@@ -157,10 +156,9 @@ export function Music() {
                 [songWithIdAndRating.title, songWithIdAndRating.artist, songWithIdAndRating.album, songWithIdAndRating.release, songWithIdAndRating.rating, '', songWithIdAndRating.id],
                 () => {
                     console.log('Song updated successfully');
-                    setModalVisible(false);
                     setSongOptionsVisible(false);
                     setSelectedSong(null);
-                    fetchSongs(searchText, orderBy, orderDirection, 0, false);
+                    fetchSongs(searchText, orderBy, orderDirection, 0, false, ratingRange);
                 },
                 (_, error) => console.log('Error updating song:', error)
             );
