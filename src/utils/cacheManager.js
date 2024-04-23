@@ -6,8 +6,9 @@ import * as FileSystem from 'expo-file-system';
 const cacheDirectory = FileSystem.cacheDirectory;
 
 const downloadImage = async (url, filename) => {
+    const webpUrl = `${url}?format=webp`;
     const uri = `${cacheDirectory}${filename}`;
-    const { uri: localUri } = await FileSystem.downloadAsync(url, uri);
+    const { uri: localUri } = await FileSystem.downloadAsync(webpUrl, uri);
     return localUri;
 };
 

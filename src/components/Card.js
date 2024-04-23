@@ -61,14 +61,14 @@ const Card = ({ song, onCardPress, onEditPress, onLongPress }) => {
                 <Image
                     source={{ uri: coverUrl }}
                     resizeMode="cover"
-                    resizeMethod="resize"
+                    resizeMethod="scale"
                     style={styles.image}
                 />
             ) : (
                 <Image
                     source={require('../../assets/placeholder60.png')} // Fallback to placeholder image
                     resizeMode="cover"
-                    resizeMethod="resize"
+                    resizeMethod="scale"
                     style={styles.image}
                 />
             )}
