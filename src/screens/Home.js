@@ -1,72 +1,97 @@
-// This file is the home screen of the application. For now, it displays the list of unrated songs and favorite songs.
+// This file is the home screen of the application. It displays the list of not rated songs (rating = 0) and favorite songs (rating >= 8).
+// It also allows users to search for songs online and add it to their list.
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
-import * as FileSystem from 'expo-file-system';
-import Card from '../components/Card';
-
-const DATA_FILE = 'musicnexus_data.json';
-const SAVE_PATH = FileSystem.documentDirectory;
-const fileUri = SAVE_PATH + DATA_FILE;
+import { View, TextInput, Button, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { fetchAlbumCover } from '../api/MusicBrainzAPI';
+import { initDatabase, db } from '../database/databaseSetup';
+import SongList from '../components/SongList';
+import SongFormModal from '../components/SongFormModal';
 
 export function Home() {
-    const [songs, setSongs] = useState([]);
-    const [unratedSongs, setUnratedSongs] = useState([]);
-    const [favoriteSongs, setFavoriteSongs] = useState([]);
+    const [searchText, setSearchText] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [isModalVisible, setModalVisible] = useState(false);
+    const [selectedSong, setSelectedSong] = useState(null);
 
     useEffect(() => {
-        const fetchSongs = async () => {
-            const fileInfo = await FileSystem.getInfoAsync(fileUri);
-            if (!fileInfo.exists) {
-                await FileSystem.writeAsStringAsync(fileUri, JSON.stringify([]));
-            }
-
-            const result = await FileSystem.readAsStringAsync(fileUri);
-            if (result) {
-                const parsedSongs = JSON.parse(result);
-                setSongs(parsedSongs);
-                setUnratedSongs(parsedSongs.filter(song => song.rating === 0));
-                setFavoriteSongs(parsedSongs.filter(song => song.rating >= 8));
-            }
-        };
-
-        fetchSongs();
+        initDatabase();
     }, []);
+
+    const handleSearch = async () => {
+        // Placeholder for the search functionality
+        // You would typically call an API to search for songs based on the searchText
+        // For demonstration, we'll just simulate fetching data
+        const results = await fetchAlbumCover(searchText); // This function should be implemented to fetch data from the MusicBrainz API
+        setSearchResults(results);
+    };
+
+    const handleSongSelect = (song) => {
+        setSelectedSong(song);
+        setModalVisible(true);
+    };
+
+    const handleFormSubmit = async (song) => {
+        db.transaction(tx => {
+            tx.executeSql(
+                'INSERT INTO songs (title, artist, album, release, rating, cover_path) VALUES (?, ?, ?, ?, ?, ?)',
+                [song.title, song.artist, song.album, song.release, 0, ''],
+                () => {
+                    console.log('Song added successfully');
+                    setModalVisible(false);
+                    // Optionally, fetch the updated list of songs
+                },
+                (_, error) => console.log('Error adding song:', error)
+            );
+        });
+    };
 
     return (
         <View style={styles.container}>
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Unrated Songs</Text>
-                <FlatList
-                    data={unratedSongs}
-                    renderItem={({ item }) => <Card song={item} />}
-                    keyExtractor={item => item.id.toString()}
-                />
-            </View>
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Favorite Songs</Text>
-                <FlatList
-                    data={favoriteSongs}
-                    renderItem={({ item }) => <Card song={item} />}
-                    keyExtractor={item => item.id.toString()}
-                />
-            </View>
+            <TextInput
+                placeholder="Search for songs"
+                value={searchText}
+                onChangeText={setSearchText}
+                style={styles.searchInput}
+            />
+            <Button title="Search" onPress={handleSearch} />
+            <SongList
+                songs={searchResults}
+                handleCardPress={handleSongSelect}
+                // Add other necessary props
+            />
+            <SongFormModal
+                isModalVisible={isModalVisible}
+                setModalVisible={setModalVisible}
+                selectedSong={selectedSong}
+                handleFormSubmit={handleFormSubmit}
+                onCancel={() => setModalVisible(false)}
+            />
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        alignItems: 'center',
         backgroundColor: '#090909',
-        padding: 16,
+        paddingHorizontal: 16,
+        paddingTop: 16,
     },
-    section: {
-        marginBottom: 20,
-    },
-    sectionTitle: {
-        color: 'white',
-        fontSize: 18,
+    searchInput: {
+        height: 40,
+        borderColor: 'gray',
+        borderWidth: 1,
+        width: '100%',
         marginBottom: 10,
+        paddingLeft: 10,
+        paddingRight: 10,
+        color: 'white',
+        backgroundColor: '#1e272e',
+        borderRadius: 8,
     },
+    // Add other styles as needed
 });
+
+export default Home;

@@ -94,36 +94,17 @@ export function Music() {
         setOffset(newOffset);
     };
 
+    // Refresh songs list
+    const refreshSongsList = () => {
+        fetchSongs(searchText, orderBy, orderDirection, 0, false, ratingRange);
+    };
+
     // Fetch songs when the screen is focused
     useFocusEffect(
         React.useCallback(() => {
             fetchSongs(searchText, orderBy, orderDirection, 0, false, ratingRange);
         }, [searchText, orderBy, orderDirection, ratingRange])
     );
-
-    // Press Floating Button (Add New Song)
-    const handleFloatButtonPress = () => {
-        setModalVisible(true);
-        setSelectedSong(null);
-    };
-
-    // In Music.js, modify the handleFormSubmit function
-    const handleFormSubmit = async (song) => {
-        const newSong = { ...song, rating: 0, cover_path: '' };
-    
-        // Add the new song to the SQLite database
-        db.transaction(tx => {
-            tx.executeSql(
-                'INSERT INTO songs (title, artist, album, release, rating, cover_path) VALUES (?, ?, ?, ?, ?, ?)',
-                [newSong.title, newSong.artist, newSong.album, newSong.release, newSong.rating, newSong.cover_path],
-                async () => {
-                    console.log('Song added successfully');
-                    fetchSongs(searchText, orderBy, orderDirection, 0, false, ratingRange);
-                },
-                (_, error) => console.log('Error adding song:', error)
-            );
-        });
-    };
 
     // Handle Card Press (Show Rating Modal)
     const handleCardPress = (song) => {
@@ -142,34 +123,17 @@ export function Music() {
     const handleEditSong = () => {
         setModalVisible(true);
     };
-
-    // Handle Edit Form Submit (Update Song Details)
-    const handleEditFormSubmit = async (updatedSong) => {
-        const songWithIdAndRating = { ...updatedSong, id: selectedSong.id, rating: selectedSong.rating };
-    
-        const updatedSongs = songs.map(song => song.id === selectedSong.id ? songWithIdAndRating : song);
-        setSongs(updatedSongs);
-    
-        db.transaction(tx => {
-            tx.executeSql(
-                'UPDATE songs SET title = ?, artist = ?, album = ?, release = ?, rating = ?, cover_path = ? WHERE id = ?',
-                [songWithIdAndRating.title, songWithIdAndRating.artist, songWithIdAndRating.album, songWithIdAndRating.release, songWithIdAndRating.rating, '', songWithIdAndRating.id],
-                () => {
-                    console.log('Song updated successfully');
-                    setSongOptionsVisible(false);
-                    setSelectedSong(null);
-                    fetchSongs(searchText, orderBy, orderDirection, 0, false, ratingRange);
-                },
-                (_, error) => console.log('Error updating song:', error)
-            );
-        });
-    };
     
     // Handle Edit Press (Edit Song Details)
     const handleEditPress = (song) => {
         setSelectedSong(song);
         setSongOptionsVisible(true);
     };
+
+    // Close Song Options Modal
+    const closeSongOptionsModal = () => {
+        setSongOptionsVisible(false);
+    };    
 
     // Handle Delete Song (Delete Song)
     const handleDeleteSong = () => {
@@ -248,15 +212,13 @@ export function Music() {
                 hasMoreSongs={hasMoreSongs}
             />
 
-            <FloatingButton onPress={handleFloatButtonPress} />
-
             <SongFormModal
                 isModalVisible={isModalVisible}
                 setModalVisible={setModalVisible}
                 selectedSong={selectedSong}
-                handleFormSubmit={handleFormSubmit}
-                handleEditFormSubmit={handleEditFormSubmit}
-                onCancel={() => setModalVisible(false)}
+                onRefreshSongsList={refreshSongsList}
+                closeSongOptionsModal={closeSongOptionsModal}
+                setSelectedSong={setSelectedSong}
             />
 
             <SongOptionsModal
