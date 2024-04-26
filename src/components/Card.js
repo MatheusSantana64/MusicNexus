@@ -8,10 +8,14 @@ import { fetchAlbumCover, generateCacheKey } from '../api/MusicBrainzAPI';
 import { getImageFromCache, downloadImage } from '../utils/cacheManager';
 import { db } from '../database/databaseSetup';
 
-const Card = ({ song, onCardPress, onEditPress, onLongPress }) => {
+import RatingModal from './RatingModal';
+import SongOptionsModal from './SongOptionsModal';
+
+const Card = ({ song, songs, setSongs }) => {
     const [coverUrl, setCoverUrl] = useState(null);
 
     useEffect(() => {
+        // Check if the cover image is already in the cache
         const checkForLocalCover = async () => {
             const cacheKey = generateCacheKey(song.artist, song.album);
             const localCoverPath = await getImageFromCache(cacheKey);
@@ -36,9 +40,40 @@ const Card = ({ song, onCardPress, onEditPress, onLongPress }) => {
                 }
             }
         };
-    
         checkForLocalCover();
     }, [song.artist, song.album]);
+
+    // Rating Modal
+        const [isRatingModalVisible, setRatingModalVisible] = useState(false);
+
+        // Handle Card Press (Show Rating Modal)
+        const openRatingModal = () => {
+            console.log(`Song selected for rating: ${song.title} by ${song.artist}`);
+            setRatingModalVisible(true);
+        };
+        
+        // Handle Rating Select (Update Song Rating)
+        const handleRatingSelect = (rating) => {
+            db.transaction(tx => {
+                tx.executeSql(
+                    'UPDATE songs SET rating = ? WHERE id = ?',
+                    [rating, song.id],
+                    () => {
+                        console.log(`Song rating updated successfully for song: ${song.title} by ${song.artist}, New Rating: ${rating}`);
+                        setRatingModalVisible(false);
+                    },
+                    (_, error) => console.log('Error updating song rating:', error)
+                );
+            });
+        };
+
+    // Song Options Modal
+        const [isSongOptionsVisible, setSongOptionsVisible] = useState(false);
+
+        // Handle Long Press (Show Edit/Delete Modal)
+        const openOptionsModal = () => {
+            setSongOptionsVisible(true);
+        };
 
     // Function to render the color of the rating based on its value
     const renderRatingColor = () => {
@@ -51,46 +86,65 @@ const Card = ({ song, onCardPress, onEditPress, onLongPress }) => {
     };
 
     return (
-        <TouchableOpacity 
-            onPress={onCardPress}
-            onLongPress={onLongPress} 
-            delayLongPress={100}
-            style={styles.cardContainer}
-        >
-            {coverUrl ? (
-                <Image
-                    source={{ uri: coverUrl }}
-                    resizeMode="cover"
-                    resizeMethod="scale"
-                    style={styles.image}
-                />
-            ) : (
-                <Image
-                    source={require('../../assets/placeholder60.png')} // Fallback to placeholder image
-                    resizeMode="cover"
-                    resizeMethod="scale"
-                    style={styles.image}
-                />
-            )}
-            <View style={styles.songInfoContainer}>
-                <View style={styles.songInfoTextContainer}>
-                    <Text style={styles.songTitle}>{song.title || 'Unknown Title'}</Text>
-                    <Text style={styles.songInfo}>{song.artist || 'Unknown Artist'}</Text>
-                    <Text style={styles.songInfo}>{song.album || 'Unknown Album'}</Text>
-                    <Text style={styles.songInfo}>{song.release || 'Unknown Release Date'}</Text>
+        <View>
+            <TouchableOpacity 
+                onPress={openRatingModal}
+                onLongPress={openOptionsModal} 
+                delayLongPress={100}
+                style={styles.cardContainer}
+            >
+                {coverUrl ? (
+                    <Image
+                        source={{ uri: coverUrl }}
+                        resizeMode="cover"
+                        resizeMethod="scale"
+                        style={styles.image}
+                    />
+                ) : (
+                    <Image
+                        source={require('../../assets/placeholder60.png')} // Fallback to placeholder image
+                        resizeMode="cover"
+                        resizeMethod="scale"
+                        style={styles.image}
+                    />
+                )}
+                <View style={styles.songInfoContainer}>
+                    <View style={styles.songInfoTextContainer}>
+                        <Text style={styles.songTitle}>{song.title || 'Unknown Title'}</Text>
+                        <Text style={styles.songInfo}>{song.artist || 'Unknown Artist'}</Text>
+                        <Text style={styles.songInfo}>{song.album || 'Unknown Album'}</Text>
+                        <Text style={styles.songInfo}>{song.release || 'Unknown Release Date'}</Text>
+                    </View>
                 </View>
-            </View>
-            
-            <View style={styles.ratingAndEditContainer}>
-                <View style={styles.ratingContainer}>
-                    <Icon name="star" size={24} color={renderRatingColor()} />
-                    <Text style={styles.ratingText}>{song.rating ? (song.rating.toFixed(1)) : 'N/A'}</Text>
+                
+                <View style={styles.ratingAndEditContainer}>
+                    <View style={styles.ratingContainer}>
+                        <Icon name="star" size={24} color={renderRatingColor()} />
+                        <Text style={styles.ratingText}>{song.rating ? (song.rating.toFixed(1)) : 'N/A'}</Text>
+                    </View>
+                    <TouchableOpacity onPress={openOptionsModal} style={styles.editButton}>
+                        <Icon name="more-vertical" size={24} color="white" />
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={onEditPress} style={styles.editButton}>
-                    <Icon name="more-vertical" size={24} color="white" />
-                </TouchableOpacity>
-            </View>
-        </TouchableOpacity>
+            </TouchableOpacity>
+
+            <RatingModal
+                isRatingModalVisible={isRatingModalVisible}
+                closeModal={() => setRatingModalVisible(false)}
+                handleRatingSelect={handleRatingSelect}
+                selectedSong={song}
+                songs={songs}
+                setSongs={setSongs}
+            />
+
+            <SongOptionsModal
+                isSongOptionsVisible={isSongOptionsVisible}
+                closeModal={() => setSongOptionsVisible(false)}
+                selectedSong={song}
+                songs={songs}
+                setSongs={setSongs}
+            />
+        </View>
     );
 };
 

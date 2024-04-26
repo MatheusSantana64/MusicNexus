@@ -1,15 +1,33 @@
 // The FloatingButton component is a reusable component that renders a floating action button with a plus icon.
 // It allows users to add new songs by pressing the button.
 
-import React from 'react';
-import { TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { TouchableOpacity, StyleSheet, View, Dimensions } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import SongFormModal from './SongFormModal';
 
-const FloatingButton = ({ onPress }) => {
+const FloatingButton = (songs, setSongs) => {
+    const [isFormModalVisible, setFormModalVisible] = useState(false);
+
+    // Press Floating Button
+    const openFormModal = () => {
+        setFormModalVisible(true);
+    };
+
     return (
-        <TouchableOpacity onPress={onPress} style={styles.button}>
-            <Icon name="plus-circle" size={50} color="green" />
-        </TouchableOpacity>
+        <View>
+            <TouchableOpacity onPress={openFormModal} style={styles.button}>
+                <Icon name="plus-circle" size={50} color="green" />
+            </TouchableOpacity>
+
+            <SongFormModal
+                isFormModalVisible={isFormModalVisible}
+                closeModal={() => setFormModalVisible(false)}
+                selectedSong={null}
+                songs={songs}
+                setSongs={setSongs}
+            />
+        </View>
     );
 };
 
