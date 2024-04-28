@@ -6,32 +6,36 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { db, initDatabase } from '../database/databaseSetup';
+import { deleteAllFilesFromCache } from '../utils/cacheManager';
 
 export function Profile() {
     const [importProgress, setImportProgress] = useState(0);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [totalSongs, setTotalSongs] = useState(0);
 
-    // Add this function inside the Profile component in Profile.js
+    // Delete the cache and update cover_path of all songs to null
     const handleDeleteCache = async () => {
         try {
-            const directoryUri = FileSystem.cacheDirectory;
-            const { size, exists, isDirectory, uri } = await FileSystem.getInfoAsync(directoryUri);
-            if (exists && isDirectory) {
-                const files = await FileSystem.readDirectoryAsync(directoryUri);
-                for (const file of files) {
-                    const fileUri = `${directoryUri}${file}`;
-                    await FileSystem.deleteAsync(fileUri, { idempotent: true });
-                }
-                Alert.alert('Success', 'Cache deleted successfully.');
-            } else {
-                Alert.alert('Error', 'Cache directory does not exist or is not a directory.');
-            }
+            await deleteAllFilesFromCache();
+            // Update cover_path of all songs to null
+            await new Promise((resolve, reject) => {
+                db.transaction(tx => {
+                    tx.executeSql('UPDATE songs SET cover_path = ?', [null], () => {
+                        console.log('Cover paths updated to null.');
+                        resolve(); // Resolve the promise when the transaction is successful
+                    }, (_, error) => {
+                        console.error('Error updating cover paths:', error);
+                        reject(error); // Reject the promise if there's an error
+                    });
+                });
+            });
+            Alert.alert('Success', 'All files in the cache have been deleted and cover paths updated to null.');
         } catch (error) {
             console.error('Error deleting cache:', error);
             Alert.alert('Error', 'Failed to delete cache. Error: ' + error.message);
         }
     };
+    
 
     // Function to handle the deletion of all songs in the database
     const handleDeleteData = async () => {
@@ -258,7 +262,7 @@ export function Profile() {
             </View>
             <View style={{ marginBottom: 10, width: '80%' }}>
                 <Button
-                    title="Delete Cache"
+                    title="Delete Covers in Cache"
                     onPress={handleDeleteCache}
                     color="purple"
                     style={{ width: '100%' }}

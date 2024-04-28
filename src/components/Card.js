@@ -4,51 +4,61 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import { fetchAlbumCover, generateCacheKey } from '../api/MusicBrainzAPI';
-import { getImageFromCache, downloadImage } from '../utils/cacheManager';
+import { fetchAlbumCover } from '../api/MusicBrainzAPI';
+import { getImageFromCache, downloadImage, generateCacheKey } from '../utils/cacheManager';
 import { db } from '../database/databaseSetup';
 
 import RatingModal from './RatingModal';
 import SongOptionsModal from './SongOptionsModal';
 
-const Card = ({ song, songs, setSongs }) => {
-    const [coverUrl, setCoverUrl] = useState(null);
+const Card = ({ cardSong, songs, setSongs }) => {
 
-    useEffect(() => {
-        // Check if the cover image is already in the cache
-        const checkForLocalCover = async () => {
-            const cacheKey = generateCacheKey(song.artist, song.album);
-            const localCoverPath = await getImageFromCache(cacheKey);
-            if (localCoverPath) {
-                setCoverUrl(localCoverPath);
-            } else {
-                // If the cover is not in the cache, fetch it from the API
-                const coverUrl = await fetchAlbumCover(song.artist, song.album);
-                if (coverUrl) {
-                    // Download the image and store its local path in the database
-                    const localUri = await downloadImage(coverUrl, cacheKey);
-                    setCoverUrl(localUri);
-                    // Update the database with the local path of the cover image
-                    db.transaction(tx => {
-                        tx.executeSql(
-                            'UPDATE songs SET cover_path = ? WHERE id = ?',
-                            [localUri, song.id],
-                            () => console.log('Cover path updated in the database'),
-                            (_, error) => console.log('Error updating cover path:', error)
-                        );
-                    });
+    const [coverImg, setCoverImg] = useState(cardSong.cover_path);
+
+    // Define checkForLocalCover outside of useEffect
+    const checkForLocalCover = async () => {
+        if(!cardSong.cover_path) {
+            const cacheKey = generateCacheKey(cardSong.artist, cardSong.album);
+            cardSong.cover_path = await getImageFromCache(cacheKey);
+            setCoverImg(cardSong.cover_path);
+            if (!cardSong.cover_path) {
+                cardSong.cover_path = await fetchAlbumCover(cardSong.artist, cardSong.album, cacheKey);
+                setCoverImg(cardSong.cover_path);
+                console.log(`Cover image URL fetched for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
+                if (cardSong.cover_path) {
+                    // Download the cover image
+                    console.log(`Downloading cover image for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
+                    cardSong.cover_path = await downloadImage(cardSong.cover_path, cacheKey);
+                    setCoverImg(cardSong.cover_path);
+                    console.log(`Cover image downloaded successfully for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
                 }
             }
-        };
+            db.transaction(tx => {
+                console.log(`Updating cover path in the database for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
+                tx.executeSql(
+                    'UPDATE songs SET cover_path = ? WHERE id = ?',
+                    [cardSong.cover_path, cardSong.id],
+                    () => console.log('Cover path updated in the database. For song: ', cardSong.title, '. cardSong.cover_path: ', cardSong.cover_path),
+                    (_, error) => console.log('Error updating cover path:', error)
+                );
+            });
+        }
+        else {
+            console.log(`Cover image already exists for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
+        }
+    };
+
+    useEffect(() => {
+        console.log(`Entered useEffect of Card.js for: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\nCover Path: ${cardSong.cover_path}`);
         checkForLocalCover();
-    }, [song.artist, song.album]);
+    }, [cardSong.artist, cardSong.album, cardSong.cover_path]);
 
     // Rating Modal
         const [isRatingModalVisible, setRatingModalVisible] = useState(false);
 
         // Handle Card Press (Show Rating Modal)
         const openRatingModal = () => {
-            console.log(`Song selected for rating: ${song.title} by ${song.artist}`);
+            console.log(`Song selected for rating: ${cardSong.title} by ${cardSong.artist}`);
             setRatingModalVisible(true);
         };
         
@@ -57,9 +67,9 @@ const Card = ({ song, songs, setSongs }) => {
             db.transaction(tx => {
                 tx.executeSql(
                     'UPDATE songs SET rating = ? WHERE id = ?',
-                    [rating, song.id],
+                    [rating, cardSong.id],
                     () => {
-                        console.log(`Song rating updated successfully for song: ${song.title} by ${song.artist}, New Rating: ${rating}`);
+                        console.log(`Song rating updated successfully for song: ${cardSong.title} by ${cardSong.artist}, New Rating: ${rating}`);
                         setRatingModalVisible(false);
                     },
                     (_, error) => console.log('Error updating song rating:', error)
@@ -77,11 +87,11 @@ const Card = ({ song, songs, setSongs }) => {
 
     // Function to render the color of the rating based on its value
     const renderRatingColor = () => {
-        if (song.rating === 0) return 'grey';
-        if (song.rating <= 2.5) return 'red';
-        if (song.rating > 2.5 && song.rating <= 5) return 'orange';
-        if (song.rating > 5 && song.rating <= 7.5) return 'yellow';
-        if (song.rating > 7.5 && song.rating < 10) return 'lime';
+        if (cardSong.rating === 0) return 'grey';
+        if (cardSong.rating <= 2.5) return 'red';
+        if (cardSong.rating > 2.5 && cardSong.rating <= 5) return 'orange';
+        if (cardSong.rating > 5 && cardSong.rating <= 7.5) return 'yellow';
+        if (cardSong.rating > 7.5 && cardSong.rating < 10) return 'lime';
         return 'turquoise';
     };
 
@@ -93,34 +103,25 @@ const Card = ({ song, songs, setSongs }) => {
                 delayLongPress={100}
                 style={styles.cardContainer}
             >
-                {coverUrl ? (
-                    <Image
-                        source={{ uri: coverUrl }}
-                        resizeMode="cover"
-                        resizeMethod="scale"
-                        style={styles.image}
-                    />
-                ) : (
-                    <Image
-                        source={require('../../assets/placeholder60.png')} // Fallback to placeholder image
-                        resizeMode="cover"
-                        resizeMethod="scale"
-                        style={styles.image}
-                    />
-                )}
+                <Image
+                    source={ coverImg ? { uri: coverImg } : require('../../assets/placeholder60.png') }
+                    resizeMode="cover"
+                    resizeMethod="scale"
+                    style={styles.image}
+                />
                 <View style={styles.songInfoContainer}>
                     <View style={styles.songInfoTextContainer}>
-                        <Text style={styles.songTitle}>{song.title || 'Unknown Title'}</Text>
-                        <Text style={styles.songInfo}>{song.artist || 'Unknown Artist'}</Text>
-                        <Text style={styles.songInfo}>{song.album || 'Unknown Album'}</Text>
-                        <Text style={styles.songInfo}>{song.release || 'Unknown Release Date'}</Text>
+                        <Text style={styles.songTitle}>{cardSong.title || 'Unknown Title'}</Text>
+                        <Text style={styles.songInfo}>{cardSong.artist || 'Unknown Artist'}</Text>
+                        <Text style={styles.songInfo}>{cardSong.album || 'Unknown Album'}</Text>
+                        <Text style={styles.songInfo}>{cardSong.release || 'Unknown Release Date'}</Text>
                     </View>
                 </View>
                 
                 <View style={styles.ratingAndEditContainer}>
                     <View style={styles.ratingContainer}>
                         <Icon name="star" size={24} color={renderRatingColor()} />
-                        <Text style={styles.ratingText}>{song.rating ? (song.rating.toFixed(1)) : 'N/A'}</Text>
+                        <Text style={styles.ratingText}>{cardSong.rating ? (cardSong.rating.toFixed(1)) : 'N/A'}</Text>
                     </View>
                     <TouchableOpacity onPress={openOptionsModal} style={styles.editButton}>
                         <Icon name="more-vertical" size={24} color="white" />
@@ -132,7 +133,7 @@ const Card = ({ song, songs, setSongs }) => {
                 isRatingModalVisible={isRatingModalVisible}
                 closeModal={() => setRatingModalVisible(false)}
                 handleRatingSelect={handleRatingSelect}
-                selectedSong={song}
+                selectedSong={cardSong}
                 songs={songs}
                 setSongs={setSongs}
             />
@@ -140,7 +141,7 @@ const Card = ({ song, songs, setSongs }) => {
             <SongOptionsModal
                 isSongOptionsVisible={isSongOptionsVisible}
                 closeModal={() => setSongOptionsVisible(false)}
-                selectedSong={song}
+                selectedSong={cardSong}
                 songs={songs}
                 setSongs={setSongs}
             />

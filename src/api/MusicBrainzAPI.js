@@ -6,12 +6,9 @@ const coverCache = {};
 let queue = [];
 let isProcessing = false;
 
-function generateCacheKey(artist, album) {
-    const key = `${artist}-${album}`;
-    return key.replace(/[^a-zA-Z0-9]/g, '_');
-}
-
+// Fetch album cover and release MBID for the given artist and album
 async function processQueue() {
+    console.log('Processing queue...');
     if (queue.length === 0) {
         isProcessing = false;
         return;
@@ -24,36 +21,38 @@ async function processQueue() {
         const coverUrl = await fetchAlbumCover(artist, album);
         resolve(coverUrl);
     } catch (error) {
-        console.error(`Error fetching album cover for artist: ${artist}, album: ${album}:`, error);
+        console.error(`Error fetching album cover for the album "${album}" by "${artist}":`, error);
         resolve(null); // Resolve with null in case of error
     }
 
-    setTimeout(processQueue, 500); // Delay for half second
+    setTimeout(processQueue, 100); // Delay for 100ms before processing the next item to avoid overloading the API
 }
 
+// Add a new item to the queue
 function addToQueue(artist, album) {
     return new Promise((resolve) => {
+        // Add the item to the queue
+        console.log(`Adding item to queue: album "${album}" by "${artist}"`);
         queue.push({ artist, album, resolve });
+        // Process the queue if it's not already processing
         if (!isProcessing) {
             processQueue();
         }
     });
 }
 
-async function fetchAlbumCover(artist, album) {
-    const cacheKey = generateCacheKey(artist, album);
-    if (coverCache[cacheKey]) {
-        return coverCache[cacheKey];
-    }
-
+// Fetch album cover and release MBID for the given artist and album
+async function fetchAlbumCover(artist, album, cacheKey) {
+    // If the cover is not in the cache, fetch it from the API
     const mbid = await fetchReleaseMbid(artist, album);
     if (!mbid) {
-        console.error(`Failed to fetch MBID for artist: ${artist}, album: ${album}`);
+        console.error(`Failed to fetch MBID for the album "${album}" by "${artist}"`);
         return null;
     }
 
-    console.log(`Fetching cover art for artist: ${artist}, album: ${album} with MBID: ${mbid}`);
+    console.log(`Fetching cover art for the album "${album}" by "${artist}" with MBID: ${mbid}`);
 
+    // Download the image and store its local path in the database
     try {
         const response = await fetch(`https://coverartarchive.org/release/${mbid}`, {
             headers: {
@@ -66,28 +65,30 @@ async function fetchAlbumCover(artist, album) {
             const data = await response.json();
             const coverUrl = data.images[0]?.thumbnails?.small;
             if (coverUrl) {
-                console.log(`Small thumbnail URL for artist: ${artist}, album: ${album} is: ${coverUrl}`);
+                console.log(`Small thumbnail URL for the album "${album}" by "${artist}" is: ${coverUrl}`);
                 coverCache[cacheKey] = coverUrl;
                 return coverUrl;
             } else {
-                console.error(`No small thumbnail available for artist: ${artist}, album: ${album}`);
+                console.error(`No small thumbnail available for the album "${album}" by "${artist}"`);
                 return null;
             }
         } else {
-            console.error(`Unexpected response status for artist: ${artist}, album: ${album}. Expected 200 but received: ${response.status}`);
+            console.error(`Unexpected response status for the album "${album}" by "${artist}". Expected 200 but received: ${response.status}`);
             return null;
         }
     } catch (error) {
-        console.error(`Error fetching album cover for artist: ${artist}, album: ${album}:`, error);
+        console.error(`Error fetching album cover for the album "${album}" by "${artist}":`, error);
         return null;
     }
 }
 
+// Fetch release MBID for the given artist and album
 async function fetchReleaseMbid(artist, album) {
-    console.log(`Searching for MBID for artist: ${artist}, album: ${album}`);
+    console.log(`Searching for MBID for the album "${album}" by "${artist}"`);
     const queryString = `release:${encodeURIComponent(album)} AND artist:${encodeURIComponent(artist)}`;
     const url = `https://musicbrainz.org/ws/2/release/?query=${queryString}&fmt=json`;
 
+    // Search for the release MBID
     try {
         const response = await fetch(url, {
             headers: {
@@ -100,6 +101,7 @@ async function fetchReleaseMbid(artist, album) {
             throw new Error(`Failed to fetch release MBID: HTTP ${response.status}`);
         }
 
+        // Parse the JSON response
         const data = await response.json();
         let mbid = null;
         for (const release of data.releases) {
@@ -120,16 +122,16 @@ async function fetchReleaseMbid(artist, album) {
         }
 
         if (mbid) {
-            console.log(`MBID for artist: ${artist}, album: ${album} is: ${mbid}`);
+            console.log(`MBID for the album "${album}" by "${artist}" is: ${mbid}`);
             return mbid;
         } else {
-            console.error(`No release with cover art found for artist: ${artist}, album: ${album}`);
+            console.error(`No release with cover art found for the album "${album}" by "${artist}"`);
             return null;
         }
     } catch (error) {
-        console.error(`Error fetching release MBID for artist: ${artist}, album: ${album}:`, error);
+        console.error(`Error fetching release MBID for the album "${album}" by "${artist}":`, error);
         return null;
     }
 }
 
-export { addToQueue as fetchAlbumCover, generateCacheKey };
+export { addToQueue as fetchAlbumCover };

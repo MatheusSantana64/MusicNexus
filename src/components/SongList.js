@@ -25,7 +25,7 @@ const SongList = ({ songs, fetchMoreSongs, hasMoreSongs, setSongs }) => {
                 renderItem={({ item }) =>
                     <Card 
                         key={item.id}
-                        song={item}
+                        cardSong={item}
                         songs={songs}
                         setSongs={setSongs}
                     />}

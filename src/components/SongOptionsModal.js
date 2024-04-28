@@ -25,8 +25,23 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
 
     // Function to handle the delete of the cover image for the selected song
     const handleDeleteCover = () => {
-        console.log(`Deleting cover for song: Artist - ${selectedSong.artist}, Album - ${selectedSong.album}`);
         const cacheKey = generateCacheKey(selectedSong.artist, selectedSong.album);
+        console.log(`Deleting cover for song: Artist - ${selectedSong.artist}, Album - ${selectedSong.album}\nCover Path: ${selectedSong.cover_path}`);
+        // Reset song's cover path in the database to null
+        db.transaction(tx => {
+            tx.executeSql(
+                'UPDATE songs SET cover_path = null WHERE artist = ? AND album = ?',
+                [selectedSong.artist, selectedSong.album],
+                () => {
+                    // Delete the cover image from the cache
+                    deleteImageFromCache(cacheKey);
+                    closeModal();
+                },
+                (_, error) => console.log('Error deleting cover:', error)
+            );
+        })
+
+        // Delete the cover image from the cache
         deleteImageFromCache(cacheKey);
         closeModal();
     };

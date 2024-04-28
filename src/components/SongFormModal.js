@@ -32,7 +32,7 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, se
             db.transaction(tx => {
                 tx.executeSql(
                     'UPDATE songs SET title = ?, artist = ?, album = ?, release = ?, rating = ?, cover_path = ? WHERE id = ?',
-                    [songWithIdAndRating.title, songWithIdAndRating.artist, songWithIdAndRating.album, songWithIdAndRating.release, songWithIdAndRating.rating, '', songWithIdAndRating.id],
+                    [songWithIdAndRating.title, songWithIdAndRating.artist, songWithIdAndRating.album, songWithIdAndRating.release, songWithIdAndRating.rating, null, songWithIdAndRating.id],
                     () => {
                         console.log('Song updated successfully');
                         const updatedSongs = songs.map(song => (song.id === songWithIdAndRating.id ? songWithIdAndRating : song));
@@ -49,7 +49,7 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, se
                 album: album || "Unknown Album",
                 release: release || "1900-01-01",
                 rating: 0, 
-                cover_path: '' 
+                cover_path: null
             };
 
             db.transaction(tx => {
