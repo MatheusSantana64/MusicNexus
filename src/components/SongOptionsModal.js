@@ -4,10 +4,7 @@
 import React, { useState } from 'react';
 import { TouchableWithoutFeedback, View, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
 import Modal from 'react-native-modal';
-import { generateCacheKey } from '../api/MusicBrainzAPI';
-import { deleteImageFromCache } from '../utils/cacheManager';
-import { db } from '../database/databaseSetup';
-
+import { deleteCover, deleteSong } from '../database/databaseOperations';
 import SongFormModal from './SongFormModal';
 
 const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, songs, setSongs }) => {
@@ -24,29 +21,17 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
     }
 
     // Function to handle the delete of the cover image for the selected song
-    const handleDeleteCover = () => {
-        const cacheKey = generateCacheKey(selectedSong.artist, selectedSong.album);
-        console.log(`Deleting cover for song: Artist - ${selectedSong.artist}, Album - ${selectedSong.album}\nCover Path: ${selectedSong.cover_path}`);
-        // Reset song's cover path in the database to null
-        db.transaction(tx => {
-            tx.executeSql(
-                'UPDATE songs SET cover_path = null WHERE artist = ? AND album = ?',
-                [selectedSong.artist, selectedSong.album],
-                () => {
-                    // Delete the cover image from the cache
-                    deleteImageFromCache(cacheKey);
-                    closeModal();
-                },
-                (_, error) => console.log('Error deleting cover:', error)
-            );
-        })
-
-        // Delete the cover image from the cache
-        deleteImageFromCache(cacheKey);
-        closeModal();
+    const handleDeleteCover = async () => {
+        try {
+            await deleteCover(selectedSong.artist, selectedSong.album);
+            closeModal();
+        } catch (error) {
+            console.error('Error deleting cover:', error);
+            Alert.alert('Error', 'Failed to delete cover. Error: ' + error.message);
+        }
     };
 
-    // Handle Delete Song (Delete Song)
+    // Function to handle the delete of a song
     const handleDeleteSong = () => {
         if (!selectedSong) return;
     
@@ -62,17 +47,15 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
                 {
                     text: "Delete",
                     onPress: async () => {
-                        db.transaction(tx => {
-                            tx.executeSql(
-                                'DELETE FROM songs WHERE id = ?',
-                                [selectedSong.id],
-                                () => {
-                                    const updatedSongs = songs.filter(song => song.id !== selectedSong.id);
-                                    setSongs(updatedSongs);
-                                },
-                                (_, error) => console.log('Error deleting song:', error)
-                            );
-                        });
+                        try {
+                            await deleteSong(selectedSong.id);
+                            const updatedSongs = songs.filter(song => song.id !== selectedSong.id);
+                            setSongs(updatedSongs);
+                            closeModal();
+                        } catch (error) {
+                            console.error('Error deleting song:', error);
+                            Alert.alert('Error', 'Failed to delete song. Error: ' + error.message);
+                        }
                     }
                 }
             ],
@@ -122,8 +105,6 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
                 isFormModalVisible={isFormModalVisible}
                 closeModal={() => closeModals()}
                 selectedSong={selectedSong}
-                songs={songs}
-                setSongs={setSongs}
             />
         </View>
     );

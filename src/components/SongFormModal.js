@@ -1,108 +1,58 @@
+// This component is a reusable modal that allows users to add, edit, or delete songs.
+
 import React, { useRef } from 'react';
 import { TouchableWithoutFeedback, StyleSheet, View, TextInput, Button, Dimensions, TouchableOpacity } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Modal from 'react-native-modal';
-import { db } from '../database/databaseSetup';
+import { submitForm, addAnotherSong } from '../database/databaseOperations';
 
-const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, setSongs }) => {
+const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong }) => {
     const [title, setTitle] = React.useState(selectedSong ? selectedSong.title : '');
     const [artist, setArtist] = React.useState(selectedSong ? selectedSong.artist : '');
     const [album, setAlbum] = React.useState(selectedSong ? selectedSong.album : '');
     const [release, setRelease] = React.useState(selectedSong ? selectedSong.release : new Date().toISOString().split('T')[0]);
     const [datePickerVisible, setDatePickerVisible] = React.useState(false);
     
-    const [editMode, setEditMode] = React.useState(!!selectedSong);
+    const [editMode] = React.useState(!!selectedSong);
 
     const titleRef = useRef(null);
     const artistRef = useRef(null);
     const albumRef = useRef(null);
 
-    // Function to insert a new song into the database (Add New Song)
-    const handleFormSubmit = async () => {
-        if(editMode) {
-            const songWithIdAndRating = {
-                title: title || "Unknown Title",
-                artist: artist || "Unknown Artist",
-                album: album || "Unknown Album",
-                release: release || "1900-01-01",
-                id: selectedSong.id, 
-                rating: selectedSong.rating 
-            };
-
-            db.transaction(tx => {
-                tx.executeSql(
-                    'UPDATE songs SET title = ?, artist = ?, album = ?, release = ?, rating = ?, cover_path = ? WHERE id = ?',
-                    [songWithIdAndRating.title, songWithIdAndRating.artist, songWithIdAndRating.album, songWithIdAndRating.release, songWithIdAndRating.rating, null, songWithIdAndRating.id],
-                    () => {
-                        console.log('Song updated successfully');
-                        const updatedSongs = songs.map(song => (song.id === songWithIdAndRating.id ? songWithIdAndRating : song));
-                        setSongs(updatedSongs);
-                    },
-                    (_, error) => console.log('Error updating song:', error)
-                );
-            });
-        }
-        else {
-            const newSong = {
-                title: title || "Unknown Title",
-                artist: artist || "Unknown Artist",
-                album: album || "Unknown Album",
-                release: release || "1900-01-01",
-                rating: 0, 
-                cover_path: null
-            };
-
-            db.transaction(tx => {
-                tx.executeSql(
-                    'INSERT INTO songs (title, artist, album, release, rating, cover_path) VALUES (?, ?, ?, ?, ?, ?)',
-                    [newSong.title, newSong.artist, newSong.album, newSong.release, newSong.rating, newSong.cover_path],
-                    async () => {
-                        console.log('Song added successfully');
-                    },
-                    (_, error) => console.log('Error adding song:', error)
-                );
-            });
-
-            setTitle('');
-            setArtist('');
-            setAlbum('');
-            setRelease(new Date().toISOString().split('T')[0]);
-        }
-    };
-
-    // Function to handle the form submission
-    const handleSubmit = () => {
-        // Check for empty or undefined values and set them to "Unknown"
-        const songData = {
+    // Function to construct songData
+    const constructSongData = () => {
+        return {
+            id: selectedSong ? selectedSong.id : null,
             title: title || "Unknown Title",
             artist: artist || "Unknown Artist",
             album: album || "Unknown Album",
             release: release || "1900-01-01",
+            rating: 0,
+            cover_path: null
         };
-        handleFormSubmit(songData);
+    };
 
+    const clearForm = () => {
+        setTitle('');
+        setArtist('');
+        setAlbum('');
+        setRelease(new Date().toISOString().split('T')[0]);
+    };
+
+    // Function to handle the form submission
+    const handleSubmit = async () => {
+        const songData = constructSongData();
+        await submitForm(songData, editMode);
+        clearForm();
         closeModal();
     };
 
     // Function to add another song
-    const handleAddAnotherSong = () => {
-        console.log('Adding another song from the same album');
-
-        // Check for empty or undefined values and set them to "Unknown"
-        const songData = {
-            title: title || "Unknown Title",
-            artist: artist || "Unknown Artist",
-            album: album || "Unknown Album",
-            release: release || "1900-01-01",
-        };
-        handleFormSubmit(songData);
-
-        setEditMode(false);
+    const handleAddAnotherSong = async () => {
+        const songData = constructSongData();
         setTitle('');
-        setAlbum(songData.album);
-        setArtist(songData.artist);
-        setRelease(songData.release);
         titleRef.current.focus();
+        await addAnotherSong(songData);
     };
 
     return (

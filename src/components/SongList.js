@@ -1,10 +1,10 @@
 // The SongList component is a reusable component that renders a list of songs.
-// It uses the FlatList component to render a list of songs as Card components.
+// It uses the FlashList component to render a list of songs as Card components.
 
 import React from 'react';
 import { View } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
 import Card from './Card';
+import { FlashList } from '@shopify/flash-list';
 
 const SongList = ({ songs, fetchMoreSongs, hasMoreSongs, setSongs }) => {
     const CARD_HEIGHT = 90;
@@ -17,29 +17,31 @@ const SongList = ({ songs, fetchMoreSongs, hasMoreSongs, setSongs }) => {
         }
     };
 
+    const extractKey = (item, index) => String(index);
+
+    const renderCard = ({ item }) => (<Card key={item.id} cardSong={item} songs={songs} setSongs={setSongs} />);
+
+    /* const itemLayout= (data, index) => ({
+        length: CARD_HEIGHT,
+        offset: CARD_HEIGHT * index,
+        index,
+    }) */
+
     // Render the list of songs
     return (
         <View style={{flex: 1, height: '100%', width: '100%',}}>
             <FlashList
                 data={songs}
-                renderItem={({ item }) =>
-                    <Card 
-                        key={item.id}
-                        cardSong={item}
-                        songs={songs}
-                        setSongs={setSongs}
-                    />}
-                keyExtractor={item => item.id.toString()}
+                keyExtractor={extractKey}
+                estimatedItemSize={CARD_HEIGHT} // FlashList requirement
+                renderItem={renderCard}
                 onScroll={handleScroll}
-                scrollEventThrottle={16}
-                removeClippedSubviews={true}
-                windowSize={51}
-                maxToRenderPerBatch={100}
-                initialNumToRender={100}
-                getItemLayout={(_, index) => (
-                    {length: CARD_HEIGHT, offset: CARD_HEIGHT * index, index}
-                )}
-                estimatedItemSize={CARD_HEIGHT}
+                removeClippedSubviews={false}
+
+                // getItemLayout={itemLayout} // No value to FlashList
+                //windowSize={31} // Not implemented in FlashList
+                //maxToRenderPerBatch={50} // No value to FlashList
+                //initialNumToRender={20} // No value to FlashList
             />
         </View>
     );

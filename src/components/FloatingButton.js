@@ -6,7 +6,7 @@ import { TouchableOpacity, StyleSheet, View, Dimensions } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import SongFormModal from './SongFormModal';
 
-const FloatingButton = (songs, setSongs) => {
+const FloatingButton = () => {
     const [isFormModalVisible, setFormModalVisible] = useState(false);
 
     // Press Floating Button
@@ -24,8 +24,6 @@ const FloatingButton = (songs, setSongs) => {
                 isFormModalVisible={isFormModalVisible}
                 closeModal={() => setFormModalVisible(false)}
                 selectedSong={null}
-                songs={songs}
-                setSongs={setSongs}
             />
         </View>
     );
