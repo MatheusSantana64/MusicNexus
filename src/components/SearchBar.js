@@ -6,12 +6,13 @@ import { View, TextInput, TouchableOpacity, Text, StyleSheet, Keyboard } from 'r
 import Icon from 'react-native-vector-icons/Feather';
 import Modal from 'react-native-modal';
 import RangeSlider from 'rn-range-slider'; 
+import OrderButtons from './OrderButtons';
 
-const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, setRatingRange }) => {
+const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, setRatingRange, showFilters = false }) => {
     const [inputText, setInputText] = useState('');
     const [order, setOrder] = useState('title');
     const [orderDirection, setOrderDirectionState] = useState('asc');
-    const [modalVisible, setModalVisible] = useState(false); // State for modal visibility
+    const [modalVisible, setModalVisible] = useState(false);
 
     // Add state for the slider values
     const [low, setLow] = useState(0);
@@ -21,7 +22,7 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
     const handleValueChange = useCallback((low, high) => {
         setLow(low);
         setHigh(high);
-        setRatingRange({ min: low, max: high }); // Update the parent component's state
+        setRatingRange({ min: low, max: high });
     }, []);
 
     const toggleModal = () => {
@@ -39,69 +40,6 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
         setInputText('');
         setSearchText('');
     };    
-    
-    // Function to toggle the order and update the button text
-    const toggleOrder = () => {
-        let newOrder;
-        switch (order) {
-            case 'title':
-                newOrder = 'artist';
-                break;
-            case 'artist':
-                newOrder = 'release';
-                break;
-            case 'release':
-                newOrder = 'rating';
-                break;
-            default:
-                newOrder = 'title';
-                break;
-        }
-        setOrder(newOrder);
-        setOrderBy(newOrder);
-    };
-    
-    // Function to determine the color based on the order state
-    const getOrderColor = () => {
-        switch (order) {
-            case 'title':
-                return 'aqua';
-            case 'artist':
-                return 'violet';
-            case 'release':
-                return 'sandybrown';
-            default:
-                return 'yellow';
-        }
-    };
-
-    // Function to toggle the order direction
-    const toggleOrderDirection = () => {
-        const newDirection = orderDirection === 'asc' ? 'desc' : 'asc';
-        setOrderDirectionState(newDirection);
-        setOrderDirection(newDirection); 
-    };
-
-    // Function to determine the color based on the order direction state
-    const getOrderDirectionColor = () => {
-        return orderDirection === 'asc' ? 'springgreen' : 'tomato';
-    };
-
-    // Function to reset the rating range
-    const resetRatingRange = () => {
-        setLow(0);
-        setHigh(10);
-        setRatingRange({ min: 0, max: 10 }); // Update the parent component's state
-        toggleModal();
-    };
-
-    // Function to reset the rating range
-    const notRatedRange = () => {
-        setLow(0);
-        setHigh(0);
-        setRatingRange({ min: 0, max: 0 }); // Update the parent component's state
-        toggleModal();
-    };
 
     return (
         <View style={styles.container}>
@@ -124,65 +62,62 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
                 )}
             </View>
             
-            <View style={styles.buttonsContainer}>
-            <TouchableOpacity onPress={toggleModal} style={styles.ratingTextContainer}>
-                    <Text style={{ color: 'white', marginRight: 8 }}>Rating: {low} - {high}</Text>
-                </TouchableOpacity>
-                <Modal
-                    isVisible={modalVisible}
-                    onBackdropPress={toggleModal}
-                    onBackButtonPress={toggleModal}
-                    style={styles.modalContainer}
-                    useNativeDriverForBackdrop={true}
-                    hideModalContentWhileAnimating={true}
-                    animationInTiming={100}
-                    animationOutTiming={100}
-                >
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Rating:</Text>
-                        <Text style={styles.modalSubtitle}>{low} ~ {high}</Text>
-                        <View style={styles.sliderContainer}>
-                            <RangeSlider
-                                style={styles.slider}
-                                min={0}
-                                max={10}
-                                step={0.5}
-                                floatingLabel={false}
-                                renderThumb={() => <View style={{ height: 40, width: 40, backgroundColor: 'lightgray', borderRadius: 20 }} />}
-                                renderRail={() => <View style={{ height: 30, width: '100%', backgroundColor: 'gray', borderRadius: 15 }} />}
-                                renderRailSelected={() => <View style={{ height: 30, width: '100%', backgroundColor: 'darkblue' }} />}
-                                renderLabel={value => <Text style={{ fontSize: 32, color: 'aqua' }}>{value}</Text>}
-                                onSliderTouchEnd={handleValueChange}
-                                low={low}
-                                high={high}
-                            />
+            {showFilters && (
+                <View style={styles.buttonsContainer}>
+                    <TouchableOpacity onPress={toggleModal} style={styles.ratingTextContainer}>
+                        <Text style={{ color: 'white', marginRight: 8 }}>Rating: {low} - {high}</Text>
+                    </TouchableOpacity>
+                    <Modal
+                        isVisible={modalVisible}
+                        onBackdropPress={toggleModal}
+                        onBackButtonPress={toggleModal}
+                        style={styles.modalContainer}
+                        useNativeDriverForBackdrop={true}
+                        hideModalContentWhileAnimating={true}
+                        animationInTiming={100}
+                        animationOutTiming={100}
+                    >
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Rating:</Text>
+                            <Text style={styles.modalSubtitle}>{low} ~ {high}</Text>
+                            <View style={styles.sliderContainer}>
+                                <RangeSlider
+                                    style={styles.slider}
+                                    min={0}
+                                    max={10}
+                                    step={0.5}
+                                    floatingLabel={false}
+                                    renderThumb={() => <View style={{ height: 40, width: 40, backgroundColor: 'lightgray', borderRadius: 20 }} />}
+                                    renderRail={() => <View style={{ height: 30, width: '100%', backgroundColor: 'gray', borderRadius: 15 }} />}
+                                    renderRailSelected={() => <View style={{ height: 30, width: '100%', backgroundColor: 'darkblue' }} />}
+                                    renderLabel={value => <Text style={{ fontSize: 32, color: 'aqua' }}>{value}</Text>}
+                                    onSliderTouchEnd={handleValueChange}
+                                    low={low}
+                                    high={high}
+                                />
+                            </View>
+                            <TouchableOpacity onPress={() => { setLow(0); setHigh(10); setRatingRange({ min: 0, max: 10 }); toggleModal(); }} style={styles.resetButton}>
+                                <Text style={styles.closeText}>Show All Songs</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => { setLow(0); setHigh(0); setRatingRange({ min: 0, max: 0 }); toggleModal(); }} style={styles.notRatedButton}>
+                                <Text style={styles.closeText}>Show Not Rated</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={toggleModal} style={styles.closeButton}>
+                                <Text style={styles.closeText}>Close</Text>
+                            </TouchableOpacity>
                         </View>
-                        <TouchableOpacity onPress={resetRatingRange} style={styles.resetButton}>
-                            <Text style={styles.closeText}>Show All Songs</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={notRatedRange} style={styles.notRatedButton}>
-                            <Text style={styles.closeText}>Show Not Rated</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={toggleModal} style={styles.closeButton}>
-                            <Text style={styles.closeText}>Close</Text>
-                        </TouchableOpacity>
-                    </View>
-                </Modal>
-                
-                <View style={styles.orderButtonsContainer}>
-                    <TouchableOpacity onPress={toggleOrder} style={styles.orderButton}>
-                        <Text style={[{color: getOrderColor()}]}>Order by {order.charAt(0).toUpperCase() + order.slice(1)}</Text>
-                    </TouchableOpacity>
-    
-                    <TouchableOpacity onPress={toggleOrderDirection} style={styles.orderDirectionButton}>
-                        {orderDirection === 'asc' ? (
-                            <Icon name="chevron-up" size={18} color={getOrderDirectionColor()} />
-                        ) : (
-                            <Icon name="chevron-down" size={18} color={getOrderDirectionColor()} />
-                        )}
-                    </TouchableOpacity>
+                    </Modal>
+                    
+                    <OrderButtons
+                        order={order}
+                        setOrder={setOrder}
+                        orderDirection={orderDirection}
+                        setOrderDirection={setOrderDirectionState}
+                        setMusicOrder={setOrderBy}
+                        setMusicOrderDirection={setOrderDirection}
+                    />
                 </View>
-            </View>
+            )}
         </View>
     );
 };
@@ -190,7 +125,6 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'column',
-        alignItems: 'center',
         marginBottom: 16,
     },
     inputContainer: {
@@ -234,12 +168,11 @@ const styles = StyleSheet.create({
     },
     clearButton: {
         position: 'absolute',
-        right: 40,
+        right: 10,
     },
     searchButton: {
         marginLeft: 10,
     },
-
     modalContainer: {
         justifyContent: 'center',
         alignItems: 'center',

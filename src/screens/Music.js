@@ -51,17 +51,17 @@ export function Music() {
         setOffset(newOffset);
     };
 
-    // Refresh songs list
-    const refreshSongsList = () => {
-        fetchSongsWrapper(searchText, orderBy, orderDirection, 0, false, ratingRange);
-    };
-
     // Fetch songs when the screen is focused
     useFocusEffect(
         React.useCallback(() => {
             fetchSongsWrapper(searchText, orderBy, orderDirection, 0, false, ratingRange);
         }, [searchText, orderBy, orderDirection, ratingRange])
     );
+
+    // Function to refresh the songs list
+    const refreshSongsList = () => {
+        fetchSongsWrapper(searchText, orderBy, orderDirection, 0, false, ratingRange);
+    };
 
     // Render the Music screen components (SearchBar, SongList, FloatingButton, Modals)
     return (
@@ -73,6 +73,7 @@ export function Music() {
                 setOrderDirection={setOrderDirection}
                 ratingRange={ratingRange}
                 setRatingRange={setRatingRange}
+                showFilters={true}
             />
 
             <SongList
@@ -80,11 +81,13 @@ export function Music() {
                 fetchMoreSongs={fetchMoreSongs}
                 hasMoreSongs={hasMoreSongs}
                 setSongs={setSongs}
+                refreshSongsList={refreshSongsList}
             />
 
             <FloatingButton
-                setSongs={setSongs}
                 songs={songs}
+                setSongs={setSongs}
+                refreshSongsList={refreshSongsList}
             />
         </View>
     );

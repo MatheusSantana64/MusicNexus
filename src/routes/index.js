@@ -6,6 +6,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 
 import { Home } from "../screens/Home";
 import { Music } from "../screens/Music";
+//import { Playlists } from "../screens/Playlists";
 import { Profile } from "../screens/Profile";
 
 const { Navigator, Screen } = createBottomTabNavigator();
@@ -26,19 +27,27 @@ export function Routes() {
             height: 64, // Nav menu height
           }
         }}>
-        {/*<Screen 
+        <Screen 
           name="Home" 
           component={Home} 
           options={{
             tabBarIcon: ({ size, color }) => <Icon name="home" size={size} color={color} />,
             tabBarHideOnKeyboard: true,
           }}
-        />*/}
+        />
         <Screen
           name="Music" 
           component={Music} 
           options={{
             tabBarIcon: ({ size, color }) => <Icon name="music" size={size} color={color} />,
+            tabBarHideOnKeyboard: true,
+          }}
+        />
+        <Screen 
+          name="Tags" 
+          component={Home} 
+          options={{
+            tabBarIcon: ({ size, color }) => <Icon name="th-list" size={size} color={color} />,
             tabBarHideOnKeyboard: true,
           }}
         />

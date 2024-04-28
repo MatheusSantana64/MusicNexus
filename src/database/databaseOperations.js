@@ -202,7 +202,7 @@ import { deleteAllFilesFromCache, deleteImageFromCache, generateCacheKey } from 
                     `UPDATE songs SET title = '${title}', artist = '${artist}', album = '${album}', release = '${release}', rating = ${rating} WHERE id = ${song.id}` :
                     `INSERT INTO songs (title, artist, album, release, rating) VALUES ('${title}', '${artist}', '${album}', '${release}', ${rating})`;
     
-                console.log("SQL Query:", sql); // Debugging line
+                console.log("SQL Query:", sql);
     
                 tx.executeSql(
                     sql,
@@ -217,9 +217,4 @@ import { deleteAllFilesFromCache, deleteImageFromCache, generateCacheKey } from 
                 );
             });
         });
-    };
-
-    // Function to add another song from the same album
-    export const addAnotherSong = async (song) => {
-        return submitForm(song, false); // Call submitForm with editMode set to false
     };

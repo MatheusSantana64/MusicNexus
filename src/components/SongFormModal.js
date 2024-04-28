@@ -4,16 +4,16 @@ import React, { useRef } from 'react';
 import { TouchableWithoutFeedback, StyleSheet, View, TextInput, Button, Dimensions, TouchableOpacity } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Modal from 'react-native-modal';
-import { submitForm, addAnotherSong } from '../database/databaseOperations';
+import { submitForm } from '../database/databaseOperations';
 
-const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong }) => {
+const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, setSongs, refreshSongsList }) => {
     const [title, setTitle] = React.useState(selectedSong ? selectedSong.title : '');
     const [artist, setArtist] = React.useState(selectedSong ? selectedSong.artist : '');
     const [album, setAlbum] = React.useState(selectedSong ? selectedSong.album : '');
     const [release, setRelease] = React.useState(selectedSong ? selectedSong.release : new Date().toISOString().split('T')[0]);
     const [datePickerVisible, setDatePickerVisible] = React.useState(false);
     
-    const [editMode] = React.useState(!!selectedSong);
+    const [editMode, setEditMode] = React.useState(!!selectedSong);
 
     const titleRef = useRef(null);
     const artistRef = useRef(null);
@@ -22,12 +22,12 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong }) => {
     // Function to construct songData
     const constructSongData = () => {
         return {
-            id: selectedSong ? selectedSong.id : null,
+            id: editMode ? selectedSong.id : null,
             title: title || "Unknown Title",
             artist: artist || "Unknown Artist",
             album: album || "Unknown Album",
             release: release || "1900-01-01",
-            rating: 0,
+            rating: editMode ? selectedSong.rating : 0,
             cover_path: null
         };
     };
@@ -43,16 +43,25 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong }) => {
     const handleSubmit = async () => {
         const songData = constructSongData();
         await submitForm(songData, editMode);
-        clearForm();
+        if (editMode) {
+            // If in edit mode, update the song list immediately
+            const updatedSongs = songs.map(song => song.id === songData.id ? songData : song);
+            setSongs(updatedSongs);
+        } else {
+            clearForm();
+            // Use the refreshSongsList function to refresh the song list
+            refreshSongsList();
+        }
         closeModal();
     };
 
     // Function to add another song
     const handleAddAnotherSong = async () => {
         const songData = constructSongData();
+        await submitForm(songData, editMode);
         setTitle('');
         titleRef.current.focus();
-        await addAnotherSong(songData);
+        setEditMode(false);
     };
 
     return (

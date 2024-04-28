@@ -2,11 +2,14 @@
 // It allows users to add new songs by pressing the button.
 
 import React, { useState } from 'react';
-import { TouchableOpacity, StyleSheet, View, Dimensions } from 'react-native';
+import { TouchableOpacity, StyleSheet, View } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import SongFormModal from './SongFormModal';
 
-const FloatingButton = () => {
+const FloatingButton = (props) => {
+    // Destructure (Necessary for some reason) props to get songs, setSongs, and refreshSongsList
+    const { songs, setSongs, refreshSongsList } = props;
+
     const [isFormModalVisible, setFormModalVisible] = useState(false);
 
     // Press Floating Button
@@ -24,6 +27,9 @@ const FloatingButton = () => {
                 isFormModalVisible={isFormModalVisible}
                 closeModal={() => setFormModalVisible(false)}
                 selectedSong={null}
+                songs={songs}
+                setSongs={setSongs}
+                refreshSongsList={refreshSongsList}
             />
         </View>
     );

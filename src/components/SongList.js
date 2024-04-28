@@ -6,7 +6,7 @@ import { View } from 'react-native';
 import Card from './Card';
 import { FlashList } from '@shopify/flash-list';
 
-const SongList = ({ songs, fetchMoreSongs, hasMoreSongs, setSongs }) => {
+const SongList = ({ songs, fetchMoreSongs, hasMoreSongs, setSongs, refreshSongsList }) => {
     const CARD_HEIGHT = 90;
 
     const handleScroll = (event) => {
@@ -19,7 +19,7 @@ const SongList = ({ songs, fetchMoreSongs, hasMoreSongs, setSongs }) => {
 
     const extractKey = (item, index) => String(index);
 
-    const renderCard = ({ item }) => (<Card key={item.id} cardSong={item} songs={songs} setSongs={setSongs} />);
+    const renderCard = ({ item }) => (<Card key={item.id} cardSong={item} songs={songs} setSongs={setSongs} refreshSongsList={refreshSongsList} />);
 
     /* const itemLayout= (data, index) => ({
         length: CARD_HEIGHT,

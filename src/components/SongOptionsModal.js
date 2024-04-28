@@ -7,7 +7,7 @@ import Modal from 'react-native-modal';
 import { deleteCover, deleteSong } from '../database/databaseOperations';
 import SongFormModal from './SongFormModal';
 
-const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, songs, setSongs }) => {
+const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, songs, setSongs, refreshSongsList }) => {
     const [isFormModalVisible, setFormModalVisible] = useState(false);
 
     // Handle Edit Song (Edit Song Details)
@@ -105,6 +105,9 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
                 isFormModalVisible={isFormModalVisible}
                 closeModal={() => closeModals()}
                 selectedSong={selectedSong}
+                songs={songs}
+                setSongs={setSongs}
+                refreshSongsList={refreshSongsList}
             />
         </View>
     );
