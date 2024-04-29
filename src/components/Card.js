@@ -24,13 +24,13 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
             if (!cardSong.cover_path) {
                 cardSong.cover_path = await fetchAlbumCover(cardSong.artist, cardSong.album, cacheKey);
                 setCoverImg(cardSong.cover_path);
-                //console.log(`Cover image URL fetched for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
+                console.log(`Cover image URL fetched for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
                 if (cardSong.cover_path) {
                     // Download the cover image
-                    //console.log(`Downloading cover image for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
+                    console.log(`Downloading cover image for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
                     cardSong.cover_path = await downloadImage(cardSong.cover_path, cacheKey);
                     setCoverImg(cardSong.cover_path);
-                    //console.log(`Cover image downloaded successfully for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
+                    console.log(`Cover image downloaded successfully for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
                 }
             }
             db.transaction(tx => {
@@ -104,10 +104,10 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
                 style={styles.cardContainer}
             >
                 <Image
-                    source={ coverImg ? { uri: coverImg } : require('../../assets/placeholder60.png') }
                     resizeMode="cover"
                     resizeMethod="scale"
                     style={styles.image}
+                    source={ coverImg ? { uri: coverImg } : require('../../assets/placeholder60.png') }
                 />
                 <View style={styles.songInfoContainer}>
                     <View style={styles.songInfoTextContainer}>

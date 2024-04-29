@@ -23,8 +23,6 @@ export function Home() {
     const [orderNotRated, setOrderNotRated] = useState('release');
     const [orderDirectionNotRated, setOrderDirectionNotRated] = useState('asc');
 
-    const navigation = useNavigation();
-
     // Initialize the SQLite database
     useEffect(() => {
         initDatabase();
@@ -49,9 +47,6 @@ export function Home() {
     
     return (
         <View style={styles.screen}>
-            <OnlineSearchBar
-                handleSearch={handleSearch}
-            />
             <View style={styles.titleContainer}>
                 <Text style={styles.title}>Favorite Songs</Text>
                 <OrderButtons

@@ -6,6 +6,19 @@ const coverCache = {};
 let queue = [];
 let isProcessing = false;
 
+// Add a new item to the queue
+function addToQueue(artist, album) {
+    return new Promise((resolve) => {
+        // Add the item to the queue
+        //console.log(`Adding item to queue: album "${album}" by "${artist}"`);
+        queue.push({ artist, album, resolve });
+        // Process the queue if it's not already processing
+        if (!isProcessing) {
+            processQueue();
+        }
+    });
+}
+
 // Fetch album cover and release MBID for the given artist and album
 async function processQueue() {
     //console.log('Processing queue...');
@@ -26,19 +39,6 @@ async function processQueue() {
     }
 
     setTimeout(processQueue, 100); // Delay for 100ms before processing the next item to avoid overloading the API
-}
-
-// Add a new item to the queue
-function addToQueue(artist, album) {
-    return new Promise((resolve) => {
-        // Add the item to the queue
-        //console.log(`Adding item to queue: album "${album}" by "${artist}"`);
-        queue.push({ artist, album, resolve });
-        // Process the queue if it's not already processing
-        if (!isProcessing) {
-            processQueue();
-        }
-    });
 }
 
 // Fetch album cover and release MBID for the given artist and album

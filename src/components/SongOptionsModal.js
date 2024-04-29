@@ -63,6 +63,15 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
         );
     };
 
+    // Function to handle checking the cover path of the selected song
+    const handleCheckCoverPath = () => {
+        Alert.alert(
+            "Cover Path",
+            `Cover path for the song "${selectedSong.title}" by "${selectedSong.artist}" is: ${selectedSong.cover_path}`,
+            [{ text: "OK" }]
+        );
+    };
+
     // Render the modal with the song options
     return (
         <View>
@@ -90,9 +99,15 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
                                         <Text style={styles.optionText}>Delete Song</Text>
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity onPress={handleDeleteCover} style={styles.reloadButton}>
-                                        <Text style={styles.optionText}>Reload Cover</Text>
-                                    </TouchableOpacity>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                                        <TouchableOpacity onPress={handleDeleteCover} style={styles.reloadButton}>
+                                            <Text style={styles.optionText}>Reload Cover</Text>
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity onPress={handleCheckCoverPath} style={styles.checkCoverPathButton}>
+                                            <Text style={styles.optionText}>Check Cover Path</Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
                             </TouchableWithoutFeedback>
                         </View>
@@ -150,8 +165,16 @@ const styles = StyleSheet.create({
     reloadButton: {
         backgroundColor: 'green',
         borderRadius: 8,
-        padding: 10,
+        padding: 5,
         marginBottom: 16,
+        width: '48%',
+    },
+    checkCoverPathButton: {
+        backgroundColor: 'purple',
+        borderRadius: 8,
+        padding: 5,
+        marginBottom: 16,
+        width: '48%',
     },
 });   
 
