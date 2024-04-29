@@ -4,7 +4,6 @@
 import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View } from 'react-native';
-import { initDatabase } from '../database/databaseSetup';
 import SearchBar from '../components/SearchBar';
 import SongList from '../components/SongList';
 import FloatingButton from '../components/FloatingButton';
@@ -21,11 +20,6 @@ export function Music() {
 
     const [offset, setOffset] = useState(0);
     const [hasMoreSongs, setHasMoreSongs] = useState(true);
-
-    // Initialize the SQLite database
-    useEffect(() => {
-        initDatabase();
-    }, []);
 
     // Fetch songs from the SQLite database with dynamic query and pagination
     const fetchSongsWrapper = async (searchText, orderBy, orderDirection, offset = 0, isScroll = false, ratingRange = { min: 0, max: 10 }) => {

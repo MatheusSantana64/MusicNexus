@@ -150,22 +150,6 @@ const styles = StyleSheet.create({
         width: '95%',
         marginTop: 16,
     },
-    orderButtonsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    toggleButton: {
-        marginRight: 16,
-    },
-    toggleText: {
-        color: 'silver',
-    },
-    orderButton: {
-        marginLeft: 16,
-    },
-    orderDirectionButton: {
-        marginLeft: 10,
-    },
     clearButton: {
         position: 'absolute',
         right: 10,
@@ -173,6 +157,7 @@ const styles = StyleSheet.create({
     searchButton: {
         marginLeft: 10,
     },
+
     modalContainer: {
         justifyContent: 'center',
         alignItems: 'center',
@@ -182,8 +167,8 @@ const styles = StyleSheet.create({
         padding: 20,
         borderRadius: 8,
         width: '100%',
-        alignItems: 'center', // Center the content horizontally
-        justifyContent: 'center', // Center the content vertically
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     modalTitle: {
         color: 'white',
@@ -194,11 +179,12 @@ const styles = StyleSheet.create({
         fontSize: 28,
         marginBottom: 32,
     },
-    sliderContainer: { // Adjusted container for the slider
-        width: '100%', // Ensure the container takes the full width
-        height: 50, // Define a specific height for the slider container
-        justifyContent: 'center', // Center the slider vertically
-        alignItems: 'center', // Center the slider horizontally
+
+    sliderContainer: {
+        width: '100%',
+        height: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
         marginBottom: 16,
     },
     slider: {

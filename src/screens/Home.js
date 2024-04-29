@@ -2,21 +2,33 @@
 // It also allows users to search for songs online and add it to their list.
 
 // Home.js
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import SongList from '../components/SongList';
+import { useFocusEffect, useNavigation  } from '@react-navigation/native';
+import { initDatabase } from '../database/databaseSetup';
+
 import { fetchSongs } from '../database/databaseOperations';
-import SearchBar from '../components/SearchBar';
+import SongList from '../components/SongList';
 import OrderButtons from '../components/OrderButtons';
-import { useFocusEffect } from '@react-navigation/native';
+
+import OnlineSearchBar from '../components/OnlineSearchBar';
+import { fetchSongsOnline } from '../api/MusicBrainzAPI';
 
 export function Home() {
     const [favoriteSongs, setFavoriteSongs] = useState([]);
-    const [notRatedSongs, setNotRatedSongs] = useState([]);
     const [orderFav, setOrderFav] = useState('rating');
     const [orderDirectionFav, setOrderDirectionFav] = useState('desc');
+    
+    const [notRatedSongs, setNotRatedSongs] = useState([]);
     const [orderNotRated, setOrderNotRated] = useState('release');
     const [orderDirectionNotRated, setOrderDirectionNotRated] = useState('asc');
+
+    const navigation = useNavigation();
+
+    // Initialize the SQLite database
+    useEffect(() => {
+        initDatabase();
+    }, []);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -32,17 +44,13 @@ export function Home() {
     );
 
     const handleSearch = async (searchText) => {
-        // Implement fetchSongsOnline in MusicBrainzAPI.js
-        // This function should return an array of songs that match the search criteria
-        // const results = await fetchSongsOnline(searchText);
-        // setSearchResults(results);
+        // List songs from MusicBrainz API based on the search text
     };
-
+    
     return (
         <View style={styles.screen}>
-            <SearchBar 
-                onSearch={handleSearch}
-                showFilters={false}
+            <OnlineSearchBar
+                handleSearch={handleSearch}
             />
             <View style={styles.titleContainer}>
                 <Text style={styles.title}>Favorite Songs</Text>

@@ -6,7 +6,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 
 import { Home } from "../screens/Home";
 import { Music } from "../screens/Music";
-//import { Playlists } from "../screens/Playlists";
+//import { Tags } from "../screens/Tags";
 import { Profile } from "../screens/Profile";
 
 const { Navigator, Screen } = createBottomTabNavigator();
@@ -15,16 +15,16 @@ export function Routes() {
   return (
     <NavigationContainer>
       <Navigator screenOptions={{
-          headerShown: false, // Hide the page header
-          tabBarActiveTintColor: 'white', // Nav menu active icon color
-          tabBarInactiveTintColor: 'gray', // Nav menu inactive icon color
-          tabBarShowLabel: true, // Nav menu show icons label
-          tabBarStyle: { // Nav menu style
-            backgroundColor: '#090909', // Nav menu background color
-            borderTopColor: '#34495e', // Add a thin grey border at the top
-            borderTopWidth: 0.8, // Set the width of the border
-            borderTopStyle: 'solid', // Set the style of the border
-            height: 64, // Nav menu height
+          headerShown: false,
+          tabBarActiveTintColor: 'white',
+          tabBarInactiveTintColor: 'gray',
+          tabBarShowLabel: true,
+          tabBarStyle: {
+            backgroundColor: '#090909',
+            borderTopColor: '#34495e',
+            borderTopWidth: 0.8,
+            borderTopStyle: 'solid',
+            height: 64,
           }
         }}>
         <Screen 
@@ -43,14 +43,14 @@ export function Routes() {
             tabBarHideOnKeyboard: true,
           }}
         />
-        <Screen 
+        {/* <Screen 
           name="Tags" 
           component={Home} 
           options={{
             tabBarIcon: ({ size, color }) => <Icon name="th-list" size={size} color={color} />,
             tabBarHideOnKeyboard: true,
           }}
-        />
+        /> */}
         <Screen 
           name="Profile" 
           component={Profile}
