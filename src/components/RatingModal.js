@@ -29,27 +29,21 @@ const RatingModal = ({ isRatingModalVisible, closeModal, handleRatingSelect, sel
             animationInTiming={100}
             animationOutTiming={100}
             children={
-                <TouchableWithoutFeedback onPress={closeModal}>
-                    <View style={styles.modalContainer}>
-                        <TouchableWithoutFeedback onPress={() => {}}>
-                            <View style={styles.ratingContainer}>
-                                <Rating
-                                    showRating
-                                    ratingCount={10}
-                                    fractions={1}
-                                    jumpValue={0.5}
-                                    imageSize={30}
-                                    tintColor='#1e272e'
-                                    startingValue={selectedSong.rating}
-                                    onFinishRating={(rating) => setRating(rating)}
-                                />
-                                <TouchableOpacity onPress={handleRatingSubmit} style={styles.submitButton}>
-                                    <Text style={styles.submitText}>Submit Rating</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </TouchableWithoutFeedback>
-                    </View>
-                </TouchableWithoutFeedback>
+                <View style={styles.ratingContainer}>
+                    <Rating
+                        fractions={1}
+                        ratingCount={10}
+                        jumpValue={0.5}
+                        imageSize={30}
+                        tintColor='#1e272e'
+                        startingValue={selectedSong.rating}
+                        showRating
+                        onFinishRating={(rating) => setRating(rating)}
+                    />
+                    <TouchableOpacity onPress={handleRatingSubmit} style={styles.submitButton}>
+                        <Text style={styles.submitText}>Save Rating</Text>
+                    </TouchableOpacity>
+                </View>
             }
         > 
         </Modal>
@@ -64,7 +58,7 @@ const styles = StyleSheet.create({
     },
     ratingContainer: {
         backgroundColor: '#1e272e',  
-        borderRadius: 8,
+        borderRadius: 10,
         padding: 16,
         width: '80%',
         alignItems: 'stretch', // 'stretch' is necessary for stars to look fine for some reason

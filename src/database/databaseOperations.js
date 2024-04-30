@@ -147,6 +147,47 @@ import { deleteAllFilesFromCache, deleteImageFromCache, generateCacheKey } from 
         });
     };
 
+// Card.js
+    // Function to update the cover_path of a song in the database
+    export const updateSongCoverPath = async (songId, coverPath) => {
+        return new Promise((resolve, reject) => {
+            db.transaction(tx => {
+                tx.executeSql(
+                    'UPDATE songs SET cover_path = ? WHERE id = ?',
+                    [coverPath, songId],
+                    () => {
+                        console.log(`Cover path updated for song with ID: ${songId}`);
+                        resolve();
+                    },
+                    (_, error) => {
+                        console.error('Error updating cover path:', error);
+                        reject(error);
+                    }
+                );
+            });
+        });
+    };
+
+    // Function to update the rating of a song in the database
+    export const updateSongRating = async (songId, rating) => {
+        return new Promise((resolve, reject) => {
+            db.transaction(tx => {
+                tx.executeSql(
+                    'UPDATE songs SET rating = ? WHERE id = ?',
+                    [rating, songId],
+                    () => {
+                        console.log(`Rating updated for song with ID: ${songId}`);
+                        resolve();
+                    },
+                    (_, error) => {
+                        console.error('Error updating song rating:', error);
+                        reject(error);
+                    }
+                );
+            });
+        });
+    };
+
 // SongOptionsModal.js
     // Function to delete the cover image for a song and update the database
     export const deleteCover = async (artist, album) => {

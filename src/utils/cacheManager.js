@@ -15,7 +15,7 @@ const downloadImage = async (url, filename) => {
     const webpUrl = `${url}?format=webp`;
     const uri = `${cacheDirectory}${filename}`;
     const { uri: localUri } = await FileSystem.downloadAsync(webpUrl, uri);
-    //console.log(`Downloaded cover image for song: ${filename}`);
+    console.log(`Downloaded cover image for song: ${filename}`);
     return localUri;
 };
 
@@ -25,7 +25,7 @@ const getImageFromCache = async (filename) => {
     const uri = `${cacheDirectory}${filename}`;
     // Check if the image file exists in the cache directory
     const { exists } = await FileSystem.getInfoAsync(uri);
-    //console.log(`Cover image exists in the cache for song: ${filename}: ${exists}. uri: ${uri}`);
+    console.log(`Cover image exists in the cache for song: ${filename}: ${exists}. uri: ${uri}`);
     // Return the path of the image file if it exists, otherwise return null
     return exists ? uri : null;
 };
@@ -35,9 +35,9 @@ const deleteImageFromCache = async (filename) => {
     const localCoverPath = await getImageFromCache(filename);
     if (localCoverPath) {
         await FileSystem.deleteAsync(uri);
-        //console.log(`Deleted cover image for song: ${filename}`);
+        console.log(`Deleted cover image for song: ${filename}`);
     } else {
-        //console.log(`Cover image does not exist in the cache for song: ${filename}`);
+        console.log(`Cover image does not exist in the cache for song: ${filename}`);
     }
 };
 

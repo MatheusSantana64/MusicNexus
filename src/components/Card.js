@@ -6,7 +6,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { addToQueue } from '../api/MusicBrainzAPI';
 import { getImageFromCache, downloadImage, generateCacheKey } from '../utils/cacheManager';
-import { db } from '../database/databaseSetup';
+import { updateSongCoverPath, updateSongRating } from '../database/databaseOperations';
 
 import RatingModal from './RatingModal';
 import SongOptionsModal from './SongOptionsModal';
@@ -51,15 +51,13 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
     };
 
     // Update database with new cover path
-    const updateDatabaseWithCoverPath = (coverPath) => {
-        db.transaction(tx => {
-            tx.executeSql(
-                'UPDATE songs SET cover_path = ? WHERE id = ?',
-                [coverPath, cardSong.id],
-                () => console.log(`(updateDatabaseWithCoverPath) Cover path updated in the database for song: ${cardSong.title}.\ncardSong.cover_path: ${cardSong.cover_path}`),
-                (_, error) => console.log('Error updating cover path:', error)
-            );
-        });
+    const updateDatabaseWithCoverPath = async (coverPath) => {
+        try {
+            await updateSongCoverPath(cardSong.id, coverPath);
+            console.log(`(updateDatabaseWithCoverPath) Cover path updated in the database for song: ${cardSong.title}.\ncardSong.cover_path: ${cardSong.cover_path}`);
+        } catch (error) {
+            console.log('Error updating cover path:', error);
+        }
     };
 
     // Main function to fetch cover image (First locally then from internet)
@@ -97,18 +95,14 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
         };
         
         // Handle Rating Select (Update Song Rating)
-        const handleRatingSelect = (rating) => {
-            db.transaction(tx => {
-                tx.executeSql(
-                    'UPDATE songs SET rating = ? WHERE id = ?',
-                    [rating, cardSong.id],
-                    () => {
-                        console.log(`Song rating updated successfully for song: ${cardSong.title} by ${cardSong.artist}, New Rating: ${rating}`);
-                        setRatingModalVisible(false);
-                    },
-                    (_, error) => console.log('Error updating song rating:', error)
-                );
-            });
+        const handleRatingSelect = async (rating) => {
+            try {
+                await updateSongRating(cardSong.id, rating);
+                console.log(`Song rating updated successfully for song: ${cardSong.title} by ${cardSong.artist}, New Rating: ${rating}`);
+                setRatingModalVisible(false);
+            } catch (error) {
+                console.log('Error updating song rating:', error);
+            }
         };
 
     // Song Options Modal
@@ -134,7 +128,7 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
             <TouchableOpacity 
                 onPress={openRatingModal}
                 onLongPress={openOptionsModal} 
-                delayLongPress={100}
+                delayLongPress={200}
                 style={styles.cardContainer}
             >
                 <Image
