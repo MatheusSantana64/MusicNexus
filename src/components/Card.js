@@ -2,10 +2,10 @@
 // It includes the song's title, artist, album, release date, rating, and an edit button that allows users to edit the song's information or delete.
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import Icon from 'react-native-vector-icons/Feather';
 import { addToQueue } from '../api/MusicBrainzAPI';
-import { getImageFromCache, downloadImage, generateCacheKey } from '../utils/cacheManager';
 import { updateSongCoverPath, updateSongRating } from '../database/databaseOperations';
 
 import RatingModal from './RatingModal';
@@ -14,38 +14,13 @@ import SongOptionsModal from './SongOptionsModal';
 const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
     const [coverImage, setCoverImage] = useState(cardSong.cover_path);
 
-    // Fetch cover image from cache
-    const fetchCoverFromCache = async () => {
-        console.log(`(fetchCoverFromCache) Checking for local cover for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}.`);
-        const cacheKey = generateCacheKey(cardSong.artist, cardSong.album);
-        const coverPath = await getImageFromCache(cacheKey);
-        if (coverPath) {
-            console.log(`(fetchCoverFromCache) Cover image URL fetched from cache for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}. coverPath: ${coverPath}.`);
-            setCoverImage(coverPath);
-            return coverPath;
-        }
-        return null;
-    };
-
     // Fetch cover image from MusicBrainz API
     const fetchCoverFromMusicBrainz = async () => {
-        const cacheKey = generateCacheKey(cardSong.artist, cardSong.album);
-        const coverPath = await addToQueue(cardSong.artist, cardSong.album, cacheKey);
+        const coverPath = await addToQueue(cardSong.artist, cardSong.album);
         if (coverPath) {
             console.log(`(fetchCoverFromMusicBrainz) Cover image URL from internet for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncoverPath: ${coverPath}.`);
             setCoverImage(coverPath);
             return coverPath;
-        }
-        return null;
-    };
-
-    // Download cover image
-    const downloadCoverImage = async (coverPath) => {
-        const downloadedPath = await downloadImage(coverPath, generateCacheKey(cardSong.artist, cardSong.album));
-        if (downloadedPath) {
-            console.log(`(downloadCoverImage) Cover image URL downloaded for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ndownloadedPath: ${downloadedPath}.`);
-            setCoverImage(downloadedPath);
-            return downloadedPath;
         }
         return null;
     };
@@ -62,17 +37,9 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
 
     // Main function to fetch cover image (First locally then from internet)
     const fetchCover = async () => {
-        // Check for cover in cache
-        let coverPath = await fetchCoverFromCache();
-        // If not found, fetch cover from internet
-        if (!coverPath) {
-            coverPath = await fetchCoverFromMusicBrainz();
-            // If found in internet, download cover
-            if (coverPath) {
-                coverPath = await downloadCoverImage(coverPath);
-            }
-        }
-        // If found in cache or internet, update database
+        // Check for cover online
+        coverPath = await fetchCoverFromMusicBrainz();
+        // If found online, update database
         if (coverPath) {
             updateDatabaseWithCoverPath(coverPath);
             cardSong.cover_path = coverPath;
@@ -132,8 +99,10 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
                 style={styles.cardContainer}
             >
                 <Image
-                    resizeMode="cover"
-                    resizeMethod="scale"
+                    placeholder={require('../../assets/placeholder60.png')}
+                    placeholderContentFit={'cover'}
+                    cachePolicy={'disk'}
+                    contentFit={'cover'}
                     style={styles.image}
                     source={{ uri: coverImage }}
                 />

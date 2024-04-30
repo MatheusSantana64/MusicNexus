@@ -23,9 +23,9 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, se
     const constructSongData = () => {
         return {
             id: editMode ? selectedSong.id : null,
-            title: title || "Unknown Title",
-            artist: artist || "Unknown Artist",
-            album: album || "Unknown Album",
+            title: title.trim() || "Unknown Title",
+            artist: artist.trim() || "Unknown Artist",
+            album: album.trim() || "Unknown Album",
             release: release || "1900-01-01",
             rating: editMode ? selectedSong.rating : 0,
             cover_path: null
