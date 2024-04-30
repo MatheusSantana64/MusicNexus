@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import { fetchAlbumCover } from '../api/MusicBrainzAPI';
+import { addToQueue } from '../api/MusicBrainzAPI';
 import { getImageFromCache, downloadImage, generateCacheKey } from '../utils/cacheManager';
 import { db } from '../database/databaseSetup';
 
@@ -12,45 +12,79 @@ import RatingModal from './RatingModal';
 import SongOptionsModal from './SongOptionsModal';
 
 const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
+    const [coverImage, setCoverImage] = useState(cardSong.cover_path);
 
-    const [coverImg, setCoverImg] = useState(cardSong.cover_path);
-
-    // Define checkForLocalCover outside of useEffect
-    const checkForLocalCover = async () => {
-        if(!cardSong.cover_path) {
-            const cacheKey = generateCacheKey(cardSong.artist, cardSong.album);
-            cardSong.cover_path = await getImageFromCache(cacheKey);
-            setCoverImg(cardSong.cover_path);
-            if (!cardSong.cover_path) {
-                cardSong.cover_path = await fetchAlbumCover(cardSong.artist, cardSong.album, cacheKey);
-                setCoverImg(cardSong.cover_path);
-                console.log(`Cover image URL fetched for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
-                if (cardSong.cover_path) {
-                    // Download the cover image
-                    console.log(`Downloading cover image for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
-                    cardSong.cover_path = await downloadImage(cardSong.cover_path, cacheKey);
-                    setCoverImg(cardSong.cover_path);
-                    console.log(`Cover image downloaded successfully for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
-                }
-            }
-            db.transaction(tx => {
-                //console.log(`Updating cover path in the database for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
-                tx.executeSql(
-                    'UPDATE songs SET cover_path = ? WHERE id = ?',
-                    [cardSong.cover_path, cardSong.id],
-                    () => console.log('Cover path updated in the database. For song: ', cardSong.title, '. cardSong.cover_path: ', cardSong.cover_path),
-                    (_, error) => console.log('Error updating cover path:', error)
-                );
-            });
+    // Fetch cover image from cache
+    const fetchCoverFromCache = async () => {
+        console.log(`(fetchCoverFromCache) Checking for local cover for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}.`);
+        const cacheKey = generateCacheKey(cardSong.artist, cardSong.album);
+        const coverPath = await getImageFromCache(cacheKey);
+        if (coverPath) {
+            console.log(`(fetchCoverFromCache) Cover image URL fetched from cache for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}. coverPath: ${coverPath}.`);
+            setCoverImage(coverPath);
+            return coverPath;
         }
-        else {
-            //console.log(`Cover image already exists for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}`);
+        return null;
+    };
+
+    // Fetch cover image from MusicBrainz API
+    const fetchCoverFromMusicBrainz = async () => {
+        const cacheKey = generateCacheKey(cardSong.artist, cardSong.album);
+        const coverPath = await addToQueue(cardSong.artist, cardSong.album, cacheKey);
+        if (coverPath) {
+            console.log(`(fetchCoverFromMusicBrainz) Cover image URL from internet for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncoverPath: ${coverPath}.`);
+            setCoverImage(coverPath);
+            return coverPath;
+        }
+        return null;
+    };
+
+    // Download cover image
+    const downloadCoverImage = async (coverPath) => {
+        const downloadedPath = await downloadImage(coverPath, generateCacheKey(cardSong.artist, cardSong.album));
+        if (downloadedPath) {
+            console.log(`(downloadCoverImage) Cover image URL downloaded for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ndownloadedPath: ${downloadedPath}.`);
+            setCoverImage(downloadedPath);
+            return downloadedPath;
+        }
+        return null;
+    };
+
+    // Update database with new cover path
+    const updateDatabaseWithCoverPath = (coverPath) => {
+        db.transaction(tx => {
+            tx.executeSql(
+                'UPDATE songs SET cover_path = ? WHERE id = ?',
+                [coverPath, cardSong.id],
+                () => console.log(`(updateDatabaseWithCoverPath) Cover path updated in the database for song: ${cardSong.title}.\ncardSong.cover_path: ${cardSong.cover_path}`),
+                (_, error) => console.log('Error updating cover path:', error)
+            );
+        });
+    };
+
+    // Main function to fetch cover image (First locally then from internet)
+    const fetchCover = async () => {
+        // Check for cover in cache
+        let coverPath = await fetchCoverFromCache();
+        // If not found, fetch cover from internet
+        if (!coverPath) {
+            coverPath = await fetchCoverFromMusicBrainz();
+            // If found in internet, download cover
+            if (coverPath) {
+                coverPath = await downloadCoverImage(coverPath);
+            }
+        }
+        // If found in cache or internet, update database
+        if (coverPath) {
+            updateDatabaseWithCoverPath(coverPath);
+            cardSong.cover_path = coverPath;
         }
     };
 
     useEffect(() => {
-        //console.log(`Entered useEffect of Card.js for: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\nCover Path: ${cardSong.cover_path}`);
-        checkForLocalCover();
+        // If cardSong.cover_path is not set, check for cover
+        console.log(`(useEffect) Checking for cover for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}.`);
+        if (!coverImage) fetchCover();
     }, [cardSong.artist, cardSong.album, cardSong.cover_path]);
 
     // Rating Modal
@@ -107,7 +141,7 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
                     resizeMode="cover"
                     resizeMethod="scale"
                     style={styles.image}
-                    source={ coverImg ? { uri: coverImg } : require('../../assets/placeholder60.png') }
+                    source={{ uri: coverImage }}
                 />
                 <View style={styles.songInfoContainer}>
                     <View style={styles.songInfoTextContainer}>

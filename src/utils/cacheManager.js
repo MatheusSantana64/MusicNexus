@@ -6,7 +6,7 @@ import * as FileSystem from 'expo-file-system';
 const cacheDirectory = FileSystem.cacheDirectory;
 
 function generateCacheKey(artist, album) {
-    const key = `${artist.trim().toLowerCase()}-${album.trim().toLowerCase()}`;
+    const key = `${artist.trim().toLowerCase()}${album.trim().toLowerCase()}`;
     //console.log(`Generated cache key for the album "${album}" by "${artist}" is: ${key.replace(/[^a-zA-Z0-9]/g, '')}`);
     return key.replace(/[^a-zA-Z0-9]/g, '');
 }
@@ -21,9 +21,12 @@ const downloadImage = async (url, filename) => {
 
 // Function to get an image from the cache directory
 const getImageFromCache = async (filename) => {
+    // Set the path of the image file in the cache directory
     const uri = `${cacheDirectory}${filename}`;
+    // Check if the image file exists in the cache directory
     const { exists } = await FileSystem.getInfoAsync(uri);
     //console.log(`Cover image exists in the cache for song: ${filename}: ${exists}. uri: ${uri}`);
+    // Return the path of the image file if it exists, otherwise return null
     return exists ? uri : null;
 };
 

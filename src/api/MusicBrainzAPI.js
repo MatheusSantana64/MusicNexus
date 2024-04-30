@@ -134,4 +134,4 @@ async function fetchReleaseMbid(artist, album) {
     }
 }
 
-export { addToQueue as fetchAlbumCover };
+export { addToQueue };
