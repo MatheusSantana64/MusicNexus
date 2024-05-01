@@ -46,7 +46,6 @@ async function processQueue() {
 async function fetchAlbumCover(artist, album) {
     // If the cover is not in the cache, fetch it from the API
     const mbid = await fetchReleaseMbid(artist, album);
-    console.log(`MBID for the album "${album}" by "${artist}" is: ${mbid}`);
     if (!mbid) {
         console.error(`Failed to fetch MBID for the album "${album}" by "${artist}"`);
         return null;
@@ -143,4 +142,4 @@ async function fetchReleaseMbid(artist, album) {
     }
 }
 
-export { addToQueue, fetchAlbumCover };
+export { addToQueue, fetchAlbumCover, cleanAlbumName };

@@ -6,6 +6,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { fetchAllSongsAsJson, insertSongIntoDatabase, coverPathToNull, deleteData } from '../database/databaseOperations';
+import { deleteAllFilesFromCache } from '../utils/cacheManager';
 
 export function Profile() {
     const [importProgress, setImportProgress] = useState(0);
@@ -15,21 +16,8 @@ export function Profile() {
     // Delete the cache and update cover_path of all songs to null
     const handleDeleteCache = async () => {
         try {
-            const { exists, isDirectory } = await FileSystem.getInfoAsync(FileSystem.cacheDirectory);
-            if (!exists || !isDirectory) {
-                console.log('Cache directory does not exist or is not a directory.');
-                return;
-            }
-        
-            const files = await FileSystem.readDirectoryAsync(FileSystem.cacheDirectory);
-            for (const file of files) {
-                const filePath = `${FileSystem.cacheDirectory}${file}`;
-                await FileSystem.deleteAsync(filePath);
-                console.log(`Deleted file: ${filePath}`);
-            }
-            console.log('All files deleted from the cache directory.');
-        
-            //await coverPathToNull();
+            await deleteAllFilesFromCache();
+            await coverPathToNull();
             Alert.alert('Success', 'All files in the cache have been deleted and cover paths updated to null.');
         } 
         catch (error) {

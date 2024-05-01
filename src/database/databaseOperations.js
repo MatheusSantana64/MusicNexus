@@ -2,6 +2,7 @@
 // It includes functions to fetch songs, delete cache, delete data, fetch all songs as JSON, insert a single song into the database, delete the cover image for a song, delete a song from the database, submit form data, and add another song from the same album.
 
 import { db, initDatabase } from '../database/databaseSetup';
+import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
 
 // Music.js
     // Function to fetch songs from the SQLite database with dynamic query and pagination
@@ -187,6 +188,8 @@ import { db, initDatabase } from '../database/databaseSetup';
 // SongOptionsModal.js
     // Function to delete the cover image for a song and update the database
     export const deleteCover = async (artist, album) => {
+        const cacheKey = generateCacheKey(artist, album);
+        await deleteImageFromCache(cacheKey);
         return new Promise((resolve, reject) => {
             db.transaction(tx => {
                 tx.executeSql(
