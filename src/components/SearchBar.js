@@ -5,7 +5,6 @@ import React, { useState, useCallback } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Keyboard } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Modal from 'react-native-modal';
-import RangeSlider from 'rn-range-slider'; 
 import OrderButtons from './OrderButtons';
 
 const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, setRatingRange, showFilters = false }) => {
@@ -17,13 +16,6 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
     // Add state for the slider values
     const [low, setLow] = useState(0);
     const [high, setHigh] = useState(10);
-
-    // Handler for the slider value change
-    const handleValueChange = useCallback((low, high) => {
-        setLow(low);
-        setHigh(high);
-        setRatingRange({ min: low, max: high });
-    }, []);
 
     const toggleModal = () => {
         setModalVisible(!modalVisible);
@@ -64,9 +56,10 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
             
             {showFilters && (
                 <View style={styles.buttonsContainer}>
-                    <TouchableOpacity onPress={toggleModal} style={styles.ratingTextContainer}>
-                        <Text style={{ color: 'white', marginRight: 8 }}>Rating: {low} - {high}</Text>
+                    <TouchableOpacity onPress={toggleModal}>
+                        <Text style={{ color: 'white', marginRight: 8 }}>Rating: {ratingRange.min} ~ {ratingRange.max}</Text>
                     </TouchableOpacity>
+                    
                     <Modal
                         isVisible={modalVisible}
                         onBackdropPress={toggleModal}
@@ -79,31 +72,49 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
                     >
                         <View style={styles.modalContent}>
                             <Text style={styles.modalTitle}>Rating:</Text>
-                            <Text style={styles.modalSubtitle}>{low} ~ {high}</Text>
-                            <View style={styles.sliderContainer}>
-                                <RangeSlider
-                                    style={styles.slider}
-                                    min={0}
-                                    max={10}
-                                    step={0.5}
-                                    floatingLabel={false}
-                                    renderThumb={() => <View style={{ height: 40, width: 40, backgroundColor: 'lightgray', borderRadius: 20 }} />}
-                                    renderRail={() => <View style={{ height: 30, width: '100%', backgroundColor: 'gray', borderRadius: 15 }} />}
-                                    renderRailSelected={() => <View style={{ height: 30, width: '100%', backgroundColor: 'darkblue' }} />}
-                                    renderLabel={value => <Text style={{ fontSize: 32, color: 'aqua' }}>{value}</Text>}
-                                    onSliderTouchEnd={handleValueChange}
-                                    low={low}
-                                    high={high}
-                                />
+                            <View style={styles.ratingContainer}>
+                                <View style={styles.ratingButtons}>
+                                    <TouchableOpacity onPress={() => setLow(Math.max(0, Math.min(high, low + 0.5)))} style={styles.ratingButton}>
+                                        <Icon name="plus-circle" size={40} color="lightgreen" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => setLow(Math.max(0, Math.min(high, low - 0.5)))} style={styles.ratingButton}>
+                                        <Icon name="minus-circle" size={40} color="lightcoral" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <Text style={styles.modalSubtitle}>
+                                    {high === 10 ? `${low.toFixed(1)} ~ ${high}` : `${low.toFixed(1)} ~ ${high.toFixed(1)}`}
+                                </Text>
+
+                                <View style={styles.ratingButtons}>
+                                    <TouchableOpacity onPress={() => setHigh(Math.max(low, Math.min(10, high + 0.5)))} style={styles.ratingButton}>
+                                        <Icon name="plus-circle" size={40} color="lightgreen" />
+                                    </TouchableOpacity>                         
+                                    <TouchableOpacity onPress={() => setHigh(Math.max(low, Math.min(10, high - 0.5)))} style={styles.ratingButton}>
+                                        <Icon name="minus-circle" size={40} color="lightcoral" />
+                                    </TouchableOpacity>
+                                </View>                                
                             </View>
-                            <TouchableOpacity onPress={() => { setLow(0); setHigh(10); setRatingRange({ min: 0, max: 10 }); toggleModal(); }} style={styles.resetButton}>
-                                <Text style={styles.closeText}>Show All Songs</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => { setLow(0); setHigh(0); setRatingRange({ min: 0, max: 0 }); toggleModal(); }} style={styles.notRatedButton}>
-                                <Text style={styles.closeText}>Show Not Rated</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={toggleModal} style={styles.closeButton}>
-                                <Text style={styles.closeText}>Close</Text>
+
+                            <View style={styles.buttonsRow}>
+                                <TouchableOpacity onPress={() => { setLow(0); setHigh(0); }} style={styles.notRatedButton}>
+                                    <Text style={styles.closeText}>Not Rated</Text>
+                                    <Text style={styles.closeTextSub}>(0 ~ 0)</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity onPress={() => { setLow(8); setHigh(10); }} style={styles.favoritesButton}>
+                                    <Text style={styles.closeText}>Favorites</Text>
+                                    <Text style={styles.closeTextSub}>(8 ~ 10)</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity onPress={() => { setLow(0); setHigh(10); }} style={styles.resetButton}>
+                                    <Text style={styles.closeText}>All Ratings</Text>
+                                    <Text style={styles.closeTextSub}>(0 ~ 10)</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <TouchableOpacity onPress={() => { toggleModal(); setRatingRange({ min: low, max: high }); }} style={styles.closeButton}>
+                                <Text style={styles.closeText}>Apply</Text>
                             </TouchableOpacity>
                         </View>
                     </Modal>
@@ -170,51 +181,68 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    
     modalTitle: {
         color: 'white',
-        fontSize: 24,
+        fontSize: 28,
     },
     modalSubtitle: {
         color: 'white',
-        fontSize: 28,
-        marginBottom: 32,
-    },
-
-    sliderContainer: {
-        width: '100%',
-        height: 50,
-        justifyContent: 'center',
-        alignItems: 'center',
+        fontSize: 40,
         marginBottom: 16,
     },
-    slider: {
+
+    ratingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         width: '100%',
-        flex: 1,
+        marginBottom: 16,
     },
-    resetButton: {
-        marginTop: 60,
-        backgroundColor: 'darkgreen',
-        borderRadius: 8,
-        padding: 10,
-        width: '80%',
+    ratingButtons: {
+        flexDirection: 'column',
+    },
+    ratingButton: {
+        paddingBottom: 10,
+    },
+
+    
+    buttonsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
     },
     notRatedButton: {
-        marginTop: 10,
         backgroundColor: 'darkred',
         borderRadius: 8,
-        padding: 10,
-        width: '80%',
+        padding: 8,
+    },
+    favoritesButton: {
+        backgroundColor: 'darkgoldenrod',
+        borderRadius: 8,
+        padding: 8,
+    },
+    resetButton: {
+        backgroundColor: 'darkgreen',
+        borderRadius: 8,
+        padding: 8,
     },
     closeButton: {
         marginTop: 10,
         backgroundColor: 'rebeccapurple',
         borderRadius: 8,
         padding: 10,
-        width: '80%',
+        width: '100%',
     },
     closeText: {
         color: 'white',
-        fontSize: 16,
+        fontSize: 18,
+        textAlign: 'center',
+    },
+    closeTextSub: {
+        color: 'white',
+        fontSize: 14,
         textAlign: 'center',
     },
 });

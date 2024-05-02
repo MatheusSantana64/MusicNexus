@@ -133,7 +133,7 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
             >
                 <Image
                     source={{ uri: coverImage }}
-                    placeholder={require('../../assets/placeholder60.png')}
+                    placeholder={require('../../assets/albumPlaceholder60.jpg')}
                     style={{ width: 60, height: 60, marginRight: 10, borderRadius: 5 }}
                     placeholderContentFit={'cover'}
                     cachePolicy={'none'} // Disable expo-image cache (Cache is done manually)

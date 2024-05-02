@@ -9,7 +9,7 @@ let isProcessing = false;
 function addToQueue(artist, album) {
     return new Promise((resolve) => {
         // Add the item to the queue
-        console.log(`Adding item to queue: album "${album}" by "${artist}"`);
+        //console.log(`Adding item to queue: album "${album}" by "${artist}"`);
         queue.push({ artist, album, resolve });
         // Process the queue if it's not already processing
         if (!isProcessing) {
@@ -20,7 +20,7 @@ function addToQueue(artist, album) {
 
 // Fetch album cover and release MBID for the given artist and album
 async function processQueue() {
-    console.log('Processing queue...');
+    //console.log('Processing queue... Next item:', queue.length);
     if (queue.length === 0) {
         isProcessing = false;
         return;
@@ -28,14 +28,14 @@ async function processQueue() {
 
     isProcessing = true;
     const { artist, album, resolve } = queue.shift();
-    console.log(`Processing item from queue: album "${album}" by "${artist}"`);
+    //console.log(`Processing item from queue: album "${album}" by "${artist}"`);
 
     try {
         const coverUrl = await fetchAlbumCover(artist, album);
-        console.log(`Fetched cover URL for the album "${album}" by "${artist}":`, coverUrl);
+        //console.log(`Fetched cover URL for the album "${album}" by "${artist}":`, coverUrl);
         resolve(coverUrl);
     } catch (error) {
-        console.error(`Error fetching album cover for the album "${album}" by "${artist}":`, error);
+        //console.error(`Error fetching album cover for the album "${album}" by "${artist}":`, error);
         resolve(null); // Resolve with null in case of error
     }
 
@@ -47,11 +47,11 @@ async function fetchAlbumCover(artist, album) {
     // If the cover is not in the cache, fetch it from the API
     const mbid = await fetchReleaseMbid(artist, album);
     if (!mbid) {
-        console.error(`Failed to fetch MBID for the album "${album}" by "${artist}"`);
+        //console.error(`Failed to fetch MBID for the album "${album}" by "${artist}"`);
         return null;
     }
 
-    console.log(`Fetching cover art for the album "${album}" by "${artist}" with MBID: ${mbid}.`);
+    //console.log(`Fetching cover art for the album "${album}" by "${artist}" with MBID: ${mbid}.`);
 
     // Download the image and store its local path in the database
     try {
@@ -68,15 +68,15 @@ async function fetchAlbumCover(artist, album) {
             if (coverUrl) {
                 return coverUrl;
             } else {
-                console.error(`No small thumbnail available for the album "${album}" by "${artist}"`);
+                //console.error(`No small thumbnail available for the album "${album}" by "${artist}"`);
                 return null;
             }
         } else {
-            console.error(`Unexpected response status for the album "${album}" by "${artist}". Expected 200 but received: ${response.status}`);
+            //console.error(`Unexpected response status for the album "${album}" by "${artist}". Expected 200 but received: ${response.status}`);
             return null;
         }
     } catch (error) {
-        console.error(`Error fetching album cover for the album "${album}" by "${artist}":`, error);
+        //console.error(`Error fetching album cover for the album "${album}" by "${artist}":`, error);
         return null;
     }
 }
@@ -93,7 +93,7 @@ function cleanAlbumName(albumName) {
 async function fetchReleaseMbid(artist, album) {
     // Clean the album name
     const cleanedAlbum = cleanAlbumName(album);
-    console.log(`Searching for MBID for the album "${cleanedAlbum}" by "${artist}"`);
+    //console.log(`Searching for MBID for the album "${cleanedAlbum}" by "${artist}"`);
     const queryString = `release:${encodeURIComponent(cleanedAlbum)} AND artist:${encodeURIComponent(artist)}`;
     const url = `https://musicbrainz.org/ws/2/release/?query=${queryString}&fmt=json`;
 
@@ -106,7 +106,7 @@ async function fetchReleaseMbid(artist, album) {
         });
 
         if (!response.ok) {
-            console.error(`Failed to fetch release MBID for artist: ${artist}, album: ${cleanedAlbum}. HTTP ${response.status}`);
+            //console.error(`Failed to fetch release MBID for artist: ${artist}, album: ${cleanedAlbum}. HTTP ${response.status}`);
             throw new Error(`Failed to fetch release MBID: HTTP ${response.status}`);
         }
 
@@ -131,13 +131,13 @@ async function fetchReleaseMbid(artist, album) {
         }
 
         if (mbid) {
-            console.log(`MBID for the album "${cleanedAlbum}" by "${artist}" is: ${mbid}`);
+            //console.log(`MBID for the album "${cleanedAlbum}" by "${artist}" is: ${mbid}`);
             return mbid;
         } else {
             throw new Error(`No release with cover art found for the album "${cleanedAlbum}" by "${artist}"`);
         }
     } catch (error) {
-        console.error(`Error fetching release MBID for the album "${cleanedAlbum}" by "${artist}":`, error);
+        //console.error(`Error fetching release MBID for the album "${cleanedAlbum}" by "${artist}":`, error);
         return null;
     }
 }
