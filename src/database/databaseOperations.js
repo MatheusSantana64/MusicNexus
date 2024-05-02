@@ -57,49 +57,103 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
     };
 
 // Profile.js
-    // Function to delete the cache and update cover_path of all songs to null
-    export const coverPathToNull = async () => {
-        try {
-            // Update cover_path of all songs to null
-            await new Promise((resolve, reject) => {
+    // (Stats) Functions to get the total number of songs, total number of artists, and count of songs for each rating
+        // Function to get the total number of songs
+        export const getTotalSongs = async () => {
+            return new Promise((resolve, reject) => {
                 db.transaction(tx => {
-                    tx.executeSql('UPDATE songs SET cover_path = ?', [null], () => {
-                        console.log('Cover paths updated to null.');
-                        resolve();
+                    tx.executeSql('SELECT COUNT(*) as total FROM songs', [], (_, { rows: { _array } }) => {
+                        resolve(_array[0].total);
                     }, (_, error) => {
-                        console.error('Error updating cover paths:', error);
+                        console.error('Error fetching total songs:', error);
                         reject(error);
                     });
                 });
             });
-            console.log('All files in the cache have been deleted and cover paths updated to null.');
-        } catch (error) {
-            console.error('Error deleting cache:', error);
-        }
-    };
+        };
 
-    // Function to handle the deletion of all songs in the database
-    export const deleteData = async () => {
-        try {
-            await new Promise((resolve, reject) => {
+        // Function to get the total number of artists
+        export const getTotalArtists = async () => {
+            return new Promise((resolve, reject) => {
                 db.transaction(tx => {
-                    tx.executeSql('DROP TABLE IF EXISTS songs', [], () => {
-                        tx.executeSql('DROP TABLE IF EXISTS tags', [], () => {
-                            tx.executeSql('DROP TABLE IF EXISTS song_tags', [], () => {
-                                resolve();
-                            }, (_, error) => reject(error));
-                        }, (_, error) => reject(error));
-                    }, (_, error) => reject(error));
+                    tx.executeSql('SELECT COUNT(DISTINCT artist) as total FROM songs', [], (_, { rows: { _array } }) => {
+                        resolve(_array[0].total);
+                    }, (_, error) => {
+                        console.error('Error fetching total artists:', error);
+                        reject(error);
+                    });
                 });
             });
-            console.log('Data deleted.');
-            initDatabase(); // Recreate the tables
-        } catch (error) {
-            console.error('Error deleting data:', error);
-        }
-    };
+        };
 
-    // Function to fetch all songs from the database and return them as a JSON string
+        // Function to get the total number of artists
+        export const getTotalAlbums = async () => {
+            return new Promise((resolve, reject) => {
+                db.transaction(tx => {
+                    tx.executeSql('SELECT COUNT(DISTINCT album) as total FROM songs', [], (_, { rows: { _array } }) => {
+                        resolve(_array[0].total);
+                    }, (_, error) => {
+                        console.error('Error fetching total albums:', error);
+                        reject(error);
+                    });
+                });
+            });
+        };
+        
+        // Function to get the count of songs for each rating, including ratings with 0 songs
+        export const getSongsCountByRating = async () => {
+            return new Promise((resolve, reject) => {
+                // Generate an array of all possible ratings from 10.0 to 0.0 in decrements of 0.5
+                const allRatings = Array.from({ length: 21 }, (_, i) => 10 - i * 0.5);
+
+                // Initialize an object to hold the count of songs for each rating
+                const ratingCounts = allRatings.reduce((acc, rating) => {
+                    acc[rating] = 0; // Initialize count to 0 for each rating
+                    return acc;
+                }, {});
+
+                db.transaction(tx => {
+                    // SQL query to count songs for each rating
+                    tx.executeSql('SELECT rating, COUNT(*) as count FROM songs GROUP BY rating', [], (_, { rows: { _array } }) => {
+                        // Update the ratingCounts object with the actual counts from the database
+                        _array.forEach(row => {
+                            ratingCounts[row.rating] = row.count;
+                        });
+
+                        // Convert the ratingCounts object back into an array of objects for consistency
+                        let result = Object.entries(ratingCounts).map(([rating, count]) => ({
+                            rating: parseFloat(rating), // Ensure rating is a number
+                            count: count
+                        }));
+
+                        // Sort the result array by rating in descending order
+                        result.sort((a, b) => b.rating - a.rating);
+
+                        resolve(result);
+                    }, (_, error) => {
+                        console.error('Error fetching songs count by rating:', error);
+                        reject(error);
+                    });
+                });
+            });
+        };
+        
+        // Function to get the count of songs for each year
+        export const getSongsCountByYear = async () => {
+            return new Promise((resolve, reject) => {
+                db.transaction(tx => {
+                    // Use strftime to extract the year from the release date and filter out invalid years
+                    tx.executeSql('SELECT strftime("%Y", release) as year, COUNT(*) as count FROM songs WHERE strftime("%Y", release) NOT LIKE "-%" GROUP BY year ORDER BY year DESC', [], (_, { rows: { _array } }) => {
+                        resolve(_array);
+                    }, (_, error) => {
+                        console.error('Error fetching songs count by year:', error);
+                        reject(error);
+                    });
+                });
+            });
+        };
+
+    // (Backup) Function to fetch all songs from the database and return them as a JSON string
     export const fetchAllSongsAsJson = async () => {
         try {
             const songs = await new Promise((resolve, reject) => {
@@ -119,7 +173,7 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
         }
     };
 
-    // Function to insert a single song into the database
+    // (Import) Function to insert a single song into the database
     export const insertSongIntoDatabase = async (song) => {
         return new Promise((resolve, reject) => {
             db.transaction(tx => {
@@ -142,6 +196,67 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
                 );
             });
         });
+    };
+
+    // (Download Covers) Function to fetch all songs with a null cover_path
+    export const fetchSongsWithoutCover = async () => {
+        return new Promise((resolve, reject) => {
+            db.transaction(tx => {
+                tx.executeSql(
+                    'SELECT * FROM songs WHERE cover_path IS NULL ORDER BY album ASC',
+                    [],
+                    (_, { rows: { _array } }) => {
+                        resolve(_array);
+                    },
+                    (_, error) => {
+                        console.error('Error fetching songs without cover:', error);
+                        reject(error);
+                    }
+                );
+            });
+        });
+    };
+
+    // (Delete Database) Function to handle the deletion of all songs in the database
+    export const deleteData = async () => {
+        try {
+            await new Promise((resolve, reject) => {
+                db.transaction(tx => {
+                    tx.executeSql('DROP TABLE IF EXISTS songs', [], () => {
+                        tx.executeSql('DROP TABLE IF EXISTS tags', [], () => {
+                            tx.executeSql('DROP TABLE IF EXISTS song_tags', [], () => {
+                                resolve();
+                            }, (_, error) => reject(error));
+                        }, (_, error) => reject(error));
+                    }, (_, error) => reject(error));
+                });
+            });
+            console.log('Data deleted.');
+            initDatabase(); // Recreate the tables
+        } catch (error) {
+            console.error('Error deleting data:', error);
+        }
+    };
+
+    // (Delete Covers) Function to delete the cache and update cover_path of all songs to null
+    export const coverPathToNull = async () => {
+        try {
+            // Update cover_path of all songs to null
+            await new Promise((resolve, reject) => {
+                db.transaction(tx => {
+                    tx.executeSql('UPDATE songs SET cover_path = ?', [null], () => {
+                        console.log('Cover paths updated to null.');
+                        resolve();
+                    }, (_, error) => {
+                        console.error('Error updating cover paths:', error);
+                        reject(error);
+                    });
+                });
+            });
+            console.log('All files in the cache have been deleted and cover paths updated to null.');
+        } catch (error) {
+            console.error('Error deleting cache:', error);
+        }
     };
 
 // Card.js

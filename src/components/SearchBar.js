@@ -75,10 +75,10 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
                             <View style={styles.ratingContainer}>
                                 <View style={styles.ratingButtons}>
                                     <TouchableOpacity onPress={() => setLow(Math.max(0, Math.min(high, low + 0.5)))} style={styles.ratingButton}>
-                                        <Icon name="plus-circle" size={40} color="lightgreen" />
+                                        <Icon name="plus-circle" size={40} color="limegreen" />
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => setLow(Math.max(0, Math.min(high, low - 0.5)))} style={styles.ratingButton}>
-                                        <Icon name="minus-circle" size={40} color="lightcoral" />
+                                        <Icon name="minus-circle" size={40} color="crimson" />
                                     </TouchableOpacity>
                                 </View>
 
@@ -88,33 +88,33 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
 
                                 <View style={styles.ratingButtons}>
                                     <TouchableOpacity onPress={() => setHigh(Math.max(low, Math.min(10, high + 0.5)))} style={styles.ratingButton}>
-                                        <Icon name="plus-circle" size={40} color="lightgreen" />
-                                    </TouchableOpacity>                         
+                                        <Icon name="plus-circle" size={40} color="limegreen" />
+                                    </TouchableOpacity>
                                     <TouchableOpacity onPress={() => setHigh(Math.max(low, Math.min(10, high - 0.5)))} style={styles.ratingButton}>
-                                        <Icon name="minus-circle" size={40} color="lightcoral" />
+                                        <Icon name="minus-circle" size={40} color="crimson" />
                                     </TouchableOpacity>
                                 </View>                                
                             </View>
 
                             <View style={styles.buttonsRow}>
-                                <TouchableOpacity onPress={() => { setLow(0); setHigh(0); }} style={styles.notRatedButton}>
-                                    <Text style={styles.closeText}>Not Rated</Text>
-                                    <Text style={styles.closeTextSub}>(0 ~ 0)</Text>
+                                <TouchableOpacity onPress={() => { setLow(0); setHigh(0); }} style={{ ...styles.button, backgroundColor: 'darkred' }}>
+                                    <Text style={styles.buttonText}>Not Rated</Text>
+                                    <Text style={{ ...styles.buttonText, fontSize: 12 }}>(0 ~ 0)</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity onPress={() => { setLow(8); setHigh(10); }} style={styles.favoritesButton}>
-                                    <Text style={styles.closeText}>Favorites</Text>
-                                    <Text style={styles.closeTextSub}>(8 ~ 10)</Text>
+                                <TouchableOpacity onPress={() => { setLow(8); setHigh(10); }} style={{ ...styles.button, backgroundColor: 'darkgoldenrod' }}>
+                                    <Text style={styles.buttonText}>Favorites</Text>
+                                    <Text style={{ ...styles.buttonText, fontSize: 12 }}>(8 ~ 10)</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity onPress={() => { setLow(0); setHigh(10); }} style={styles.resetButton}>
-                                    <Text style={styles.closeText}>All Ratings</Text>
-                                    <Text style={styles.closeTextSub}>(0 ~ 10)</Text>
+                                <TouchableOpacity onPress={() => { setLow(0); setHigh(10); }} style={{ ...styles.button, backgroundColor: 'darkgreen' }}>
+                                    <Text style={styles.buttonText}>All Ratings</Text>
+                                    <Text style={{ ...styles.buttonText, fontSize: 12 }}>(0 ~ 10)</Text>
                                 </TouchableOpacity>
                             </View>
 
-                            <TouchableOpacity onPress={() => { toggleModal(); setRatingRange({ min: low, max: high }); }} style={styles.closeButton}>
-                                <Text style={styles.closeText}>Apply</Text>
+                            <TouchableOpacity onPress={() => { toggleModal(); setRatingRange({ min: low, max: high }); }} style={{ ...styles.button, marginTop: 10, backgroundColor: 'rebeccapurple', width: '100%' }}>
+                                <Text style={styles.buttonText}>Apply</Text>
                             </TouchableOpacity>
                         </View>
                     </Modal>
@@ -213,36 +213,13 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         width: '100%',
     },
-    notRatedButton: {
-        backgroundColor: 'darkred',
+    button: {
         borderRadius: 8,
         padding: 8,
     },
-    favoritesButton: {
-        backgroundColor: 'darkgoldenrod',
-        borderRadius: 8,
-        padding: 8,
-    },
-    resetButton: {
-        backgroundColor: 'darkgreen',
-        borderRadius: 8,
-        padding: 8,
-    },
-    closeButton: {
-        marginTop: 10,
-        backgroundColor: 'rebeccapurple',
-        borderRadius: 8,
-        padding: 10,
-        width: '100%',
-    },
-    closeText: {
+    buttonText: {
         color: 'white',
         fontSize: 18,
-        textAlign: 'center',
-    },
-    closeTextSub: {
-        color: 'white',
-        fontSize: 14,
         textAlign: 'center',
     },
 });

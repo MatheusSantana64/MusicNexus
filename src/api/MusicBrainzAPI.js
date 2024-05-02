@@ -20,26 +20,24 @@ function addToQueue(artist, album) {
 
 // Fetch album cover and release MBID for the given artist and album
 async function processQueue() {
-    //console.log('Processing queue... Next item:', queue.length);
     if (queue.length === 0) {
         isProcessing = false;
         return;
     }
 
     isProcessing = true;
-    const { artist, album, resolve } = queue.shift();
-    //console.log(`Processing item from queue: album "${album}" by "${artist}"`);
-
-    try {
-        const coverUrl = await fetchAlbumCover(artist, album);
-        //console.log(`Fetched cover URL for the album "${album}" by "${artist}":`, coverUrl);
-        resolve(coverUrl);
-    } catch (error) {
-        //console.error(`Error fetching album cover for the album "${album}" by "${artist}":`, error);
-        resolve(null); // Resolve with null in case of error
+    // Process up to 5 items from the queue simultaneously
+    const promises = [];
+    for (let i = 0; i < 5 && queue.length > 0; i++) {
+        const { artist, album, resolve } = queue.shift();
+        promises.push(fetchAlbumCover(artist, album).then(resolve, () => resolve(null)));
     }
 
-    processQueue(); // Process the next item in the queue
+    // Wait for all promises to resolve
+    await Promise.all(promises);
+
+    // Process the next set of items in the queue
+    processQueue();
 }
 
 // Fetch album cover and release MBID for the given artist and album
