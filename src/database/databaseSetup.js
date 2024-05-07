@@ -16,18 +16,27 @@ export const initDatabase = () => {
                 artist TEXT NOT NULL,
                 album TEXT NOT NULL,
                 release TEXT NOT NULL,
-                rating INTEGER NOT NULL,
+                rating REAL NOT NULL,
                 cover_path TEXT
             );
         `);
 
         // Create indexes for faster searching
-        tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_title_artist_album ON songs(title, artist, album);');
-        tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_rating ON songs(rating);');
-        tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_release ON songs(release);');
         tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_title ON songs(title);');
         tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_artist ON songs(artist);');
         tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_album ON songs(album);');
+        tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_rating ON songs(rating);');
+        tx.executeSql('CREATE INDEX IF NOT EXISTS idx_songs_release ON songs(release);');
+
+        tx.executeSql(`
+            CREATE TABLE IF NOT EXISTS song_rating_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                song_id INTEGER,
+                rating REAL NOT NULL,
+                datetime TEXT NOT NULL,
+                FOREIGN KEY(song_id) REFERENCES songs(id)
+            );
+        `);
 
         // Create tags table
         tx.executeSql(`

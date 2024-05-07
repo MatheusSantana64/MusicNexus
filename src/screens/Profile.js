@@ -7,7 +7,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { getTotalSongs, getTotalArtists, getTotalAlbums, getSongsCountByRating, getSongsCountByYear } from '../database/databaseOperations';
-import { fetchAllSongsAsJson, insertSongIntoDatabase, fetchSongsWithoutCover, updateSongCoverPath, coverPathToNull, deleteData } from '../database/databaseOperations';
+import { fetchAllSongsAsJson, insertSongIntoDatabase, insertRatingHistory, getSongRatingHistory, fetchSongsWithoutCover, updateSongCoverPath, coverPathToNull, deleteData } from '../database/databaseOperations';
 import { addToQueue } from '../api/MusicBrainzAPI';
 import { downloadImage, generateCacheKey, getImageFromCache } from '../utils/cacheManager';
 
@@ -48,7 +48,9 @@ export function Profile() {
     const handleBackupData = async () => {
         try {
             // Fetch all songs from the database and convert them to JSON
-            const jsonData = await fetchAllSongsAsJson();
+            const songs = await fetchAllSongsAsJson();
+
+            const jsonData = JSON.stringify(songs);
 
             // Create a temporary file with the JSON data
             const tempFile = FileSystem.cacheDirectory + 'MusicNexus_backup.json';
@@ -96,6 +98,12 @@ export function Profile() {
                     try {
                         await insertSongIntoDatabase(song);
                         insertedSongs++;
+                        // Insert rating history for the song
+                        if (song.ratingHistory && song.ratingHistory.length > 0) {
+                            for (const ratingHistory of song.ratingHistory) {
+                                await insertRatingHistory(song.id, ratingHistory.rating, ratingHistory.datetime);
+                            }
+                        }
                         setImportProgress(insertedSongs);
                     } catch (error) {
                         errors.push(error);

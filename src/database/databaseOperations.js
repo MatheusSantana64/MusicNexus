@@ -114,7 +114,7 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
 
                 db.transaction(tx => {
                     // SQL query to count songs for each rating
-                    tx.executeSql('SELECT rating, COUNT(*) as count FROM songs GROUP BY rating', [], (_, { rows: { _array } }) => {
+                    tx.executeSql('SELECT rating, COUNT(*) as count FROM songs GROUP BY rating ', [], (_, { rows: { _array } }) => {
                         // Update the ratingCounts object with the actual counts from the database
                         _array.forEach(row => {
                             ratingCounts[row.rating] = row.count;
@@ -158,15 +158,26 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
         try {
             const songs = await new Promise((resolve, reject) => {
                 db.transaction(tx => {
-                    tx.executeSql('SELECT * FROM songs', [], (_, { rows: { _array } }) => {
-                        resolve(_array);
-                    }, (_, error) => {
-                        console.error('Error fetching songs:', error);
-                        reject(error);
-                    });
+                    tx.executeSql(
+                        'SELECT title, artist, album, release, rating FROM songs',
+                        [],
+                        (_, { rows: { _array } }) => {
+                            resolve(_array);
+                        },
+                        (_, error) => {
+                            console.error('Error fetching songs:', error);
+                            reject(error);
+                        }
+                    );
                 });
             });
-            return JSON.stringify(songs);
+
+            const songsWithRatingHistory = await Promise.all(songs.map(async (song) => {
+                const ratingHistory = await getSongRatingHistory(song.id);
+                return { ...song, ratingHistory };
+            }));
+
+            return songsWithRatingHistory;
         } catch (error) {
             console.error('Error fetching songs for backup:', error);
             throw error;
@@ -187,10 +198,36 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
                 tx.executeSql(
                     sql,
                     [],
-                    () => {
+                    async () => {
+                        // After inserting the song, insert the rating history record if the song doesn't have any rating history in the JSON
+                        const songId = await new Promise((resolve, reject) => {
+                            tx.executeSql(
+                                'SELECT last_insert_rowid() as id',
+                                [],
+                                (_, { rows: { _array } }) => {
+                                    resolve(_array[0].id);
+                                },
+                                (_, error) => {
+                                    console.error('Error fetching last inserted ID:', error);
+                                    reject(error);
+                                }
+                            );
+                        });
+
+                        // Check if the song has rating history in the JSON
+                        if (song.ratingHistory && song.ratingHistory.length > 0) {
+                            // If the song has rating history, skip inserting a new rating history record here
+                            console.log(`Song inserted successfully for song with ID: ${songId}, Rating: ${rating}.`);
+                        } else {
+                            // If the song doesn't have rating history in the JSON, insert the current rating in the history record
+                            await insertRatingHistory(songId, rating, new Date().toISOString());
+                            console.log(`Song inserted successfully for song with ID: ${songId}, Rating: ${rating}. No rating history found in JSON.`);
+                        }
+
                         resolve();
                     },
                     (_, error) => {
+                        console.error('Error inserting song:', error);
                         reject(error);
                     }
                 );
@@ -223,9 +260,11 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
             await new Promise((resolve, reject) => {
                 db.transaction(tx => {
                     tx.executeSql('DROP TABLE IF EXISTS songs', [], () => {
-                        tx.executeSql('DROP TABLE IF EXISTS tags', [], () => {
-                            tx.executeSql('DROP TABLE IF EXISTS song_tags', [], () => {
-                                resolve();
+                        tx.executeSql('DROP TABLE IF EXISTS song_rating_history', [], () => {
+                            tx.executeSql('DROP TABLE IF EXISTS tags', [], () => {
+                                tx.executeSql('DROP TABLE IF EXISTS song_tags', [], () => {
+                                    resolve();
+                                }, (_, error) => reject(error));
                             }, (_, error) => reject(error));
                         }, (_, error) => reject(error));
                     }, (_, error) => reject(error));
@@ -280,19 +319,72 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
         });
     };
 
-    // Function to update the rating of a song in the database
-    export const updateSongRating = async (songId, rating) => {
+    // Insert a rating history record
+    export const insertRatingHistory = async (songId, rating, datetime) => {
         return new Promise((resolve, reject) => {
             db.transaction(tx => {
+                // Use the provided datetime or generate a new one if not provided
+                const insertDatetime = datetime || new Date().toISOString();
                 tx.executeSql(
-                    'UPDATE songs SET rating = ? WHERE id = ?',
-                    [rating, songId],
+                    'INSERT INTO song_rating_history (song_id, rating, datetime) VALUES (?, ?, ?)',
+                    [songId, rating, insertDatetime],
                     () => {
-                        console.log(`Rating updated for song with ID: ${songId}`);
                         resolve();
                     },
                     (_, error) => {
-                        console.error('Error updating song rating:', error);
+                        console.error('Error inserting rating history:', error);
+                        reject(error);
+                    }
+                );
+            });
+        });
+    };
+
+    // Function to update the rating of a song in the database
+    export const updateSongRating = async (songId, rating) => {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // Update the song's rating in the songs table
+                await new Promise((resolve, reject) => {
+                    db.transaction(tx => {
+                        tx.executeSql(
+                            'UPDATE songs SET rating = ? WHERE id = ?',
+                            [rating, songId],
+                            () => {
+                                resolve();
+                            },
+                            (_, error) => {
+                                console.error('Error updating song rating in songs table:', error);
+                                reject(error);
+                            }
+                        );
+                    });
+                });
+    
+                // Insert the rating history record
+                await insertRatingHistory(songId, rating);
+    
+                console.log(`Song rating updated successfully for song with ID: ${songId}, New Rating: ${rating}`);
+                resolve();
+            } catch (error) {
+                console.error('Error updating song rating:', error);
+                reject(error);
+            }
+        });
+    };
+
+    // Function to fetch the rating history of a song
+    export const getSongRatingHistory = async (songId) => {
+        return new Promise((resolve, reject) => {
+            db.transaction(tx => {
+                tx.executeSql(
+                    'SELECT rating, datetime FROM song_rating_history WHERE song_id = ? ORDER BY datetime DESC',
+                    [songId],
+                    (_, { rows: { _array } }) => {
+                        resolve(_array);
+                    },
+                    (_, error) => {
+                        console.error('Error fetching song rating history:', error);
                         reject(error);
                     }
                 );
