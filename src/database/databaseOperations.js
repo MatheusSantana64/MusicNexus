@@ -159,7 +159,7 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
             const songs = await new Promise((resolve, reject) => {
                 db.transaction(tx => {
                     tx.executeSql(
-                        'SELECT title, artist, album, release, rating FROM songs',
+                        'SELECT id, title, artist, album, release, rating FROM songs',
                         [],
                         (_, { rows: { _array } }) => {
                             resolve(_array);
@@ -174,6 +174,7 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
 
             const songsWithRatingHistory = await Promise.all(songs.map(async (song) => {
                 const ratingHistory = await getSongRatingHistory(song.id);
+                console.log(`[fetchAllSongsAsJson] Rating history for song with ID ${song.id}:`, ratingHistory);
                 return { ...song, ratingHistory };
             }));
 
@@ -220,7 +221,7 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
                             console.log(`Song inserted successfully for song with ID: ${songId}, Rating: ${rating}.`);
                         } else {
                             // If the song doesn't have rating history in the JSON, insert the current rating in the history record
-                            await insertRatingHistory(songId, rating, new Date().toISOString());
+                            await insertRatingHistory(songId, rating, 0, new Date().toISOString());
                             console.log(`Song inserted successfully for song with ID: ${songId}, Rating: ${rating}. No rating history found in JSON.`);
                         }
 
@@ -320,14 +321,13 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
     };
 
     // Insert a rating history record
-    export const insertRatingHistory = async (songId, rating, datetime) => {
+    export const insertRatingHistory = async (songId, rating, previous_rating, datetime = new Date().toISOString()) => {
+        console.log(`[insertRatingHistory] Inserting rating history for song with ID: ${songId}, Rating: ${rating}, Previous Rating: ${previous_rating}, Datetime: ${datetime}`);
         return new Promise((resolve, reject) => {
             db.transaction(tx => {
-                // Use the provided datetime or generate a new one if not provided
-                const insertDatetime = datetime || new Date().toISOString();
                 tx.executeSql(
-                    'INSERT INTO song_rating_history (song_id, rating, datetime) VALUES (?, ?, ?)',
-                    [songId, rating, insertDatetime],
+                    'INSERT INTO song_rating_history (song_id, rating, previous_rating, datetime) VALUES (?, ?, ?, ?)',
+                    [songId, rating, previous_rating, datetime],
                     () => {
                         resolve();
                     },
@@ -341,7 +341,7 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
     };
 
     // Function to update the rating of a song in the database
-    export const updateSongRating = async (songId, rating) => {
+    export const updateSongRating = async (songId, rating, previousRating) => {
         return new Promise(async (resolve, reject) => {
             try {
                 // Update the song's rating in the songs table
@@ -362,7 +362,7 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
                 });
     
                 // Insert the rating history record
-                await insertRatingHistory(songId, rating);
+                await insertRatingHistory(songId, rating, previousRating);
     
                 console.log(`Song rating updated successfully for song with ID: ${songId}, New Rating: ${rating}`);
                 resolve();
@@ -375,12 +375,14 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
 
     // Function to fetch the rating history of a song
     export const getSongRatingHistory = async (songId) => {
+        console.log(`[getSongRatingHistory] Fetching rating history for song with ID: ${songId}`);
         return new Promise((resolve, reject) => {
             db.transaction(tx => {
                 tx.executeSql(
-                    'SELECT rating, datetime FROM song_rating_history WHERE song_id = ? ORDER BY datetime DESC',
+                    'SELECT rating, previous_rating, datetime FROM song_rating_history WHERE song_id = ? ORDER BY datetime DESC',
                     [songId],
                     (_, { rows: { _array } }) => {
+                        console.log(`[getSongRatingHistory] Rating history fetched for song with ID: ${songId}. Rating history: ${_array}`);
                         resolve(_array);
                     },
                     (_, error) => {
@@ -391,6 +393,40 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
             });
         });
     };
+
+// History.js
+export const fetchGlobalRatingHistory = async () => {
+    return new Promise((resolve, reject) => {
+        db.transaction(tx => {
+            tx.executeSql(
+                `SELECT
+                    song_rating_history.song_id,
+                    songs.title,
+                    songs.artist,
+                    songs.album,
+                    songs.cover_path,
+                    song_rating_history.rating AS rating,
+                    song_rating_history.datetime AS datetime,
+                    song_rating_history.previous_rating AS previous_rating
+                 FROM
+                    song_rating_history
+                    INNER JOIN
+                        songs ON songs.id = song_rating_history.song_id
+                 ORDER BY
+                    song_rating_history.datetime DESC`,
+                [],
+                (_, { rows: { _array } }) => {
+                    resolve(_array);
+                }, 
+                (_, error) => {
+                    console.error('Error fetching global rating history:', error);
+                    reject(error);
+                }
+            );
+        });
+    });
+};
+
 
 // SongOptionsModal.js
     // Function to delete the cover image for a song and update the database

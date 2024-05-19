@@ -21,12 +21,6 @@ const SongList = ({ songs, fetchMoreSongs, hasMoreSongs, setSongs, refreshSongsL
 
     const renderCard = ({ item }) => (<Card key={item.id} cardSong={item} songs={songs} setSongs={setSongs} refreshSongsList={refreshSongsList} />);
 
-    /* const itemLayout= (data, index) => ({
-        length: CARD_HEIGHT,
-        offset: CARD_HEIGHT * index,
-        index,
-    }) */
-
     // Render the list of songs
     return (
         <View style={{flex: 1, height: '100%', width: '100%',}}>
@@ -37,11 +31,6 @@ const SongList = ({ songs, fetchMoreSongs, hasMoreSongs, setSongs, refreshSongsL
                 renderItem={renderCard}
                 onScroll={handleScroll}
                 removeClippedSubviews={false}
-
-                // getItemLayout={itemLayout} // No value to FlashList
-                //windowSize={31} // Not implemented in FlashList
-                //maxToRenderPerBatch={50} // No value to FlashList
-                //initialNumToRender={20} // No value to FlashList
             />
         </View>
     );

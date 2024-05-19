@@ -97,7 +97,7 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
         // Handle Rating Select (Update Song Rating)
         const handleRatingSelect = async (rating) => {
             try {
-                await updateSongRating(cardSong.id, rating);
+                await updateSongRating(cardSong.id, rating, cardSong.rating);
                 console.log(`Song rating updated successfully for song: ${cardSong.title} by ${cardSong.artist}, New Rating: ${rating}`);
                 setRatingModalVisible(false);
             } catch (error) {
@@ -134,7 +134,7 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
                 <Image
                     source={{ uri: coverImage }}
                     placeholder={require('../../assets/albumPlaceholder60.jpg')}
-                    style={{ width: 60, height: 60, marginRight: 10, borderRadius: 5 }}
+                    style={{ width: 70, height: 70, margin: 5, borderRadius: 5 }}
                     placeholderContentFit={'cover'}
                     cachePolicy={'none'} // Disable expo-image cache (Cache is done manually)
                     contentFit={'cover'}
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         backgroundColor: '#1e272e',
         borderRadius: 8,
-        padding: 10,
+        paddingRight: 10,
         marginBottom: 10,
         width: '100%',
         height: 80,

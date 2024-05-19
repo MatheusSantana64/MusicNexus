@@ -9,8 +9,8 @@ import OrderButtons from './OrderButtons';
 
 const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, setRatingRange, showFilters = false }) => {
     const [inputText, setInputText] = useState('');
-    const [order, setOrder] = useState('title');
-    const [orderDirection, setOrderDirectionState] = useState('asc');
+    const [order, setOrder] = useState('release');
+    const [orderDirection, setOrderDirectionState] = useState('desc');
     const [modalVisible, setModalVisible] = useState(false);
 
     // Add state for the slider values

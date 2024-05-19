@@ -6,6 +6,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 
 import { Home } from "../screens/Home";
 import { Music } from "../screens/Music";
+import History from "../screens/History";
 //import { Tags } from "../screens/Tags";
 import { Profile } from "../screens/Profile";
 
@@ -40,6 +41,14 @@ export function Routes() {
           component={Music} 
           options={{
             tabBarIcon: ({ size, color }) => <Icon name="music" size={size} color={color} />,
+            tabBarHideOnKeyboard: true,
+          }}
+        />
+        <Screen 
+          name="History" 
+          component={History} 
+          options={{
+            tabBarIcon: ({ size, color }) => <Icon name="history" size={size} color={color} />,
             tabBarHideOnKeyboard: true,
           }}
         />

@@ -7,9 +7,10 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { getTotalSongs, getTotalArtists, getTotalAlbums, getSongsCountByRating, getSongsCountByYear } from '../database/databaseOperations';
-import { fetchAllSongsAsJson, insertSongIntoDatabase, insertRatingHistory, getSongRatingHistory, fetchSongsWithoutCover, updateSongCoverPath, coverPathToNull, deleteData } from '../database/databaseOperations';
+import { fetchAllSongsAsJson, insertSongIntoDatabase, insertRatingHistory, fetchSongsWithoutCover, updateSongCoverPath, coverPathToNull, deleteData } from '../database/databaseOperations';
 import { addToQueue } from '../api/MusicBrainzAPI';
 import { downloadImage, generateCacheKey, getImageFromCache } from '../utils/cacheManager';
+import { useKeepAwake, activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
 export function Profile() {
     const [importProgress, setImportProgress] = useState(0);
@@ -23,6 +24,8 @@ export function Profile() {
     const [totalAlbums, setTotalAlbums] = useState(0);
     const [songsCountByRating, setSongsCountByRating] = useState([]);
     const [songsCountByYear, setSongsCountByYear] = useState([]);
+
+    useKeepAwake();
 
     useFocusEffect(
         React.useCallback(() => {
@@ -75,6 +78,7 @@ export function Profile() {
     const handleImportData = async () => {
         console.log("Attempting to import data...");
         setIsImportModalVisible(true);
+        activateKeepAwakeAsync();
         try {
             const result = await DocumentPicker.getDocumentAsync({
                 type: 'application/json',
@@ -101,7 +105,7 @@ export function Profile() {
                         // Insert rating history for the song
                         if (song.ratingHistory && song.ratingHistory.length > 0) {
                             for (const ratingHistory of song.ratingHistory) {
-                                await insertRatingHistory(song.id, ratingHistory.rating, ratingHistory.datetime);
+                                await insertRatingHistory(song.id, ratingHistory.rating, ratingHistory.previous_rating, ratingHistory.datetime);
                             }
                         }
                         setImportProgress(insertedSongs);
@@ -127,6 +131,7 @@ export function Profile() {
         } finally {
             setIsImportModalVisible(false);
         }
+        deactivateKeepAwake();
     };
 
     // Function to handle the download the cover of all songs

@@ -9,11 +9,13 @@ import SongList from '../components/SongList';
 import FloatingButton from '../components/FloatingButton';
 import { fetchSongs } from '../database/databaseOperations';
 
+const OFFSET_SIZE = 100;
+
 export function Music() {
     // Define state variables
     const [searchText, setSearchText] = useState('');
-    const [orderBy, setOrderBy] = useState('title');
-    const [orderDirection, setOrderDirection] = useState('asc');
+    const [orderBy, setOrderBy] = useState('release');
+    const [orderDirection, setOrderDirection] = useState('desc');
     const [ratingRange, setRatingRange] = useState({ min: 0, max: 10 });
 
     const [songs, setSongs] = useState([]);
@@ -35,12 +37,12 @@ export function Music() {
         } else {
             setSongs(fetchedSongs);
         }
-        setHasMoreSongs(fetchedSongs.length >= 100);
+        setHasMoreSongs(fetchedSongs.length >= OFFSET_SIZE);
     };
 
     // Fetch more songs when the user scrolls down the list
     const fetchMoreSongs = () => {
-        const newOffset = offset + 20;
+        const newOffset = offset + OFFSET_SIZE;
         fetchSongsWrapper(searchText, orderBy, orderDirection, newOffset, true, ratingRange);
         setOffset(newOffset);
     };

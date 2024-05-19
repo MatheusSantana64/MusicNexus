@@ -23,7 +23,6 @@
     "expo-file-system": "~16.0.9",
     "expo-image": "~1.10.6",
     "expo-sharing": "~11.10.0",
-    "expo-sqlite": "~13.4.0",
     "expo-status-bar": "~1.11.1",
     "musicbrainz-api": "^0.14.0",
     "react": "18.2.0",
@@ -35,7 +34,9 @@
     "react-native-ratings": "^8.1.0",
     "react-native-safe-area-context": "4.8.2",
     "react-native-screens": "~3.29.0",
-    "react-native-web": "~0.19.6"
+    "react-native-web": "~0.19.6",
+    "expo-sqlite": "~13.4.0",
+    "expo-keep-awake": "~12.8.2"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

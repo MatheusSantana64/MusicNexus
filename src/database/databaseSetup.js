@@ -33,6 +33,7 @@ export const initDatabase = () => {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 song_id INTEGER,
                 rating REAL NOT NULL,
+                previous_rating REAL NOT NULL,
                 datetime TEXT NOT NULL,
                 FOREIGN KEY(song_id) REFERENCES songs(id)
             );
