@@ -1,7 +1,7 @@
 // This file contains the Music screen component, which is responsible for rendering the Music screen components (SearchBar, SongList, FloatingButton, Modals).
 // The Music screen allows users to search for songs, filter songs by rating, add new songs, edit song details, delete songs, and rate songs.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View } from 'react-native';
 import SearchBar from '../components/SearchBar';

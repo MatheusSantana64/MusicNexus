@@ -12,7 +12,12 @@ const RatingModal = ({ isRatingModalVisible, closeModal, handleRatingSelect, sel
 
     // Function to handle the submission of the rating
     const handleRatingSubmit = () => {
-        console.log(`Rating submitted for song: ${selectedSong.title} by ${selectedSong.artist}, Rating: ${rating}`);
+        console.log(`Rating submitted for song: ${selectedSong.title} by ${selectedSong.artist}, Old Rating: ${selectedSong.rating}, New Rating: ${rating}`);
+        // Check if new rating is different from old rating
+        if (rating === selectedSong.rating) {
+            closeModal();
+            return;
+        }
         const updatedSongs = songs.map(song => song.id === selectedSong.id ? { ...song, rating } : song);
         setSongs(updatedSongs);
         handleRatingSelect(rating);

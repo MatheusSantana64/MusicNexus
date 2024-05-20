@@ -220,9 +220,12 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
                             // If the song has rating history, skip inserting a new rating history record here
                             console.log(`Song inserted successfully for song with ID: ${songId}, Rating: ${rating}.`);
                         } else {
-                            // If the song doesn't have rating history in the JSON, insert the current rating in the history record
-                            await insertRatingHistory(songId, rating, 0, new Date().toISOString());
-                            console.log(`Song inserted successfully for song with ID: ${songId}, Rating: ${rating}. No rating history found in JSON.`);
+                            // If the song doesn't have rating history in the JSON, insert the current rating in the history record if it's not 0
+                            if (rating !== 0) {
+                                await insertRatingHistory(songId, rating, 0, new Date().toISOString());
+                                console.log(`Song inserted successfully for song with ID: ${songId}, Rating: ${rating}. No rating history found in JSON, current rating inserted to history.`);
+                            }
+                            console.log(`Song inserted successfully for song with ID: ${songId}, Rating: ${rating}. No rating history found in JSON, no rating history record inserted.`);
                         }
 
                         resolve();
@@ -395,7 +398,7 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
     };
 
 // History.js
-export const fetchGlobalRatingHistory = async () => {
+export const fetchGlobalRatingHistory = async (offset = 0) => {
     return new Promise((resolve, reject) => {
         db.transaction(tx => {
             tx.executeSql(
@@ -413,8 +416,9 @@ export const fetchGlobalRatingHistory = async () => {
                     INNER JOIN
                         songs ON songs.id = song_rating_history.song_id
                  ORDER BY
-                    song_rating_history.datetime DESC`,
-                [],
+                    song_rating_history.datetime DESC
+                LIMIT 50 OFFSET ?`,
+                [offset],
                 (_, { rows: { _array } }) => {
                     resolve(_array);
                 }, 
