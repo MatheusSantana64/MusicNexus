@@ -14,6 +14,8 @@ import OrderButtons from '../components/OrderButtons';
 import OnlineSearchBar from '../components/OnlineSearchBar';
 import { fetchSongsOnline } from '../api/MusicBrainzAPI';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export function Home() {
     const [favoriteSongs, setFavoriteSongs] = useState([]);
     const [orderFav, setOrderFav] = useState('rating');
@@ -30,6 +32,15 @@ export function Home() {
 
     useFocusEffect(
         React.useCallback(() => {
+            const loadSettings = async () => {
+                global.showCovers = await AsyncStorage.getItem('@music_nexus_show_covers');
+                console.log('global.showCovers:', global.showCovers);
+                global.downloadCovers = await AsyncStorage.getItem('@music_nexus_download_covers');
+                console.log('global.downloadCovers:', global.downloadCovers);
+            };
+
+            loadSettings();
+
             const fetchSongsWrapper = async () => {
                 const songsFav = await fetchSongs('', orderFav, orderDirectionFav, 0, false, { min: 5, max: 10 });
                 setFavoriteSongs(songsFav);

@@ -1,7 +1,7 @@
 // History.js
 import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { fetchGlobalRatingHistory } from '../database/databaseOperations';
 import { FlashList } from '@shopify/flash-list';
@@ -61,14 +61,16 @@ const History = () => {
 
     const renderItem = ({ item }) => (
         <View style={styles.cardContainer}>
-            <Image
-                source={{ uri: item.cover_path }}
-                placeholder={require('../../assets/albumPlaceholder60.jpg')}
-                style={{ width: 70, height: 70, margin: 5, borderRadius: 5 }}
-                placeholderContentFit={'cover'}
-                cachePolicy={'none'}
-                contentFit={'cover'}
-            />
+            {global.showCovers === 'true' && (
+                <Image
+                    source={{ uri: item.cover_path }}
+                    placeholder={require('../../assets/albumPlaceholder60.jpg')}
+                    style={{ width: 70, height: 70, margin: 5, marginRight: 0, borderRadius: 5 }}
+                    placeholderContentFit={'cover'}
+                    cachePolicy={'none'}
+                    contentFit={'cover'}
+                />
+            )}
             <View style={styles.songInfoContainer}>
                 <View style={{flexDirection: 'column'}}>
                     <Text style={{ ...styles.songInfo, fontSize: 14}}>{item.title}</Text>
@@ -130,7 +132,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
-        
+        marginLeft: 10,
     },
     songInfo: {
         color: 'white',

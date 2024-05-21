@@ -1,7 +1,7 @@
 // The SearchBar component is a reusable component that renders a search bar with a text input field and a toggle button.
 // It allows users to search for songs by title, artist, or album, and toggle the display of unrated songs.
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Keyboard } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Modal from 'react-native-modal';

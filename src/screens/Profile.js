@@ -2,28 +2,34 @@
 
 import React, { useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Button, Alert, Text, Modal, StyleSheet, ScrollView } from 'react-native';
+import { View, Button, Alert, Text, Modal, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { getTotalSongs, getTotalArtists, getTotalAlbums, getSongsCountByRating, getSongsCountByYear } from '../database/databaseOperations';
 import { fetchAllSongsAsJson, insertSongIntoDatabase, insertRatingHistory, fetchSongsWithoutCover, updateSongCoverPath, coverPathToNull, deleteData } from '../database/databaseOperations';
 import { addToQueue } from '../api/MusicBrainzAPI';
-import { downloadImage, generateCacheKey, getImageFromCache } from '../utils/cacheManager';
+import { downloadImage, generateCacheKey, getImageFromCache, deleteAllFilesFromCache } from '../utils/cacheManager';
+import SettingsModal from '../components/SettingsModal';
 import { useKeepAwake, activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 export function Profile() {
-    const [importProgress, setImportProgress] = useState(0);
-    const [isImportModalVisible, setIsImportModalVisible] = useState(false);
-
-    const [isCoverModalVisible, setIsCoverModalVisible] = useState(false);
-    const [errorsCount, setErrorsCount] = useState(0);
+    const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
 
     const [totalSongs, setTotalSongs] = useState(0);
     const [totalArtists, setTotalArtists] = useState(0);
     const [totalAlbums, setTotalAlbums] = useState(0);
     const [songsCountByRating, setSongsCountByRating] = useState([]);
     const [songsCountByYear, setSongsCountByYear] = useState([]);
+
+    const [isBackupModalVisible, setIsBackupModalVisible] = useState(false);
+
+    const [importProgress, setImportProgress] = useState(0);
+    const [isImportModalVisible, setIsImportModalVisible] = useState(false);
+
+    const [isCoverModalVisible, setIsCoverModalVisible] = useState(false);
+    const [errorsCount, setErrorsCount] = useState(0);
 
     useKeepAwake();
 
@@ -49,11 +55,17 @@ export function Profile() {
 
     // Function to handle the backup of all songs in the database to a JSON file
     const handleBackupData = async () => {
+        setIsBackupModalVisible(true); // Show the backup progress modal
+        console.log("Attempting to backup data... Modal visible: " + isBackupModalVisible);
+
         try {
             // Fetch all songs from the database and convert them to JSON
             const songs = await fetchAllSongsAsJson();
 
             const jsonData = JSON.stringify(songs);
+
+            setIsBackupModalVisible(false); // Hide the backup progress modal
+            console.log("Data backup complete, JSON length: " + jsonData.length + ". Modal visible: " + isBackupModalVisible);
 
             // Create a temporary file with the JSON data
             const tempFile = FileSystem.cacheDirectory + 'MusicNexus_backup.json';
@@ -270,121 +282,154 @@ export function Profile() {
     };
 
     return (
-        <View
-            style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                paddingBottom: 16,
-                backgroundColor: '#090909',
-                padding: 16,
-            }}
-        >
-            <View style={styles.stats}>
-                <Text style={styles.statsTitle}>Stats</Text>
-                <ScrollView contentContainerStyle={{ flexDirection: 'row', justifyContent: 'space-between' }} persistentScrollbar={true}>
-                    <View style={{ flex: 1 }}>
-                        <Text style={{ ...styles.statsText, color: 'skyblue' }}>{totalSongs} songs</Text>
-                        <Text style={{ ...styles.statsText, color: 'pink' }}>{totalArtists} artists</Text>
-                        <Text style={{ ...styles.statsText, color: 'lightgreen' }}>{totalAlbums} albums</Text>
+        <View style={{ flex: 1 }}>
+            <View style={{
+                position: 'absolute',
+                top: 15,
+                right: 15,
+                zIndex: 1,
+            }}>
+                <TouchableOpacity onPress={() => {
+                    setIsSettingsModalVisible(true);
+                }}>
+                    <Icon name="gear" size={40} color="#fff" />
+                </TouchableOpacity>
+            </View>
+            
+            <SettingsModal isVisible={isSettingsModalVisible} closeModal={() => setIsSettingsModalVisible(false)} />
+    
+            <View
+                style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                    paddingBottom: 16,
+                    backgroundColor: '#090909',
+                    padding: 16,
+                }}
+            >
+                <View style={styles.stats}>
+                    <Text style={styles.statsTitle}>Stats</Text>
+                    <ScrollView contentContainerStyle={{ flexDirection: 'row', justifyContent: 'space-between' }} persistentScrollbar={true}>
                         <View style={{ flex: 1 }}>
-                            <Text style={{ ...styles.statsText, marginBottom: 2, marginTop: 6, color: 'khaki' }}>Ratings:</Text>
-                            {songsCountByRating.map((item, index) => (
-                                <Text style={{ ...styles.statsText, marginBottom: 2, color: 'khaki', fontWeight: 'normal' }} key={index}>{item.rating === 0 ? 'Not Rated' : item.rating === 10 ? 'Rated '+item.rating.toFixed(0) : 'Rated '+item.rating.toFixed(1)}: <Text style={{ fontWeight: 'bold', color: 'white' }}>{item.count}</Text></Text>
+                            <Text style={{ ...styles.statsText, color: 'skyblue' }}>{totalSongs} songs</Text>
+                            <Text style={{ ...styles.statsText, color: 'pink' }}>{totalArtists} artists</Text>
+                            <Text style={{ ...styles.statsText, color: 'lightgreen' }}>{totalAlbums} albums</Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ ...styles.statsText, marginBottom: 2, marginTop: 6, color: 'khaki' }}>Ratings:</Text>
+                                {songsCountByRating.map((item, index) => (
+                                    <Text style={{ ...styles.statsText, marginBottom: 2, color: 'khaki', fontWeight: 'normal' }} key={index}>{item.rating === 0 ? 'Not Rated' : item.rating === 10 ? 'Rated '+item.rating.toFixed(0) : 'Rated '+item.rating.toFixed(1)}: <Text style={{ fontWeight: 'bold', color: 'white' }}>{item.count}</Text></Text>
+                                ))}
+                            </View>
+                        </View>
+                        <View style={{ width: 1, backgroundColor: 'black', marginRight: 10 }} />
+                        <View style={{ flex: 1 }}>
+                            <Text style={{ ...styles.statsText, marginBottom: 2, color: 'mediumpurple' }}>Years:</Text>
+                            {songsCountByYear.map((item, index) => (
+                                <Text style={{ ...styles.statsText, marginBottom: 2, color: 'mediumpurple', fontWeight: 'normal' }} key={index}>{item.year}: <Text style={{ fontWeight: 'bold', color: 'white' }}>{item.count}</Text></Text>
                             ))}
                         </View>
-                    </View>
-                    <View style={{ width: 1, backgroundColor: 'black', marginRight: 10 }} />
-                    <View style={{ flex: 1 }}>
-                        <Text style={{ ...styles.statsText, marginBottom: 2, color: 'mediumpurple' }}>Years:</Text>
-                        {songsCountByYear.map((item, index) => (
-                            <Text style={{ ...styles.statsText, marginBottom: 2, color: 'mediumpurple', fontWeight: 'normal' }} key={index}>{item.year}: <Text style={{ fontWeight: 'bold', color: 'white' }}>{item.count}</Text></Text>
-                        ))}
-                    </View>
-                </ScrollView>
-            </View>
-
-            <View style={{ marginBottom: 10, width: '80%' }}>
-                <Button
-                    title="Backup Songs"
-                    onPress={handleBackupData}
-                    color="darkgreen"
-                    style={{ width: '100%' }}
-                />
-            </View>
-            <View style={{ marginBottom: 10, width: '80%' }}>
-                <Button
-                    title="Import Songs From File"
-                    onPress={handleImportData}
-                    color="darkblue"
-                    style={{ width: '100%' }}
-                />
-            </View>
-            <View style={{ marginBottom: 10, width: '80%' }}>
-                <Button
-                    title="Download All Covers"
-                    onPress={handleDownloadCovers}
-                    color="darkslategrey"
-                    style={{ width: '100%' }}
-                />
-            </View>
-            <View style={{ marginBottom: 10, width: '80%' }}>
-                <Button
-                    title="Delete Data (Songs and Tags)"
-                    onPress={handleDeleteData}
-                    color="darkred"
-                    style={{ width: '100%' }}
-                />
-            </View>
-            <View style={{ marginBottom: 10, width: '80%' }}>
-                <Button
-                    title="Delete Cache (Album Covers)"
-                    onPress={handleDeleteCache}
-                    color="indigo"
-                    style={{ width: '100%' }}
-                />
-            </View>
-
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={isCoverModalVisible}
-                onRequestClose={() => {
-                    setIsCoverModalVisible(!isCoverModalVisible);
-                }}
-            >
-                <View style={styles.centeredView}>
-                    <View style={styles.modalView}>
-                        <Text style={{ ...styles.modalText, marginBottom: 0 }}>Processing covers for {totalSongs} songs...</Text>
-                        <Text style={{ ...styles.modalText, fontSize: 14 }}>This might take a few minutes.</Text>
-                        <Text style={styles.modalText}>Processed: {importProgress} / {totalSongs}</Text>
-                        <Text style={{ ...styles.modalText, color: 'limegreen' }}>Success: {Math.max(importProgress - errorsCount, 0)}</Text>
-                        <Text style={{ ...styles.modalText, color: 'crimson' }}>Failed: {errorsCount}</Text>
-                        <Button
-                            title="Stop"
-                            onPress={handleStopDownload}
-                            color="red"
-                        />
-                    </View>
+                    </ScrollView>
                 </View>
-            </Modal>
 
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={isImportModalVisible}
-                onRequestClose={() => {
-                    setIsImportModalVisible(!isImportModalVisible);
-                }}
-            >
-                <View style={styles.centeredView}>
-                    <View style={styles.modalView}>
-                        <Text style={styles.modalText}>Importing {totalSongs} songs...</Text>
-                        <Text style={styles.modalText}>Please keep the app open.</Text>
-                        <Text style={styles.modalText}>Progress: {importProgress} / {totalSongs}</Text>
-                    </View>
+                <View style={{ marginBottom: 10, width: '80%' }}>
+                    <Button
+                        title="Backup Songs"
+                        onPress={handleBackupData}
+                        color="darkgreen"
+                        style={{ width: '100%' }}
+                    />
                 </View>
-            </Modal>
+                <View style={{ marginBottom: 10, width: '80%' }}>
+                    <Button
+                        title="Import Songs From File"
+                        onPress={handleImportData}
+                        color="darkblue"
+                        style={{ width: '100%' }}
+                    />
+                </View>
+                <View style={{ marginBottom: 10, width: '80%' }}>
+                    <Button
+                        title="Download All Covers"
+                        onPress={handleDownloadCovers}
+                        color="darkslategrey"
+                        style={{ width: '100%' }}
+                    />
+                </View>
+                <View style={{ marginBottom: 10, width: '80%' }}>
+                    <Button
+                        title="Delete Data (Songs and Tags)"
+                        onPress={handleDeleteData}
+                        color="darkred"
+                        style={{ width: '100%' }}
+                    />
+                </View>
+                <View style={{ marginBottom: 10, width: '80%' }}>
+                    <Button
+                        title="Delete Album Covers From Cache"
+                        onPress={handleDeleteCache}
+                        color="indigo"
+                        style={{ width: '100%' }}
+                    />
+                </View>
+
+                <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={isBackupModalVisible}
+                    onRequestClose={() => {
+                        setIsBackupModalVisible(false);
+                    }}
+                >
+                    <View style={styles.centeredView}>
+                        <View style={styles.modalView}>
+                            <Text style={styles.modalText}>Backing up data...</Text>
+                            <Text style={{ ...styles.modalText, fontSize: 14 }}>This might take a few seconds.</Text>
+                        </View>
+                    </View>
+                </Modal>
+
+                <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={isCoverModalVisible}
+                    onRequestClose={() => {
+                        setIsCoverModalVisible(!isCoverModalVisible);
+                    }}
+                >
+                    <View style={styles.centeredView}>
+                        <View style={styles.modalView}>
+                            <Text style={{ ...styles.modalText, marginBottom: 0 }}>Processing covers for {totalSongs} songs...</Text>
+                            <Text style={{ ...styles.modalText, fontSize: 14 }}>This might take a few minutes.</Text>
+                            <Text style={styles.modalText}>Processed: {importProgress} / {totalSongs}</Text>
+                            <Text style={{ ...styles.modalText, color: 'limegreen' }}>Success: {Math.max(importProgress - errorsCount, 0)}</Text>
+                            <Text style={{ ...styles.modalText, color: 'crimson' }}>Failed: {errorsCount}</Text>
+                            <Button
+                                title="Stop"
+                                onPress={handleStopDownload}
+                                color="red"
+                            />
+                        </View>
+                    </View>
+                </Modal>
+
+                <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={isImportModalVisible}
+                    onRequestClose={() => {
+                        setIsImportModalVisible(!isImportModalVisible);
+                    }}
+                >
+                    <View style={styles.centeredView}>
+                        <View style={styles.modalView}>
+                            <Text style={styles.modalText}>Importing {totalSongs} songs...</Text>
+                            <Text style={styles.modalText}>Please keep the app open.</Text>
+                            <Text style={styles.modalText}>Progress: {importProgress} / {totalSongs}</Text>
+                        </View>
+                    </View>
+                </Modal>
+            </View>
         </View>
     );
 }

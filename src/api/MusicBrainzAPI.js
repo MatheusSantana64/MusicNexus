@@ -1,6 +1,6 @@
 // MusicBrainz API for fetching album cover and release MBID
 
-const USER_AGENT = 'MusicNexusApp/0.2.1 ( https://github.com/MatheusSantana64/MusicNexus )';
+const USER_AGENT = 'MusicNexusApp/0.2.2 ( https://github.com/MatheusSantana64/MusicNexus )';
 
 let queue = [];
 let isProcessing = false;
@@ -26,9 +26,9 @@ async function processQueue() {
     }
 
     isProcessing = true;
-    // Process up to 5 items from the queue simultaneously
+    // Process up to 20 items from the queue simultaneously
     const promises = [];
-    for (let i = 0; i < 5 && queue.length > 0; i++) {
+    for (let i = 0; i < 20 && queue.length > 0; i++) {
         const { artist, album, resolve } = queue.shift();
         promises.push(fetchAlbumCover(artist, album).then(resolve, () => resolve(null)));
     }

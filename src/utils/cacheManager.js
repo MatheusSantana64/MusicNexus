@@ -16,9 +16,15 @@ function generateCacheKey(artist, album) {
 const downloadImage = async (url, filename) => {
     const webpUrl = `${url}?format=webp`;
     const uri = `${cacheDirectory}${filename}`;
-    const { uri: localUri } = await FileSystem.downloadAsync(webpUrl, uri);
-    console.log(`Downloaded cover image for song: ${filename}`);
-    return localUri;
+    try {
+        const { uri: localUri } = await FileSystem.downloadAsync(webpUrl, uri);
+        console.log(`Downloaded cover image for song: ${filename}`);
+        return localUri;
+    } catch (error) {
+        console.error(`Failed to download cover image for song: ${filename}`, error);
+        // Optionally, you can handle the error in a specific way, such as retrying the download or logging the error for debugging.
+        return null; // Return null or handle the error as needed
+    }
 };
 
 // Function to get an image from the cache directory

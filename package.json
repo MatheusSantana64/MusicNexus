@@ -36,7 +36,9 @@
     "react-native-screens": "~3.29.0",
     "react-native-web": "~0.19.6",
     "expo-sqlite": "~13.4.0",
-    "expo-keep-awake": "~12.8.2"
+    "expo-keep-awake": "~12.8.2",
+    "@react-native-async-storage/async-storage": "1.21.0",
+    "@react-native-picker/picker": "2.6.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
