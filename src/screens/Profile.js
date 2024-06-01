@@ -7,7 +7,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { getTotalSongs, getTotalArtists, getTotalAlbums, getSongsCountByRating, getSongsCountByYear } from '../database/databaseOperations';
-import { fetchAllSongsAsJson, insertSongIntoDatabase, insertRatingHistory, fetchSongsWithoutCover, updateSongCoverPath, coverPathToNull, deleteData } from '../database/databaseOperations';
+import { fetchAllSongsAsJson, insertSongIntoDatabase, insertRatingHistory, fetchAlbumsWithoutCover, updateSongCoverPath, coverPathToNull, deleteData } from '../database/databaseOperations';
 import { addToQueue } from '../api/MusicBrainzAPI';
 import { downloadImage, generateCacheKey, getImageFromCache, deleteAllFilesFromCache } from '../utils/cacheManager';
 import SettingsModal from '../components/SettingsModal';
@@ -25,7 +25,9 @@ export function Profile() {
 
     const [isBackupModalVisible, setIsBackupModalVisible] = useState(false);
 
-    const [importProgress, setImportProgress] = useState(0);
+    const [progress, setProgress] = useState(0);
+    const [totalOperation, setTotalOperation] = useState(0);
+
     const [isImportModalVisible, setIsImportModalVisible] = useState(false);
 
     const [isCoverModalVisible, setIsCoverModalVisible] = useState(false);
@@ -36,15 +38,15 @@ export function Profile() {
     useFocusEffect(
         React.useCallback(() => {
             const fetchStats = async () => {
-                const total = await getTotalSongs();
-                const totalArtists = await getTotalArtists();
-                const totalAlbums = await getTotalAlbums();
+                const totalSon = await getTotalSongs();
+                const totalArt = await getTotalArtists();
+                const totalAlb = await getTotalAlbums();
                 const songsCountByRating = await getSongsCountByRating();
                 const songsCountByYear = await getSongsCountByYear();
 
-                setTotalSongs(total);
-                setTotalArtists(totalArtists);
-                setTotalAlbums(totalAlbums);
+                setTotalSongs(totalSon);
+                setTotalArtists(totalArt);
+                setTotalAlbums(totalAlb);
                 setSongsCountByRating(songsCountByRating);
                 setSongsCountByYear(songsCountByYear);
             };
@@ -103,7 +105,7 @@ export function Profile() {
 
                 let songs = JSON.parse(fileContent);
                 console.log("JSON parsed successfully, number of songs:", songs.length);
-                setTotalSongs(songs.length);
+                setTotalOperation(songs.length);
 
                 console.log(`Starting import of ${songs.length} songs...`);
 
@@ -120,7 +122,7 @@ export function Profile() {
                                 await insertRatingHistory(song.id, ratingHistory.rating, ratingHistory.previous_rating, ratingHistory.datetime);
                             }
                         }
-                        setImportProgress(insertedSongs);
+                        setProgress(insertedSongs);
                     } catch (error) {
                         errors.push(error);
                     }
@@ -150,33 +152,20 @@ export function Profile() {
     const handleDownloadCovers = async () => {
         cancellationToken = { cancelled: false };
 
-        // Show an alert to the user
-        const userConfirmation = await new Promise((resolve) => {
-            Alert.alert(
-                "Download Covers",
-                "This operation might take a long time. Do you want to proceed?",
-                [
-                    { text: 'Cancel', onPress: () => resolve(false) },
-                    { text: 'OK', onPress: () => resolve(true) },
-                ],
-                { cancelable: false }
-            );
-        });
-    
-        if (!userConfirmation) {
-            // User chose to cancel
-            return;
-        }
+        // Keep screen awake
+        activateKeepAwakeAsync();
     
         try {
-            const songsWithoutCover = await fetchSongsWithoutCover();
-            setTotalSongs(songsWithoutCover.length);
+            const albumsWithoutCover = await fetchAlbumsWithoutCover();
+            console.log('albumsWithoutCover:', albumsWithoutCover);
             setIsCoverModalVisible(true); // Show the modal
+            setTotalOperation(albumsWithoutCover.length);
             let processedSongs = 0;
             let errors = 0;
+
     
-            for (const song of songsWithoutCover) {
-                console.log('Entered the loop in handleDownloadCovers of songsWithoutCover.\nDownloading cover for song:', song.title, 'by', song.artist, 'from', song.album);
+            for (const song of albumsWithoutCover) {
+                console.log('Entered the loop in handleDownloadCovers of albumsWithoutCover.\nDownloading cover for album:', song.album, 'by', song.artist);
                 // Check if the operation should be stopped
                 if (cancellationToken.cancelled) {
                     console.log('Stopping cover download process due to user request.');
@@ -188,7 +177,7 @@ export function Profile() {
                     const coverPathInCache = await getImageFromCache(cacheKey);
                     if (coverPathInCache) {
                         // If the cover exists in the cache, update the database with the cached path
-                        await updateSongCoverPath(song.id, coverPathInCache);
+                        //await updateSongCoverPath(song.id, coverPathInCache);
                         processedSongs++;
                     } else {
                         // If the cover does not exist in the cache, fetch it through the API
@@ -196,7 +185,7 @@ export function Profile() {
                         if (coverPath) {
                             const downloadedPath = await downloadImage(coverPath, cacheKey);
                             if (downloadedPath) {
-                                await updateSongCoverPath(song.id, downloadedPath);
+                                //await updateSongCoverPath(song.id, downloadedPath);
                                 processedSongs++;
                             } else {
                                 errors++;
@@ -206,8 +195,7 @@ export function Profile() {
                         }
                     }
                     // Update progress
-                    const progress = processedSongs;
-                    setImportProgress(progress);
+                    setProgress(processedSongs);
                     setErrorsCount(errors);
                 }
             }
@@ -221,6 +209,7 @@ export function Profile() {
             Alert.alert('Error', 'Failed to download covers. Error: ' + error.message);
         } finally {
             setIsCoverModalVisible(false); // Hide the modal
+            deactivateKeepAwake();
         }
     };
 
@@ -399,10 +388,10 @@ export function Profile() {
                 >
                     <View style={styles.centeredView}>
                         <View style={styles.modalView}>
-                            <Text style={{ ...styles.modalText, marginBottom: 0 }}>Processing covers for {totalSongs} songs...</Text>
+                            <Text style={{ ...styles.modalText, marginBottom: 0 }}>Processing covers for {totalOperation} albums...</Text>
                             <Text style={{ ...styles.modalText, fontSize: 14 }}>This might take a few minutes.</Text>
-                            <Text style={styles.modalText}>Processed: {importProgress} / {totalSongs}</Text>
-                            <Text style={{ ...styles.modalText, color: 'limegreen' }}>Success: {Math.max(importProgress - errorsCount, 0)}</Text>
+                            <Text style={styles.modalText}>Processed: {progress} / {totalOperation}</Text>
+                            <Text style={{ ...styles.modalText, color: 'limegreen' }}>Success: {Math.max(progress - errorsCount, 0)}</Text>
                             <Text style={{ ...styles.modalText, color: 'crimson' }}>Failed: {errorsCount}</Text>
                             <Button
                                 title="Stop"
@@ -423,9 +412,9 @@ export function Profile() {
                 >
                     <View style={styles.centeredView}>
                         <View style={styles.modalView}>
-                            <Text style={styles.modalText}>Importing {totalSongs} songs...</Text>
+                            <Text style={styles.modalText}>Importing {totalOperation} songs...</Text>
                             <Text style={styles.modalText}>Please keep the app open.</Text>
-                            <Text style={styles.modalText}>Progress: {importProgress} / {totalSongs}</Text>
+                            <Text style={styles.modalText}>Progress: {progress} / {totalOperation}</Text>
                         </View>
                     </View>
                 </Modal>

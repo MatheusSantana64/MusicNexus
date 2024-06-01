@@ -61,7 +61,7 @@ const History = () => {
 
     const renderItem = ({ item }) => (
         <View style={styles.cardContainer}>
-            {global.showCovers === 'true' && (
+            {global.showCovers !== 'false' && (
                 <Image
                     source={{ uri: item.cover_path }}
                     placeholder={require('../../assets/albumPlaceholder60.jpg')}

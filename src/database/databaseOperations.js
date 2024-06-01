@@ -240,11 +240,15 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
     };
 
     // (Download Covers) Function to fetch all songs with a null cover_path
-    export const fetchSongsWithoutCover = async () => {
+    export const fetchAlbumsWithoutCover = async () => {
         return new Promise((resolve, reject) => {
             db.transaction(tx => {
                 tx.executeSql(
-                    'SELECT * FROM songs WHERE cover_path IS NULL ORDER BY album ASC',
+                    `SELECT DISTINCT artist, album
+                    FROM songs
+                    WHERE cover_path IS NULL
+                    ORDER BY album ASC;
+                    `,
                     [],
                     (_, { rows: { _array } }) => {
                         resolve(_array);

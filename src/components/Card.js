@@ -18,10 +18,10 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
     // 1. Fetch cover image from cache
     useEffect(() => {
         // If cardSong.cover_path is not set, check for cover
-        if (!coverImage && global.showCovers == 'true') fetchCover();
+        if (!coverImage && global.showCovers != 'false') fetchCover();
         else {
             // Check if coverImage is a URL, not a file, then download cover
-            if (coverImage && !coverImage.startsWith('file://') && global.downloadCovers === 'true') downloadCoverImage(coverImage);
+            if (coverImage && !coverImage.startsWith('file://') && global.downloadCovers !== 'false') downloadCoverImage(coverImage);
         }
     }, [cardSong.artist, cardSong.album, cardSong.cover_path]);
 
@@ -34,7 +34,7 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
         if (!coverPath) {
             coverPath = await fetchCoverFromMusicBrainz();
             // If found on internet, download cover
-            if (coverPath && global.downloadCovers === 'true') {
+            if (coverPath && global.downloadCovers !== 'false') {
                 coverPath = await downloadCoverImage(coverPath);
             }
         }
@@ -142,7 +142,7 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
                 delayLongPress={200}
                 style={styles.cardContainer}
             >
-                {global.showCovers === 'true' && (
+                {global.showCovers !== 'false' && (
                     <Image
                         source={{ uri: coverImage }}
                         placeholder={require('../../assets/albumPlaceholder60.jpg')}

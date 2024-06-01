@@ -56,8 +56,8 @@ export default function SettingsModal({ isVisible, closeModal }) {
                             <Picker.Item label="Display Album Covers" value="true" />
                             <Picker.Item label="Hide Album Covers" value="false" />
                         </Picker>
-                        <Text style={{ ...styles.modalText, color: 'lightgrey', fontSize: 12 }}>Disabling covers gives a minimalistic visual and improves performance.</Text>
-                        <Text style={{ ...styles.modalText, color: 'lightgrey', marginBottom: 20, fontSize: 10 }}>Recommended to delete cache after disabling.</Text>
+                        <Text style={{ ...styles.modalText, color: 'lightgrey', fontSize: 12 }}>Hide covers for improved performance and a minimalistic look.</Text>
+                        <Text style={{ ...styles.modalText, color: 'lightgrey', marginBottom: 20, fontSize: 10 }}>If hiding, you can delete the covers to free up space.</Text>
 
                         <Picker
                             style={styles.pickerStyles}
@@ -67,8 +67,8 @@ export default function SettingsModal({ isVisible, closeModal }) {
                             <Picker.Item label="Download Album Covers" value="true" />
                             <Picker.Item label="Online Album Covers" value="false" />
                         </Picker>
-                        <Text style={{ ...styles.modalText, color: 'lightgrey', fontSize: 12 }}>Disabling download might reduce the app size, but will require internet connection to show the covers.</Text>
-                        <Text style={{ ...styles.modalText, color: 'lightgrey', marginBottom: 20, fontSize: 10 }}>Recommended to delete cache after disabling.</Text>
+                        <Text style={{ ...styles.modalText, color: 'lightgrey', fontSize: 12 }}>Disabling downloads slightly reduces the cache size, but will require internet connection to display the covers.</Text>
+                        <Text style={{ ...styles.modalText, color: 'lightgrey', marginBottom: 20, fontSize: 10 }}>If download is disabled, you can delete the covers to free up space.</Text>
 
                         <Button
                             title="Save"
