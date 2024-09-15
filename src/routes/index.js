@@ -7,7 +7,6 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { Home } from "../screens/Home";
 import { Music } from "../screens/Music";
 import History from "../screens/History";
-//import { Tags } from "../screens/Tags";
 import { Profile } from "../screens/Profile";
 
 const { Navigator, Screen } = createBottomTabNavigator();
@@ -52,14 +51,6 @@ export function Routes() {
             tabBarHideOnKeyboard: true,
           }}
         />
-        {/* <Screen 
-          name="Tags" 
-          component={Home} 
-          options={{
-            tabBarIcon: ({ size, color }) => <Icon name="th-list" size={size} color={color} />,
-            tabBarHideOnKeyboard: true,
-          }}
-        /> */}
         <Screen 
           name="Profile" 
           component={Profile}

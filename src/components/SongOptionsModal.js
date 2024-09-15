@@ -4,8 +4,9 @@
 import React, { useState } from 'react';
 import { TouchableWithoutFeedback, View, StyleSheet, Text, TouchableOpacity, Alert, Button, ScrollView } from 'react-native';
 import Modal from 'react-native-modal';
-import { deleteCover, deleteSong, getSongRatingHistory } from '../database/databaseOperations';
+import { deleteCover, deleteSong, getSongRatingHistory, getTagsForSong } from '../database/databaseOperations';
 import SongFormModal from './SongFormModal';
+import TagsModal from './Tags';
 
 const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, songs, setSongs, refreshSongsList }) => {
     const [isFormModalVisible, setFormModalVisible] = useState(false);
@@ -13,14 +14,23 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
     const [isRatingHistoryModalVisible, setRatingHistoryModalVisible] = useState(false);
     const [ratingHistory, setRatingHistory] = useState([]);
 
+    const [isTagsModalVisible, setTagsModalVisible] = useState(false);
+    const [associatedTags, setAssociatedTags] = useState([]);
+
     // Handle Edit Song (Edit Song Details)
     const openFormModal = () => {
         setFormModalVisible(true);
     };
 
+    // Handle Edit Song (Edit Song Details)
+    const openTagsModal = () => {
+        setTagsModalVisible(true);
+    };
+
     const closeModals = () => {
         setFormModalVisible(false);
         setRatingHistoryModalVisible(false);
+        setTagsModalVisible(false);
         closeModal();
     }
 
@@ -129,6 +139,10 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
                                         <Text style={styles.optionText}>View Rating History</Text>
                                     </TouchableOpacity>
 
+                                    <TouchableOpacity onPress={openTagsModal} style={{ ...styles.optionButton, backgroundColor: 'mediumvioletred' }}>
+                                        <Text style={styles.optionText}>Open Tags</Text>
+                                    </TouchableOpacity>
+
                                     <TouchableOpacity onPress={handleDeleteSong} style={{ ...styles.optionButton, backgroundColor: 'darkred' }}>
                                         <Text style={styles.optionText}>Delete Song</Text>
                                     </TouchableOpacity>
@@ -157,6 +171,12 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
                 songs={songs}
                 setSongs={setSongs}
                 refreshSongsList={refreshSongsList}
+            />
+
+            <TagsModal
+                isTagsModalVisible={isTagsModalVisible}
+                closeModals={() => closeModals()}
+                selectedSong={selectedSong}
             />
 
             <Modal

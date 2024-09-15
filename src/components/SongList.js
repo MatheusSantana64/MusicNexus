@@ -7,7 +7,7 @@ import Card from './Card';
 import { FlashList } from '@shopify/flash-list';
 
 const SongList = ({ songs, fetchMoreSongs, hasMoreSongs, setSongs, refreshSongsList }) => {
-    const CARD_HEIGHT = 90;
+    const CARD_HEIGHT = 100;
 
     const handleScroll = (event) => {
         const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;

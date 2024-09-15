@@ -507,3 +507,180 @@ export const fetchGlobalRatingHistory = async (offset = 0) => {
             });
         });
     };
+
+// Tags.js
+    // Function to insert a new tag into the database
+    export const insertTag = async (tag) => {
+        return new Promise((resolve, reject) => {
+            db.transaction(tx => {
+                const sql = `INSERT INTO tags (name, color) VALUES ('${tag.name}', '${tag.color}')`;
+    
+                tx.executeSql(
+                    sql,
+                    [],
+                    () => {
+                        resolve();
+                    },
+                    (_, error) => {
+                        console.error('Error inserting tag:', error);
+                        reject(error);
+                    }
+                );
+            });
+        });
+    };
+
+    // Function to add a tag to a song / add a song to a tag
+    export const addTag = async (songId, tagId) => {
+        return new Promise((resolve, reject) => {
+            db.transaction(tx => {
+                const sql = `INSERT INTO song_tags (song_id, tag_id) VALUES (?,?)`;
+                const params = [songId, tagId];
+                console.log(`[addTag] Adding tag to song with ID: ${songId}, Tag ID: ${tagId}`);
+                console.log(`[addTag] SQL Query: ${sql}, Params: ${params}`);
+    
+                tx.executeSql(sql, params, () => {
+                    console.log('Tag added successfully.');
+                    resolve();
+                }, (_, error) => {
+                    console.error('Error adding tag:', error);
+                    reject(error);
+                });
+            }, (transactionError) => {
+                console.error('Transaction error in addTag:', transactionError);
+                reject(transactionError);
+            });
+        });
+    };
+
+    // Function to select all tags
+    export const getTags = async () => {
+        return new Promise((resolve, reject) => {
+            db.transaction(tx => {
+                tx.executeSql(
+                    'SELECT * FROM tags',
+                    [],
+                    (_, { rows: { _array } }) => {
+                        resolve(_array);
+                    },
+                    (_, error) => {
+                        console.error('Error fetching tags:', error);
+                        reject(error);
+                    }
+                );
+            });
+        });
+    };
+
+    // Function to select all tags for a song
+    export const getTagsFromSongTags = async (songId) => {
+        return new Promise((resolve, reject) => {
+            db.transaction(tx => {
+                console.log(`[getTagsForSong] Fetching tags for song with ID: ${songId}`);
+                tx.executeSql(
+                    'SELECT tag_id FROM song_tags WHERE song_id=?',
+                    [songId],
+                    (_, { rows: { _array } }) => resolve(_array),
+                    (_, error) => reject(error)
+                );
+            });
+        });
+    };
+
+    // Function to select all tags for a song, returning the tags name and color
+    export const getTagsForSong = async (songId) => {
+        return new Promise((resolve, reject) => {
+            db.transaction(tx => {
+                console.log(`[getTagsForSongWithColor] Fetching tags for song with ID: ${songId}`);
+                tx.executeSql(
+                    'SELECT tags.name, tags.color FROM tags INNER JOIN song_tags ON tags.id = song_tags.tag_id WHERE song_tags.song_id=?',
+                    [songId],
+                    (_, { rows: { _array } }) => resolve(_array),
+                    (_, error) => reject(error)
+                );
+            });
+        });
+    };
+
+    // Function to remove a tag from a song / remove a song from a tag
+    export const removeTag = async (songId, tagId) => {
+        return new Promise((resolve, reject) => {
+            db.transaction(tx => {
+                const sql = `DELETE FROM song_tags WHERE song_id = ${songId} AND tag_id = ${tagId}`;
+    
+                tx.executeSql(
+                    sql,
+                    [],
+                    () => {
+                        resolve();
+                    },
+                    (_, error) => {
+                        console.error('Error removing tag:', error);
+                        reject(error);
+                    }
+                );
+            });
+        });
+    };
+
+    // Function to delete a tag from the database (This should also remove this tag from all songs in song_tags)
+    export const deleteTag = async (tagId) => {
+        return new Promise((resolve, reject) => {
+            db.transaction(tx => {
+                tx.executeSql(
+                    'DELETE FROM tags WHERE id = ?',
+                    [tagId],
+                    () => {
+                        resolve();
+                    },
+                    (_, error) => {
+                        console.error('Error deleting tag:', error);
+                        reject(error);
+                    }
+                );
+            });
+        });
+    };
+
+    export const getTagById = async (tagId) => {
+        return new Promise((resolve, reject) => {
+            db.transaction(tx => {
+                tx.executeSql(
+                    'SELECT * FROM tags WHERE id = ?',
+                    [tagId],
+                    (_, { rows: { _array } }) => {
+                        if (_array.length > 0) {
+                            resolve(_array[0]);
+                        } else {
+                            resolve(null);
+                        }
+                    },
+                    (_, error) => {
+                        console.error('Error fetching tag by ID:', error);
+                        reject(error);
+                    }
+                );
+            });
+        });
+    };
+
+    export const updateTag = async (tagId, updatedTagData) => {
+        return new Promise((resolve, reject) => {
+            db.transaction(tx => {
+                const sql = 'UPDATE tags SET name = ?, color = ? WHERE id = ?';
+                const params = [updatedTagData.name, updatedTagData.color, tagId];
+
+                tx.executeSql(
+                    sql,
+                    params,
+                    () => {
+                        resolve();
+                    },
+                    (_, error) => {
+                        console.error('Error updating tag:', error);
+                        reject(error);
+                    }
+                );
+            });
+        });
+    };

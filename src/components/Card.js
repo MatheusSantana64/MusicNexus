@@ -7,94 +7,122 @@ import { Image } from 'expo-image';
 import Icon from 'react-native-vector-icons/Feather';
 import { addToQueue } from '../api/MusicBrainzAPI';
 import { getImageFromCache, downloadImage, generateCacheKey } from '../utils/cacheManager';
-import { updateSongCoverPath, updateSongRating } from '../database/databaseOperations';
+import { updateSongCoverPath, updateSongRating, getTagsForSong } from '../database/databaseOperations';
 
 import RatingModal from './RatingModal';
 import SongOptionsModal from './SongOptionsModal';
 
 const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
-    const [coverImage, setCoverImage] = useState(cardSong.cover_path);
+    // Cover Image
+        const [coverImage, setCoverImage] = useState(cardSong.cover_path);
 
-    // 1. Fetch cover image from cache
-    useEffect(() => {
-        // If cardSong.cover_path is not set, check for cover
-        if (!coverImage && global.showCovers != 'false') fetchCover();
-        else {
-            // Check if coverImage is a URL, not a file, then download cover
-            if (coverImage && !coverImage.startsWith('file://') && global.downloadCovers !== 'false') downloadCoverImage(coverImage);
-        }
-    }, [cardSong.artist, cardSong.album, cardSong.cover_path]);
-
-    // 2. Fetch cover image locally. If not found, fetch on internet
-    const fetchCover = async () => {
-        // Check for cover in cache
-        console.log(`Checking for local cover for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}.`);
-        let coverPath = await fetchCoverFromCache();
-        // If not found in cache, fetch cover from internet
-        if (!coverPath) {
-            coverPath = await fetchCoverFromMusicBrainz();
-            // If found on internet, download cover
-            if (coverPath && global.downloadCovers !== 'false') {
-                coverPath = await downloadCoverImage(coverPath);
+        // 1. Fetch cover image from cache
+        useEffect(() => {
+            // If cardSong.cover_path is not set, check for cover
+            if (!coverImage && global.showCovers != 'false') fetchCover();
+            else {
+                // Check if coverImage is a URL, not a file, then download cover
+                if (coverImage && !coverImage.startsWith('file://') && global.downloadCovers !== 'false') downloadCoverImage(coverImage);
             }
-        }
-        // If found, update database
-        if (coverPath) {
-            updateDatabaseWithCoverPath(coverPath);
-            cardSong.cover_path = coverPath;
-        }
-    };
+        }, [cardSong.artist, cardSong.album, cardSong.cover_path]);
 
-    // 3. Fetch cover image from cache
-    const fetchCoverFromCache = async () => {
-        console.log(`(fetchCoverFromCache) Checking for local cover for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}.`);
-        const cacheKey = generateCacheKey(cardSong.artist, cardSong.album);
-        const coverPath = await getImageFromCache(cacheKey);
-        if (coverPath) {
-            console.log(`(fetchCoverFromCache) Cover image URL fetched from cache for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}. coverPath: ${coverPath}.`);
-            setCoverImage(coverPath);
-            return coverPath;
-        }
-        return null;
-    };
+        // 2. Fetch cover image locally. If not found, fetch on internet
+        const fetchCover = async () => {
+            // Check for cover in cache
+            console.log(`Checking for local cover for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}.`);
+            let coverPath = await fetchCoverFromCache();
+            // If not found in cache, fetch cover from internet
+            if (!coverPath) {
+                coverPath = await fetchCoverFromMusicBrainz();
+                // If found on internet, download cover
+                if (coverPath && global.downloadCovers !== 'false') {
+                    coverPath = await downloadCoverImage(coverPath);
+                }
+            }
+            // If found, update database
+            if (coverPath) {
+                updateDatabaseWithCoverPath(coverPath);
+                cardSong.cover_path = coverPath;
+            }
+        };
 
-    // 4. Fetch cover image from MusicBrainz API
-    const fetchCoverFromMusicBrainz = async () => {
-        const coverPath = await addToQueue(cardSong.artist, cardSong.album);
-        if (coverPath) {
-            console.log(`(fetchCoverFromMusicBrainz) Cover image URL from internet for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncoverPath: ${coverPath}.`);
-            setCoverImage(coverPath);
-            return coverPath;
-        }
-        return null;
-    };
-
-    // 5. Download cover image
-    const downloadCoverImage = async (coverPath) => {
-        console.log(`(downloadCoverImage) Checking for internet cover for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}. coverPath: ${coverPath}.`);
-        if(global.downloadCovers){
-            const downloadedPath = await downloadImage(coverPath, generateCacheKey(cardSong.artist, cardSong.album));
-            if (downloadedPath) {
-                console.log(`(downloadCoverImage) Cover image URL downloaded for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ndownloadedPath: ${downloadedPath}.`);
-                setCoverImage(downloadedPath);
-                updateDatabaseWithCoverPath(downloadedPath);
-                cardSong.cover_path = downloadedPath;
-                return downloadedPath;
+        // 3. Fetch cover image from cache
+        const fetchCoverFromCache = async () => {
+            console.log(`(fetchCoverFromCache) Checking for local cover for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}.`);
+            const cacheKey = generateCacheKey(cardSong.artist, cardSong.album);
+            const coverPath = await getImageFromCache(cacheKey);
+            if (coverPath) {
+                console.log(`(fetchCoverFromCache) Cover image URL fetched from cache for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}. coverPath: ${coverPath}.`);
+                setCoverImage(coverPath);
+                return coverPath;
             }
             return null;
-        }
-        else return coverPath;
-    };
+        };
 
-    // 6. Update database with new cover path
-    const updateDatabaseWithCoverPath = async (coverPath) => {
-        try {
-            await updateSongCoverPath(cardSong.id, coverPath);
-            console.log(`(updateDatabaseWithCoverPath) Cover path updated in the database for song: ${cardSong.title}.\ncardSong.cover_path: ${cardSong.cover_path}`);
-        } catch (error) {
-            console.log('Error updating cover path:', error);
-        }
-    };
+        // 4. Fetch cover image from MusicBrainz API
+        const fetchCoverFromMusicBrainz = async () => {
+            const coverPath = await addToQueue(cardSong.artist, cardSong.album);
+            if (coverPath) {
+                console.log(`(fetchCoverFromMusicBrainz) Cover image URL from internet for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncoverPath: ${coverPath}.`);
+                setCoverImage(coverPath);
+                return coverPath;
+            }
+            return null;
+        };
+
+        // 5. Download cover image
+        const downloadCoverImage = async (coverPath) => {
+            console.log(`(downloadCoverImage) Checking for internet cover for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}. coverPath: ${coverPath}.`);
+            if(global.downloadCovers){
+                const downloadedPath = await downloadImage(coverPath, generateCacheKey(cardSong.artist, cardSong.album));
+                if (downloadedPath) {
+                    console.log(`(downloadCoverImage) Cover image URL downloaded for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ndownloadedPath: ${downloadedPath}.`);
+                    setCoverImage(downloadedPath);
+                    updateDatabaseWithCoverPath(downloadedPath);
+                    cardSong.cover_path = downloadedPath;
+                    return downloadedPath;
+                }
+                return null;
+            }
+            else return coverPath;
+        };
+
+        // 6. Update database with new cover path
+        const updateDatabaseWithCoverPath = async (coverPath) => {
+            try {
+                await updateSongCoverPath(cardSong.id, coverPath);
+                console.log(`(updateDatabaseWithCoverPath) Cover path updated in the database for song: ${cardSong.title}.\ncardSong.cover_path: ${cardSong.cover_path}`);
+            } catch (error) {
+                console.log('Error updating cover path:', error);
+            }
+        };
+
+    // Tags
+        const [associatedTags, setAssociatedTags] = useState([]);
+
+        useEffect(() => {
+            if (cardSong.id) {
+                getTagsForSong(cardSong.id).then(associatedTags => setAssociatedTags(associatedTags));
+            }
+        }, [cardSong.id]);
+    
+        // useEffect to check the associated tags through a console log
+        useEffect(() => {
+            console.log('Associated tags:', associatedTags);
+        }, [associatedTags]);
+
+        const renderTags = () => {
+            return (
+                <View style={styles.tagsContainer}>
+                    {associatedTags.map((tag, index) => (
+                        <View key={index} style={{ ...styles.tagItem, backgroundColor: tag.color }}>
+                            {console.log(`Tag: ${tag.name}, Color: ${tag.color}`)}
+                            <Text style={styles.tagText}>{tag.name}</Text>
+                        </View>
+                    ))}
+                </View>
+            );
+        };
 
     // Rating Modal
         const [isRatingModalVisible, setRatingModalVisible] = useState(false);
@@ -124,15 +152,15 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
             setSongOptionsVisible(true);
         };
 
-    // Function to render the color of the rating based on its value
-    const renderRatingColor = () => {
-        if (cardSong.rating === 0) return 'grey';
-        if (cardSong.rating <= 2.5) return 'red';
-        if (cardSong.rating > 2.5 && cardSong.rating <= 5) return 'orange';
-        if (cardSong.rating > 5 && cardSong.rating <= 7.5) return 'yellow';
-        if (cardSong.rating > 7.5 && cardSong.rating < 10) return 'lime';
-        return 'turquoise';
-    };
+        // Function to render the color of the rating based on its value
+        const renderRatingColor = () => {
+            if (cardSong.rating === 0) return 'grey';
+            if (cardSong.rating <= 2.5) return 'red';
+            if (cardSong.rating > 2.5 && cardSong.rating <= 5) return 'orange';
+            if (cardSong.rating > 5 && cardSong.rating <= 7.5) return 'yellow';
+            if (cardSong.rating > 7.5 && cardSong.rating < 10) return 'lime';
+            return 'turquoise';
+        };
 
     return (
         <View>
@@ -146,7 +174,7 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
                     <Image
                         source={{ uri: coverImage }}
                         placeholder={require('../../assets/albumPlaceholder60.jpg')}
-                        style={{ width: 70, height: 70, margin: 5, marginRight: 0, borderRadius: 5 }}
+                        style={styles.image}
                         placeholderContentFit={'cover'}
                         cachePolicy={'none'} // Disable expo-image cache (Cache is done manually)
                         contentFit={'cover'}
@@ -158,6 +186,7 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
                         <Text style={styles.songInfo}>{cardSong.artist || 'Unknown Artist'}</Text>
                         <Text style={styles.songInfo}>{cardSong.album || 'Unknown Album'}</Text>
                         <Text style={styles.songInfo}>{cardSong.release || 'Unknown Release Date'}</Text>
+                        {renderTags()}
                     </View>
                 </View>
                 
@@ -201,7 +230,7 @@ const styles = StyleSheet.create({
         paddingRight: 10,
         marginBottom: 10,
         width: '100%',
-        height: 80,
+        height: 'auto',
     },
     songInfoContainer: {
         flexDirection: 'row',
@@ -209,10 +238,13 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     image: {
-        width: 60,
-        height: 60,
-        marginRight: 10,
+        width: 70,
+        height: 70,
         borderRadius: 5,
+        marginRight: 0,
+        marginLeft: 5,
+        marginVertical: 5,
+        alignSelf: 'center',
     },
     songInfoTextContainer: {
         flex: 1,
@@ -244,6 +276,23 @@ const styles = StyleSheet.create({
     },
     editButton: {
         marginLeft: 5,
+    },
+
+    tagsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        marginVertical: 5,
+    },
+    tagItem: {
+        borderRadius: 20,
+        paddingHorizontal: 5,
+        paddingVertical: 2,
+        marginRight: 5,
+    },
+    tagText: {
+        color: 'white',
+        textAlign: 'center',
+        fontSize: 10,
     },
 });
 
