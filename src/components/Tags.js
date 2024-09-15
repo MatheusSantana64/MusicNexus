@@ -286,6 +286,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: 'cornflowerblue',
         borderRadius: 15,
+        marginTop: 10,
     },
     editButtonText: {
         color: 'white',
@@ -297,6 +298,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: 'crimson',
         borderRadius: 15,
+        marginTop: 10,
     },
     deleteButtonText: {
         color: 'white',

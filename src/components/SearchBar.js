@@ -31,7 +31,12 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
     const clearSearchInput = () => {
         setInputText('');
         setSearchText('');
-    };    
+    };
+
+    const setBothRatings = (value) => {
+        setLow(value);
+        setHigh(value);
+    };
 
     return (
         <View style={styles.container}>
@@ -97,19 +102,52 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
                             </View>
 
                             <View style={styles.buttonsRow}>
-                                <TouchableOpacity onPress={() => { setLow(0); setHigh(0); }} style={{ ...styles.button, backgroundColor: 'darkred' }}>
+                                <TouchableOpacity onPress={() => setBothRatings(1)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'darkred' }}>
+                                    <Text style={styles.buttonText}>1</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setBothRatings(2)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'darkred' }}>
+                                    <Text style={styles.buttonText}>2</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setBothRatings(3)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'chocolate' }}>
+                                    <Text style={styles.buttonText}>3</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setBothRatings(4)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'chocolate' }}>
+                                    <Text style={styles.buttonText}>4</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setBothRatings(5)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'goldenrod' }}>
+                                    <Text style={styles.buttonText}>5</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setBothRatings(6)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'goldenrod' }}>
+                                    <Text style={styles.buttonText}>6</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setBothRatings(7)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'darkgreen' }}>
+                                    <Text style={styles.buttonText}>7</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setBothRatings(8)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'darkgreen' }}>
+                                    <Text style={styles.buttonText}>8</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setBothRatings(9)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'steelblue' }}>
+                                    <Text style={styles.buttonText}>9</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setBothRatings(10)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'steelblue' }}>
+                                    <Text style={styles.buttonText}>10</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.buttonsRow}>
+                                <TouchableOpacity onPress={() => { setLow(0); setHigh(0); }} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkred' }}>
                                     <Text style={styles.buttonText}>Not Rated</Text>
                                     <Text style={{ ...styles.buttonText, fontSize: 12 }}>(0 ~ 0)</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity onPress={() => { setLow(8); setHigh(10); }} style={{ ...styles.button, backgroundColor: 'darkgoldenrod' }}>
-                                    <Text style={styles.buttonText}>Favorites</Text>
+                                <TouchableOpacity onPress={() => { setLow(8); setHigh(10); }} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgoldenrod' }}>
+                                    <Text style={styles.buttonText}>Best Rated</Text>
                                     <Text style={{ ...styles.buttonText, fontSize: 12 }}>(8 ~ 10)</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity onPress={() => { setLow(0); setHigh(10); }} style={{ ...styles.button, backgroundColor: 'darkgreen' }}>
+                                <TouchableOpacity onPress={() => { setLow(0); setHigh(10); }} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgreen' }}>
                                     <Text style={styles.buttonText}>All Ratings</Text>
-                                    <Text style={{ ...styles.buttonText, fontSize: 12 }}>(0 ~ 10)</Text>
+                                    <Text style={{ ...styles.buttonText, fontSize: 12 }}>Reset (0 ~ 10)</Text>
                                 </TouchableOpacity>
                             </View>
 

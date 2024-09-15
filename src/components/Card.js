@@ -116,7 +116,6 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
                 <View style={styles.tagsContainer}>
                     {associatedTags.map((tag, index) => (
                         <View key={index} style={{ ...styles.tagItem, backgroundColor: tag.color }}>
-                            {console.log(`Tag: ${tag.name}, Color: ${tag.color}`)}
                             <Text style={styles.tagText}>{tag.name}</Text>
                         </View>
                     ))}

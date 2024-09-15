@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#1e272e',
         borderRadius: 8,
         padding: 16,
-        width: '80%',
+        width: '90%',
     },
     optionsTitle: {
         color: 'white',
@@ -242,7 +242,8 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         width: '48%',
         padding: 5,
-        marginBottom: 0
+        marginBottom: 0,
+        justifyContent: 'center',
     },
     optionText: {
         color: 'white',

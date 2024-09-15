@@ -30,7 +30,11 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
         }
 
         // Add ORDER BY clause
-        query += ' ORDER BY LOWER(' + orderBy + ') ' + orderDirection + ', LOWER(artist) ASC, LOWER(album) ASC, LOWER(title) ASC';
+        if (orderBy === 'rating' || orderBy === 'release') {
+            query += ' ORDER BY ' + orderBy + ' ' + orderDirection + ', LOWER(artist) ASC, LOWER(album) ASC, LOWER(title) ASC';
+        } else {
+            query += ' ORDER BY LOWER(' + orderBy + ') ' + orderDirection + ', LOWER(artist) ASC, LOWER(album) ASC, LOWER(title) ASC';
+        }
 
         // Add LIMIT and OFFSET clauses
         query += ' LIMIT 100 OFFSET ?';
