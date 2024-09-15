@@ -1,6 +1,6 @@
 // MusicBrainz API for fetching album cover and release MBID
 
-const USER_AGENT = 'MusicNexusApp/0.3.0 ( https://github.com/MatheusSantana64/MusicNexus )';
+const USER_AGENT = 'MusicNexusApp/0.3.1 ( https://github.com/MatheusSantana64/MusicNexus )';
 
 let queue = [];
 let isProcessing = false;

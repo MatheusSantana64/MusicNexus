@@ -88,7 +88,6 @@ export function Profile() {
         }
     };
 
-    // Function to handle the import of all songs from a JSON file
     const handleImportData = async () => {
         console.log("Attempting to import data...");
         setIsImportModalVisible(true);
@@ -98,28 +97,30 @@ export function Profile() {
                 type: 'application/json',
             });
             console.log("File picker result:", result);
-
+    
             if (result.assets && result.assets.length > 0) {
                 const fileContent = await FileSystem.readAsStringAsync(result.assets[0].uri);
                 console.log("File read successfully, content length:", fileContent.length);
-
+    
                 let songs = JSON.parse(fileContent);
                 console.log("JSON parsed successfully, number of songs:", songs.length);
                 setTotalOperation(songs.length);
-
+    
                 console.log(`Starting import of ${songs.length} songs...`);
-
+    
                 let insertedSongs = 0;
                 let errors = [];
-
+    
                 for (const song of songs) {
                     try {
-                        await insertSongIntoDatabase(song);
+                        // Insert the song and get the correct ID
+                        const insertedSongId = await insertSongIntoDatabase(song);  // Now returns the new song ID
                         insertedSongs++;
-                        // Insert rating history for the song
+                        
+                        // Insert rating history for the song using the new song ID
                         if (song.ratingHistory && song.ratingHistory.length > 0) {
                             for (const ratingHistory of song.ratingHistory) {
-                                await insertRatingHistory(song.id, ratingHistory.rating, ratingHistory.previous_rating, ratingHistory.datetime);
+                                await insertRatingHistory(insertedSongId, ratingHistory.rating, ratingHistory.previous_rating, ratingHistory.datetime);
                             }
                         }
                         setProgress(insertedSongs);
@@ -127,7 +128,7 @@ export function Profile() {
                         errors.push(error);
                     }
                 }
-
+    
                 if (errors.length > 0) {
                     console.log('Some songs failed to insert:', errors);
                     Alert.alert('Error', 'Some songs failed to insert.');
@@ -146,7 +147,7 @@ export function Profile() {
             setIsImportModalVisible(false);
         }
         deactivateKeepAwake();
-    };
+    };    
 
     // Function to handle the download the cover of all songs
     const handleDownloadCovers = async () => {

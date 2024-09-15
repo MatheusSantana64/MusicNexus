@@ -30,7 +30,7 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
         }
 
         // Add ORDER BY clause
-        query += ' ORDER BY ' + orderBy + ' ' + orderDirection + ', title ASC';
+        query += ' ORDER BY LOWER(' + orderBy + ') ' + orderDirection + ', LOWER(artist) ASC, LOWER(album) ASC, LOWER(title) ASC';
 
         // Add LIMIT and OFFSET clauses
         query += ' LIMIT 100 OFFSET ?';
@@ -185,50 +185,18 @@ import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
         }
     };
 
-    // (Import) Function to insert a single song into the database
+    // (Import) Function to insert a song into the database and return the inserted ID
     export const insertSongIntoDatabase = async (song) => {
         return new Promise((resolve, reject) => {
             db.transaction(tx => {
-                const title = (typeof song.title === 'string' ? song.title : "Unknown Title").replace(/'/g, "''");
-                const artist = (typeof song.artist === 'string' ? song.artist : "Unknown Artist").replace(/'/g, "''");
-                const album = (typeof song.album === 'string' ? song.album : "Unknown Album").replace(/'/g, "''");
-                const release = song.release || "1900-01-01";
-                const rating = song.rating || 0;
-                const sql = `INSERT INTO songs (title, artist, album, release, rating) VALUES ('${title}', '${artist}', '${album}', '${release}', ${rating})`;
-
                 tx.executeSql(
-                    sql,
-                    [],
-                    async () => {
-                        // After inserting the song, insert the rating history record if the song doesn't have any rating history in the JSON
-                        const songId = await new Promise((resolve, reject) => {
-                            tx.executeSql(
-                                'SELECT last_insert_rowid() as id',
-                                [],
-                                (_, { rows: { _array } }) => {
-                                    resolve(_array[0].id);
-                                },
-                                (_, error) => {
-                                    console.error('Error fetching last inserted ID:', error);
-                                    reject(error);
-                                }
-                            );
-                        });
-
-                        // Check if the song has rating history in the JSON
-                        if (song.ratingHistory && song.ratingHistory.length > 0) {
-                            // If the song has rating history, skip inserting a new rating history record here
-                            console.log(`Song inserted successfully for song with ID: ${songId}, Rating: ${rating}.`);
-                        } else {
-                            // If the song doesn't have rating history in the JSON, insert the current rating in the history record if it's not 0
-                            if (rating !== 0) {
-                                await insertRatingHistory(songId, rating, 0, new Date().toISOString());
-                                console.log(`Song inserted successfully for song with ID: ${songId}, Rating: ${rating}. No rating history found in JSON, current rating inserted to history.`);
-                            }
-                            console.log(`Song inserted successfully for song with ID: ${songId}, Rating: ${rating}. No rating history found in JSON, no rating history record inserted.`);
-                        }
-
-                        resolve();
+                    `INSERT INTO songs (title, artist, album, release, rating, cover_path)
+                    VALUES (?, ?, ?, ?, ?, ?)`,
+                    [song.title, song.artist, song.album, song.release, song.rating, song.cover_path || null],
+                    (_, result) => {
+                        // Return the last inserted row's ID
+                        const insertedId = result.insertId; 
+                        resolve(insertedId);
                     },
                     (_, error) => {
                         console.error('Error inserting song:', error);
