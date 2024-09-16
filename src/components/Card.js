@@ -280,13 +280,15 @@ const styles = StyleSheet.create({
     tagsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginVertical: 5,
+        marginTop: 5,
+        marginBottom: 2,
     },
     tagItem: {
         borderRadius: 20,
         paddingHorizontal: 5,
         paddingVertical: 2,
-        marginRight: 5,
+        marginRight: 3,
+        marginBottom: 3,
     },
     tagText: {
         color: 'white',
