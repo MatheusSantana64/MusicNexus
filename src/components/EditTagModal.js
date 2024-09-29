@@ -3,10 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'reac
 import { updateTag } from '../database/databaseOperations';
 import Modal from 'react-native-modal';
 import ColorPickerComponent from './ColorPicker';
+import { globalStyles } from '../styles/global';
 
 const EditTagModal = ({ isEditModalVisible, setIsEditModalVisible, tagToEdit, updateTagList }) => {
     const [newTagName, setNewTagName] = useState('');
-    const [newTagColor, setNewTagColor] = useState('#000000'); // Default color
+    const [newTagColor, setNewTagColor] = useState(globalStyles.defaultTagColor); // Default color
     const [isColorPickerEditModalVisible, setIsColorPickerEditModalVisible] = useState(false);
 
     useEffect(() => {
@@ -82,7 +83,7 @@ const EditTagModal = ({ isEditModalVisible, setIsEditModalVisible, tagToEdit, up
 
 const styles = StyleSheet.create({
     modalContent: {
-        backgroundColor: '#1e272e',
+        backgroundColor: globalStyles.modalBackgroundColor,
         padding: 22,
         justifyContent: 'center',
         alignItems: 'center',

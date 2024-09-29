@@ -7,6 +7,7 @@ import Modal from 'react-native-modal';
 import { deleteCover, deleteSong, getSongRatingHistory, getTagsForSong } from '../database/databaseOperations';
 import SongFormModal from './SongFormModal';
 import TagsModal from './Tags';
+import { globalStyles } from '../styles/global';
 
 const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, songs, setSongs, refreshSongsList }) => {
     const [isFormModalVisible, setFormModalVisible] = useState(false);
@@ -135,15 +136,15 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
                                         <Text style={styles.optionText}>Edit Song</Text>
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity onPress={handleViewRatingHistory} style={{ ...styles.optionButton, backgroundColor: 'darkgoldenrod' }}>
+                                    <TouchableOpacity onPress={handleViewRatingHistory} style={{ ...styles.optionButton, backgroundColor: globalStyles.yellow1 }}>
                                         <Text style={styles.optionText}>View Rating History</Text>
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity onPress={openTagsModal} style={{ ...styles.optionButton, backgroundColor: 'mediumvioletred' }}>
+                                    <TouchableOpacity onPress={openTagsModal} style={{ ...styles.optionButton, backgroundColor: globalStyles.pink1 }}>
                                         <Text style={styles.optionText}>Open Tags</Text>
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity onPress={handleDeleteSong} style={{ ...styles.optionButton, backgroundColor: 'darkred' }}>
+                                    <TouchableOpacity onPress={handleDeleteSong} style={{ ...styles.optionButton, backgroundColor: globalStyles.red2 }}>
                                         <Text style={styles.optionText}>Delete Song</Text>
                                     </TouchableOpacity>
 
@@ -152,7 +153,7 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
                                             <Text style={styles.optionText}>Reload Cover</Text>
                                         </TouchableOpacity>
 
-                                        <TouchableOpacity onPress={handleCheckCoverPath} style={{ ...styles.optionButtonSmall, backgroundColor: 'rebeccapurple'}}>
+                                        <TouchableOpacity onPress={handleCheckCoverPath} style={{ ...styles.optionButtonSmall, backgroundColor: globalStyles.purple2}}>
                                             <Text style={styles.optionText}>Check Cover Path</Text>
                                         </TouchableOpacity>
                                     </View>
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.5)',
     },
     optionsContainer: {
-        backgroundColor: '#1e272e',
+        backgroundColor: globalStyles.modalBackgroundColor,
         borderRadius: 8,
         padding: 16,
         width: '90%',
@@ -230,13 +231,13 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     optionButton: {
-        backgroundColor: 'darkblue',
+        backgroundColor: globalStyles.blue2,
         borderRadius: 8,
         padding: 10,
         marginBottom: 16,
     },
     optionButtonSmall: {
-        backgroundColor: 'darkgreen',
+        backgroundColor: globalStyles.green2,
         borderRadius: 8,
         padding: 10,
         marginBottom: 16,
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
     modalView: {
         margin: 40,
         width: '80%',
-        backgroundColor: "#1e272e",
+        backgroundColor: globalStyles.modalBackgroundColor,
         borderRadius: 20,
         padding: 35,
         alignItems: "center",

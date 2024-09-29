@@ -7,7 +7,6 @@ import Card from './Card';
 import { FlashList } from '@shopify/flash-list';
 
 const SongList = ({ songs, fetchMoreSongs, hasMoreSongs, setSongs, refreshSongsList }) => {
-    const CARD_HEIGHT = 100;
 
     const handleScroll = (event) => {
         const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
@@ -27,7 +26,7 @@ const SongList = ({ songs, fetchMoreSongs, hasMoreSongs, setSongs, refreshSongsL
             <FlashList
                 data={songs}
                 keyExtractor={extractKey}
-                estimatedItemSize={CARD_HEIGHT} // FlashList requirement
+                estimatedItemSize={60} // FlashList requirement
                 renderItem={renderCard}
                 onScroll={handleScroll}
                 removeClippedSubviews={false}

@@ -5,6 +5,7 @@ import { TouchableWithoutFeedback, StyleSheet, View, TextInput, Button, Dimensio
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Modal from 'react-native-modal';
 import { submitForm } from '../database/databaseOperations';
+import { globalStyles } from '../styles/global';
 
 const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, setSongs, refreshSongsList }) => {
     const [title, setTitle] = React.useState(selectedSong ? selectedSong.title : '');
@@ -135,13 +136,13 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, se
                                     )}
 
                                     <View style={{borderRadius: 5, overflow: 'hidden',}}>
-                                        <Button title={editMode ? "Save Changes" : "Add Song"} onPress={handleSubmit} color={'blue'} />
+                                        <Button title={editMode ? "Save Changes" : "Add Song"} onPress={handleSubmit} color={globalStyles.defaultButtonColor} />
                                     </View>
                                     <View style={{marginTop: 10, borderRadius: 5, overflow: 'hidden',}}>
-                                        <Button title={editMode ? "Save Changes and Add Another Song From This Album" : "Add Another Song From This Album"} onPress={handleAddAnotherSong} color={'green'} />
+                                        <Button title={editMode ? "Save Changes and Add Another Song From This Album" : "Add Another Song From This Album"} onPress={handleAddAnotherSong} color={globalStyles.green2} />
                                     </View>
                                     <View style={{marginTop: 10, borderRadius: 5, overflow: 'hidden',}}>
-                                        <Button title="Cancel" onPress={closeModal} color="red"/>
+                                        <Button title="Cancel" onPress={closeModal} color={globalStyles.red2}/>
                                     </View>
                                 </View>
                             </View>
@@ -158,26 +159,25 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
     },
     formContainer: {
-        backgroundColor: '#1e272e',                     // Set the background color of the form container
-        borderRadius: 8,                                // Add some border radius to the form container
-        padding: 16,                                    // Add some padding to the form container
-        width: Dimensions.get('window').width * 0.8,    // 80% of screen width
+        backgroundColor: globalStyles.modalBackgroundColor, // Set the background color of the form container
+        borderRadius: 8,                                    // Add some border radius to the form container
+        padding: 16,                                        // Add some padding to the form container
+        width: Dimensions.get('window').width * 0.8,        // 80% of screen width
     },
 
     // Style for the input fields
     input: {
-        backgroundColor: '#2c3e50',     // Set the background color of the input fields
-        borderRadius: 8,                // Add some border radius to the input fields
-        color: 'white',                 // Set the text color of the input fields
-        height: 48,                     // Set the height of the input fields
-        paddingHorizontal: 16,          // Add some padding to the input fields
-        marginBottom: 16,               // Add some space between the input fields
-        borderWidth: 1,                 // Add a border to the input fields
-        borderColor: '#34495e',         // Add a border color to the input fields
-        textAlignVertical: 'center',    // Center the text vertically inside the TextInput
+        backgroundColor: globalStyles.gray3,   // Set the background color of the input fields
+        borderRadius: 8,                            // Add some border radius to the input fields
+        color: 'white',                             // Set the text color of the input fields
+        height: 48,                                 // Set the height of the input fields
+        paddingHorizontal: 16,                      // Add some padding to the input fields
+        marginBottom: 16,                           // Add some space between the input fields
+        borderWidth: 1,                             // Add a border to the input fields
+        borderColor: globalStyles.gray2,                     // Add a border color to the input fields
+        textAlignVertical: 'center',                // Center the text vertically inside the TextInput
     },
 });
 

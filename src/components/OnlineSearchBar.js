@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 
+import { globalStyles } from '../styles/global';
+
 const OnlineSearchBar = ({ handleSearch, searchText = '' }) => {
     const [inputText, setInputText] = useState(searchText);
 
@@ -37,7 +39,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     input: {
-        backgroundColor: '#1e272e',
+        backgroundColor: globalStyles.gray1,
         borderRadius: 8,
         color: 'white',
         height: 32,

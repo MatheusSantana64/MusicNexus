@@ -1,11 +1,10 @@
 // SettingsModal.js
-
 import React, { useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, Button, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Modal from 'react-native-modal'; // https://www.npmjs.com/package/react-native-modal
 import {Picker} from '@react-native-picker/picker';
+import { globalStyles } from '../styles/global';
 
 export default function SettingsModal({ isVisible, closeModal }) {
     const [showCovers, setShowCovers] = useState(global.showCovers);
@@ -93,7 +92,7 @@ const styles = StyleSheet.create({
     },
     modalView: {
         margin: 20,
-        backgroundColor: "#1e272e",
+        backgroundColor: globalStyles.modalBackgroundColor,
         borderRadius: 20,
         padding: 35,
         alignItems: "center",
@@ -114,7 +113,7 @@ const styles = StyleSheet.create({
     pickerStyles: {
         color: 'white',
         width: 300,
-        backgroundColor: '#1e272e',
+        backgroundColor: globalStyles.modalBackgroundColor,
         fontSize: 16,
     }
 });

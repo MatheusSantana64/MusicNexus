@@ -13,6 +13,7 @@ import Checkbox from 'expo-checkbox';
 import ColorPickerComponent from './ColorPicker';
 import Icon from 'react-native-vector-icons/Feather';
 import EditTagModal from './EditTagModal';
+import { globalStyles } from '../styles/global';
 
 const RatingModal = ({ 
     isRatingModalVisible, 
@@ -44,7 +45,7 @@ const RatingModal = ({
     const [associatedTags, setAssociatedTags] = useState([]);
 
     const [newTagName, setNewTagName] = useState('');
-    const [newTagColor, setNewTagColor] = useState('#000000'); // Default to black
+    const [newTagColor, setNewTagColor] = useState(globalStyles.defaultTagColor); // Default to black
     const [isColorPickerModalVisible, setIsColorPickerModalVisible] = useState(false);
 
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -206,6 +207,7 @@ const RatingModal = ({
             children={
                 <View style={styles.modalContainer}>
                     <View style={styles.tagsContent}>
+                        <Text style={{...styles.title, fontWeight: 'bold', textAlign: 'center'}}>{selectedSong.title} - {selectedSong.artist}</Text>
                         <Text style={{ color: 'white', fontSize: 16 }}>Create New Tag:</Text>
                         <View style={styles.inputContainer}>
                             <TextInput
@@ -237,7 +239,7 @@ const RatingModal = ({
                         ratingCount={10}
                         jumpValue={0.5}
                         imageSize={30}
-                        tintColor='#1e272e'
+                        tintColor={globalStyles.modalBackgroundColor}
                         startingValue={selectedSong.rating}
                         showRating
                         onFinishRating={(rating) => setRating(rating)}
@@ -274,16 +276,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     modalContainer: {
-        backgroundColor: '#1e272e',  
+        backgroundColor: globalStyles.modalBackgroundColor,  
         borderRadius: 10,
         padding: 16,
         paddingVertical: 0,
-        width: '90%',
+        width: '95%',
         alignItems: 'stretch', // 'stretch' is necessary for stars to look fine for some reason
         maxHeight: '90%',
     },
+
     submitButton: {
-        backgroundColor: 'blue',
+        backgroundColor: globalStyles.defaultButtonColor,
         borderRadius: 8,
         padding: 10,
         marginTop: 16,
@@ -293,8 +296,9 @@ const styles = StyleSheet.create({
         color: 'white',
         textAlign: 'center',
     },
+
     tagsContent: {
-        backgroundColor: '#1e272e',
+        backgroundColor: globalStyles.modalBackgroundColor,
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: 4,

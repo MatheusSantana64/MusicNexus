@@ -20,7 +20,7 @@ const FloatingButton = (props) => {
     return (
         <View>
             <TouchableOpacity onPress={openFormModal} style={styles.button}>
-                <Icon name="plus-circle" size={50} color="green" />
+                <Icon name="plus-circle" size={40} color="green" />
             </TouchableOpacity>
 
             <SongFormModal

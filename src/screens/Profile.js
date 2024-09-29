@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Button, Alert, Text, Modal, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Button, Alert, Text, Modal, StyleSheet, ScrollView, Pressable } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -13,6 +13,7 @@ import { downloadImage, generateCacheKey, getImageFromCache, deleteAllFilesFromC
 import SettingsModal from '../components/SettingsModal';
 import { useKeepAwake, activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { globalStyles } from '../styles/global';
 
 export function Profile() {
     const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
@@ -279,14 +280,17 @@ export function Profile() {
                 right: 15,
                 zIndex: 1,
             }}>
-                <TouchableOpacity onPress={() => {
+                <Pressable onPress={() => {
                     setIsSettingsModalVisible(true);
                 }}>
-                    <Icon name="gear" size={40} color="#fff" />
-                </TouchableOpacity>
+                    <Icon name="gear" size={32} color="#fff" />
+                </Pressable>
             </View>
             
-            <SettingsModal isVisible={isSettingsModalVisible} closeModal={() => setIsSettingsModalVisible(false)} />
+            <SettingsModal 
+                isVisible={isSettingsModalVisible} 
+                closeModal={() => setIsSettingsModalVisible(false)} 
+            />
     
             <View
                 style={{
@@ -294,7 +298,7 @@ export function Profile() {
                     alignItems: 'center',
                     justifyContent: 'flex-end',
                     paddingBottom: 16,
-                    backgroundColor: '#090909',
+                    backgroundColor: globalStyles.defaultBackgroundColor,
                     padding: 16,
                 }}
             >
@@ -326,40 +330,35 @@ export function Profile() {
                     <Button
                         title="Backup Songs"
                         onPress={handleBackupData}
-                        color="darkgreen"
-                        style={{ width: '100%' }}
+                        color={globalStyles.green2}
                     />
                 </View>
                 <View style={{ marginBottom: 10, width: '80%' }}>
                     <Button
                         title="Import Songs From File"
                         onPress={handleImportData}
-                        color="darkblue"
-                        style={{ width: '100%' }}
+                        color={globalStyles.blue2}
                     />
                 </View>
                 <View style={{ marginBottom: 10, width: '80%' }}>
                     <Button
                         title="Download All Covers"
                         onPress={handleDownloadCovers}
-                        color="darkslategrey"
-                        style={{ width: '100%' }}
+                        color={globalStyles.gray3}
                     />
                 </View>
                 <View style={{ marginBottom: 10, width: '80%' }}>
                     <Button
                         title="Delete Data (Songs and Tags)"
                         onPress={handleDeleteData}
-                        color="darkred"
-                        style={{ width: '100%' }}
+                        color={globalStyles.red2}
                     />
                 </View>
                 <View style={{ marginBottom: 10, width: '80%' }}>
                     <Button
                         title="Delete Album Covers From Cache"
                         onPress={handleDeleteCache}
-                        color="indigo"
-                        style={{ width: '100%' }}
+                        color={globalStyles.purple2}
                     />
                 </View>
 
@@ -427,15 +426,15 @@ export function Profile() {
 const styles = StyleSheet.create({
     stats: {
         padding: 16,
-        backgroundColor: '#1e272e',
+        backgroundColor: globalStyles.defaultBackgroundColor,
         width: '80%',
-        height: '50%',
+        height: '60%',
         marginVertical: 16,
         borderRadius: 10,
     },
     statsTitle: {
         color: 'white',
-        fontSize: 32,
+        fontSize: 16,
         marginBottom: 12,
         textAlign: 'left',
     },
@@ -456,7 +455,7 @@ const styles = StyleSheet.create({
     },
     modalView: {
         margin: 20,
-        backgroundColor: "#1e272e",
+        backgroundColor: globalStyles.modalBackgroundColor,
         borderRadius: 20,
         padding: 35,
         alignItems: "center",

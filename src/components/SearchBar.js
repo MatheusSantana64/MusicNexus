@@ -6,6 +6,7 @@ import { View, TextInput, TouchableOpacity, Text, StyleSheet, Keyboard } from 'r
 import Icon from 'react-native-vector-icons/Feather';
 import Modal from 'react-native-modal';
 import OrderButtons from './OrderButtons';
+import { globalStyles } from '../styles/global';
 
 const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, setRatingRange, showFilters = false }) => {
     const [inputText, setInputText] = useState('');
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
         width: '90%',
     },
     input: {
-        backgroundColor: '#1e272e',
+        backgroundColor: globalStyles.gray1,
         borderRadius: 8,
         color: 'white',
         height: 32,
@@ -196,7 +197,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        width: '95%',
         marginTop: 16,
     },
     clearButton: {
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     modalContent: {
-        backgroundColor: '#1e272e',
+        backgroundColor: globalStyles.gray1,
         padding: 20,
         borderRadius: 8,
         width: '100%',

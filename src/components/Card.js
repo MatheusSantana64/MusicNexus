@@ -2,8 +2,9 @@
 // It includes the song's title, artist, album, release date, rating, and an edit button that allows users to edit the song's information or delete.
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
+import { globalStyles } from '../styles/global';
 import Icon from 'react-native-vector-icons/Feather';
 import { addToQueue } from '../api/MusicBrainzAPI';
 import { getImageFromCache, downloadImage, generateCacheKey } from '../utils/cacheManager';
@@ -163,11 +164,16 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
 
     return (
         <View>
-            <TouchableOpacity 
+            <Pressable 
                 onPress={openRatingModal}
                 onLongPress={openOptionsModal} 
                 delayLongPress={200}
-                style={styles.cardContainer}
+                style={({pressed}) => [
+                    {
+                        backgroundColor: pressed ? globalStyles.black1 : globalStyles.black1,
+                    },
+                    styles.cardContainer
+                ]}
             >
                 {global.showCovers !== 'false' && (
                     <Image
@@ -181,24 +187,44 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
                 )}
                 <View style={styles.songInfoContainer}>
                     <View style={styles.songInfoTextContainer}>
-                        <Text style={styles.songTitle}>{cardSong.title || 'Unknown Title'}</Text>
-                        <Text style={styles.songInfo}>{cardSong.artist || 'Unknown Artist'}</Text>
-                        <Text style={styles.songInfo}>{cardSong.album || 'Unknown Album'}</Text>
-                        <Text style={styles.songInfo}>{cardSong.release || 'Unknown Release Date'}</Text>
+                        <Text numberOfLines={1} ellipsizeMode='tail' style={styles.songTitle}>{cardSong.title || 'Unknown Title'}</Text>
+                        <Text numberOfLines={1} ellipsizeMode='tail'  style={styles.songInfoText}>{cardSong.artist || 'Unknown Artist'}<Text style={{color: 'lightgrey'}}> - {cardSong.album || 'Unknown Album'}</Text></Text>
+                        <Text style={styles.songInfoText}>{cardSong.release || 'Unknown Release Date'}</Text>
                         {renderTags()}
                     </View>
                 </View>
                 
                 <View style={styles.ratingAndEditContainer}>
                     <View style={styles.ratingContainer}>
-                        <Icon name="star" size={24} color={renderRatingColor()} />
-                        <Text style={styles.ratingText}>{cardSong.rating ? (cardSong.rating.toFixed(1)) : 'N/A'}</Text>
+                        <Icon 
+                            name="star" 
+                            size={20} 
+                            color={renderRatingColor()} 
+                        />
+                        <Text 
+                            style={[
+                                styles.ratingText,
+                                {color: cardSong.rating === 0 ? 'lightgrey' : 'white'}
+                            ]}                        
+                        >
+                            {cardSong.rating ? (cardSong.rating.toFixed(1)) : 'N/A'}
+                        </Text>
                     </View>
-                    <TouchableOpacity onPress={openOptionsModal} style={styles.editButton}>
-                        <Icon name="more-vertical" size={24} color="white" />
-                    </TouchableOpacity>
+
+                    <View style={{position: 'absolute', right: 0,}}>
+                        <Pressable 
+                            onPress={openOptionsModal} 
+                            hitSlop={10}
+                        >
+                            <Icon 
+                                name="more-vertical" 
+                                size={22} 
+                                color="white"
+                            />
+                        </Pressable>
+                    </View>
                 </View>
-            </TouchableOpacity>
+            </Pressable>
 
             <RatingModal
                 isRatingModalVisible={isRatingModalVisible}
@@ -224,69 +250,77 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
 const styles = StyleSheet.create({
     cardContainer: {
         flexDirection: 'row',
-        backgroundColor: '#1e272e',
         borderRadius: 8,
-        paddingRight: 10,
-        marginBottom: 10,
+        paddingRight: 5,
+        marginBottom: 5,
         width: '100%',
         height: 'auto',
+    },
+    image: {
+        width: globalStyles.coverSize,
+        height: globalStyles.coverSize,
+        borderRadius: 5,
+        marginRight: 10,
+        marginLeft: 10,
+        marginVertical: 5,
+        alignSelf: 'center',
     },
     songInfoContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        flex: 1,
-    },
-    image: {
-        width: 70,
-        height: 70,
-        borderRadius: 5,
-        marginRight: 0,
-        marginLeft: 5,
-        marginVertical: 5,
-        alignSelf: 'center',
+        width: '100%',
+        maxWidth: '58%',
     },
     songInfoTextContainer: {
         flex: 1,
-        marginLeft: 10,
+        marginRight: 10,
     },
-    songInfo: {
+    songInfoText: {
         color: 'white',
         fontSize: 10,
         flexWrap: 'wrap',
+        width: '100%',
+        fontFamily: globalStyles.defaultFont,
     },
     songTitle: {
         color: 'white',
-        fontSize: 14,
+        fontSize: 13,
         flexWrap: 'wrap',
+        fontWeight: 'bold',
+        fontFamily: globalStyles.defaultFont,
     },
+
     ratingAndEditContainer: {
+        flex: 1,
         flexDirection: 'row',
-        justifyContent: 'flex-end',
         alignItems: 'center',
     },
     ratingContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'start',
     },
     ratingText: {
         color: 'white',
-        fontSize: 16,
-        marginLeft: 5,
+        fontSize: 14,
+        fontWeight: 'bold',
+        flexWrap: 'wrap',
+        width: '60%',
+        textAlign: 'center',
+        fontFamily: globalStyles.defaultFont,
     },
-    editButton: {
-        marginLeft: 5,
-    },
+    
 
     tagsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginTop: 5,
+        marginTop: 2,
         marginBottom: 2,
     },
     tagItem: {
         borderRadius: 20,
         paddingHorizontal: 5,
-        paddingVertical: 2,
+        paddingVertical: 1,
         marginRight: 3,
         marginBottom: 3,
     },
@@ -294,6 +328,7 @@ const styles = StyleSheet.create({
         color: 'white',
         textAlign: 'center',
         fontSize: 10,
+        fontFamily: globalStyles.defaultFont,
     },
 });
 

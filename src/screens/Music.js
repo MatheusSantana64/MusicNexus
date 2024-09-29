@@ -8,6 +8,7 @@ import SearchBar from '../components/SearchBar';
 import SongList from '../components/SongList';
 import FloatingButton from '../components/FloatingButton';
 import { fetchSongs } from '../database/databaseOperations';
+import { globalStyles } from '../styles/global';
 
 const OFFSET_SIZE = 100;
 
@@ -61,16 +62,18 @@ export function Music() {
 
     // Render the Music screen components (SearchBar, SongList, FloatingButton, Modals)
     return (
-        <View style={{ flex: 1, backgroundColor: '#090909', paddingHorizontal: 16, paddingTop: 16 }}>
-            <SearchBar
-                searchText={searchText}
-                setSearchText={setSearchText}
-                setOrderBy={setOrderBy}
-                setOrderDirection={setOrderDirection}
-                ratingRange={ratingRange}
-                setRatingRange={setRatingRange}
-                showFilters={true}
-            />
+        <View style={{ flex: 1, backgroundColor: globalStyles.black1}}>
+            <View style={{ marginHorizontal: 10, marginTop: 16 }}>
+                <SearchBar
+                    searchText={searchText}
+                    setSearchText={setSearchText}
+                    setOrderBy={setOrderBy}
+                    setOrderDirection={setOrderDirection}
+                    ratingRange={ratingRange}
+                    setRatingRange={setRatingRange}
+                    showFilters={true}
+                />
+            </View>
 
             <SongList
                 songs={songs}

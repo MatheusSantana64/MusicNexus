@@ -51,7 +51,7 @@ const OrderButtons = ({ order, setOrder, orderDirection, setOrderDirection, setM
     return (
         <View style={styles.orderButtonsContainer}>
             <TouchableOpacity onPress={toggleOrder} style={styles.orderButton}>
-                <Text style={[{color: getOrderColor()}]}>Order by {order.charAt(0).toUpperCase() + order.slice(1)}</Text>
+                <Text style={[{color: getOrderColor()}]}>Sort by {order.charAt(0).toUpperCase() + order.slice(1)}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={toggleOrderDirection} style={styles.orderDirectionButton}>

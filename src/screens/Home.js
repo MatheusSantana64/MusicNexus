@@ -107,8 +107,7 @@ const styles = StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: '#090909',
-        paddingHorizontal: 16,
-        paddingTop: 16,
+        paddingTop: 4,
     },
 });
 

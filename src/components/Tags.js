@@ -6,13 +6,14 @@ import Checkbox from 'expo-checkbox';
 import ColorPickerComponent from './ColorPicker';
 import Icon from 'react-native-vector-icons/Feather';
 import EditTagModal from './EditTagModal';
+import { globalStyles } from '../styles/global';
 
 const TagsModal = ({ isTagsModalVisible, closeModals, selectedSong }) => {
     const [tags, setTags] = useState([]);
     const [associatedTags, setAssociatedTags] = useState([]);
     
     const [newTagName, setNewTagName] = useState('');
-    const [newTagColor, setNewTagColor] = useState('#000000'); // Default to black
+    const [newTagColor, setNewTagColor] = useState(globalStyles.defaultTagColor); // Default to black
     const [isColorPickerModalVisible, setIsColorPickerModalVisible] = useState(false);
     
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
         height: '20%',
     },
     modalContent: {
-        backgroundColor: '#1e272e',
+        backgroundColor: globalStyles.modalBackgroundColor,
         padding: 22,
         justifyContent: 'center',
         alignItems: 'center',

@@ -5,6 +5,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { fetchGlobalRatingHistory } from '../database/databaseOperations';
 import { FlashList } from '@shopify/flash-list';
+import { globalStyles } from '../styles/global';
 
 const OFFSET_SIZE = 50;
 
@@ -65,7 +66,7 @@ const History = () => {
                 <Image
                     source={{ uri: item.cover_path }}
                     placeholder={require('../../assets/albumPlaceholder60.jpg')}
-                    style={{ width: 70, height: 70, margin: 5, marginRight: 0, borderRadius: 5 }}
+                    style={{ width: globalStyles.coverSize, height: globalStyles.coverSize, alignSelf: 'center', marginRight: 0, borderRadius: 5 }}
                     placeholderContentFit={'cover'}
                     cachePolicy={'none'}
                     contentFit={'cover'}
@@ -96,7 +97,7 @@ const History = () => {
             <FlashList
                 data={ratingHistory}
                 keyExtractor={extractKey}
-                estimatedItemSize={90}
+                estimatedItemSize={60}
                 renderItem={renderItem}
                 onScroll={handleScroll}
                 removeClippedSubviews={false}
@@ -121,12 +122,12 @@ const styles = StyleSheet.create({
     },
     cardContainer: {
         flexDirection: 'row',
-        backgroundColor: '#1e272e',
+        backgroundColor: globalStyles.defaultBackgroundColor,
         borderRadius: 8,
         paddingRight: 10,
-        marginBottom: 10,
+        marginBottom: 5,
         width: '100%',
-        height: 80,
+        height: 'auto',
     },
     songInfoContainer: {
         flexDirection: 'row',
@@ -152,49 +153,4 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
 });
-/*
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingTop: 20,
-        paddingHorizontal: 20,
-        backgroundColor: 'black',
-    },
-    historyItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        backgroundColor: '#1e272e',
-        padding: 5,
-        borderRadius: 8,
-        marginBottom: 10,
-        width: '100%',
-        height: 80,
-    },
-    pageTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        color: 'white',
-    },
-    coverImage: {
-        width: 70,
-        height: 70,
-        borderRadius: 5,
-        marginRight: 10,
-    },
-    column: {
-        flexGrow: 1, // Add this line
-        flexDirection: 'column',
-        justifyContent: 'center',
-    },
-    historyText: {
-        color: 'white',
-        fontSize: 12,
-        fontWeight: 'normal',
-        flexWrap: 'wrap',
-    },
-});
-*/
 export default History;
