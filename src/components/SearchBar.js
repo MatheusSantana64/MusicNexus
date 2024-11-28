@@ -1,7 +1,4 @@
-// The SearchBar component is a reusable component that renders a search bar with a text input field and a toggle button.
-// It allows users to search for songs by title, artist, or album, and toggle the display of unrated songs.
-
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Keyboard } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Modal from 'react-native-modal';
@@ -13,31 +10,48 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
     const [order, setOrder] = useState('release');
     const [orderDirection, setOrderDirectionState] = useState('desc');
     const [modalVisible, setModalVisible] = useState(false);
+    const [ratings, setRatings] = useState({ low: 0, high: 10 });
 
-    // Add state for the slider values
-    const [low, setLow] = useState(0);
-    const [high, setHigh] = useState(10);
-
-    const toggleModal = () => {
+    const toggleModal = useCallback(() => {
         setModalVisible(!modalVisible);
-    };
+    }, [modalVisible]);
 
-    // Function to handle the Enter key press
-    const handleEnterPress = () => {
+    const handleEnterPress = useCallback(() => {
         setSearchText(inputText.trim());
         Keyboard.dismiss();
-    };
+    }, [inputText, setSearchText]);
 
-    // Function to clear the search input
-    const clearSearchInput = () => {
+    const clearSearchInput = useCallback(() => {
         setInputText('');
         setSearchText('');
-    };
+    }, [setSearchText]);
 
-    const setBothRatings = (value) => {
-        setLow(value);
-        setHigh(value);
-    };
+    const setBothRatings = useCallback((value) => {
+        setRatings({ low: value, high: value });
+    }, []);
+
+    const updateLowRating = useCallback((value) => {
+        setRatings((prev) => ({ ...prev, low: Math.max(0, Math.min(prev.high, value)) }));
+    }, []);
+
+    const updateHighRating = useCallback((value) => {
+        setRatings((prev) => ({ ...prev, high: Math.max(prev.low, Math.min(10, value)) }));
+    }, []);
+
+    const applyRatings = useCallback(() => {
+        toggleModal();
+        setRatingRange({ min: ratings.low, max: ratings.high });
+    }, [ratings, setRatingRange, toggleModal]);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setSearchText(inputText.trim());
+        }, 500);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [inputText, setSearchText]);
 
     return (
         <View style={styles.container}>
@@ -46,9 +60,9 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
                     placeholder="Search"
                     placeholderTextColor='white'
                     style={styles.input}
-                    value={inputText} // Bind the TextInput value to the inputText state
-                    onChangeText={setInputText} // Update the input text state
-                    onSubmitEditing={handleEnterPress} // Trigger the search on Enter key press
+                    value={inputText}
+                    onChangeText={setInputText}
+                    onSubmitEditing={handleEnterPress}
                 />
                 <TouchableOpacity onPress={handleEnterPress} style={styles.searchButton}>
                     <Icon name="search" size={24} color="white" />
@@ -63,7 +77,7 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
             {showFilters && (
                 <View style={styles.buttonsContainer}>
                     <TouchableOpacity onPress={toggleModal}>
-                        <Text style={{ color: 'white', marginRight: 8 }}>Rating: {ratingRange.min} ~ {ratingRange.max}</Text>
+                        <Text style={styles.filterText}>Rating: {ratingRange.min} ~ {ratingRange.max}</Text>
                     </TouchableOpacity>
                     
                     <Modal
@@ -78,81 +92,15 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
                     >
                         <View style={styles.modalContent}>
                             <Text style={styles.modalTitle}>Rating:</Text>
-                            <View style={styles.ratingContainer}>
-                                <View style={styles.ratingButtons}>
-                                    <TouchableOpacity onPress={() => setLow(Math.max(0, Math.min(high, low + 0.5)))} style={styles.ratingButton}>
-                                        <Icon name="plus-circle" size={40} color="limegreen" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => setLow(Math.max(0, Math.min(high, low - 0.5)))} style={styles.ratingButton}>
-                                        <Icon name="minus-circle" size={40} color="crimson" />
-                                    </TouchableOpacity>
-                                </View>
-
-                                <Text style={styles.modalSubtitle}>
-                                    {high === 10 ? `${low.toFixed(1)} ~ ${high}` : `${low.toFixed(1)} ~ ${high.toFixed(1)}`}
-                                </Text>
-
-                                <View style={styles.ratingButtons}>
-                                    <TouchableOpacity onPress={() => setHigh(Math.max(low, Math.min(10, high + 0.5)))} style={styles.ratingButton}>
-                                        <Icon name="plus-circle" size={40} color="limegreen" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => setHigh(Math.max(low, Math.min(10, high - 0.5)))} style={styles.ratingButton}>
-                                        <Icon name="minus-circle" size={40} color="crimson" />
-                                    </TouchableOpacity>
-                                </View>                                
-                            </View>
-
-                            <View style={styles.buttonsRow}>
-                                <TouchableOpacity onPress={() => setBothRatings(1)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'darkred' }}>
-                                    <Text style={styles.buttonText}>1</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setBothRatings(2)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'darkred' }}>
-                                    <Text style={styles.buttonText}>2</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setBothRatings(3)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'chocolate' }}>
-                                    <Text style={styles.buttonText}>3</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setBothRatings(4)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'chocolate' }}>
-                                    <Text style={styles.buttonText}>4</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setBothRatings(5)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'goldenrod' }}>
-                                    <Text style={styles.buttonText}>5</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setBothRatings(6)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'goldenrod' }}>
-                                    <Text style={styles.buttonText}>6</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setBothRatings(7)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'darkgreen' }}>
-                                    <Text style={styles.buttonText}>7</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setBothRatings(8)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'darkgreen' }}>
-                                    <Text style={styles.buttonText}>8</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setBothRatings(9)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'steelblue' }}>
-                                    <Text style={styles.buttonText}>9</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setBothRatings(10)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: 'steelblue' }}>
-                                    <Text style={styles.buttonText}>10</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            <View style={styles.buttonsRow}>
-                                <TouchableOpacity onPress={() => { setLow(0); setHigh(0); }} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkred' }}>
-                                    <Text style={styles.buttonText}>Not Rated</Text>
-                                    <Text style={{ ...styles.buttonText, fontSize: 12 }}>(0 ~ 0)</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity onPress={() => { setLow(8); setHigh(10); }} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgoldenrod' }}>
-                                    <Text style={styles.buttonText}>Best Rated</Text>
-                                    <Text style={{ ...styles.buttonText, fontSize: 12 }}>(8 ~ 10)</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity onPress={() => { setLow(0); setHigh(10); }} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgreen' }}>
-                                    <Text style={styles.buttonText}>All Ratings</Text>
-                                    <Text style={{ ...styles.buttonText, fontSize: 12 }}>Reset (0 ~ 10)</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            <TouchableOpacity onPress={() => { toggleModal(); setRatingRange({ min: low, max: high }); }} style={{ ...styles.button, marginTop: 10, backgroundColor: 'rebeccapurple', width: '100%' }}>
+                            <RatingControls
+                                low={ratings.low}
+                                high={ratings.high}
+                                updateLowRating={updateLowRating}
+                                updateHighRating={updateHighRating}
+                                setBothRatings={setBothRatings}
+                            />
+                            <RatingPresets setBothRatings={setBothRatings} />
+                            <TouchableOpacity onPress={applyRatings} style={styles.applyButton}>
                                 <Text style={styles.buttonText}>Apply</Text>
                             </TouchableOpacity>
                         </View>
@@ -170,6 +118,62 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
             )}
         </View>
     );
+};
+
+const RatingControls = React.memo(({ low, high, updateLowRating, updateHighRating, setBothRatings }) => (
+    <>
+        <View style={styles.ratingContainer}>
+            <View style={styles.ratingButtons}>
+                <TouchableOpacity onPress={() => updateLowRating(low + 0.5)} style={styles.ratingButton}>
+                    <Icon name="plus-circle" size={40} color="limegreen" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => updateLowRating(low - 0.5)} style={styles.ratingButton}>
+                    <Icon name="minus-circle" size={40} color="crimson" />
+                </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>
+                {high === 10 ? `${low.toFixed(1)} ~ ${high}` : `${low.toFixed(1)} ~ ${high.toFixed(1)}`}
+            </Text>
+            <View style={styles.ratingButtons}>
+                <TouchableOpacity onPress={() => updateHighRating(high + 0.5)} style={styles.ratingButton}>
+                    <Icon name="plus-circle" size={40} color="limegreen" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => updateHighRating(high - 0.5)} style={styles.ratingButton}>
+                    <Icon name="minus-circle" size={40} color="crimson" />
+                </TouchableOpacity>
+            </View>
+        </View>
+    </>
+));
+
+const RatingPresets = React.memo(({ setBothRatings }) => (
+    <View style={styles.buttonsRow}>
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+            <TouchableOpacity key={value} onPress={() => setBothRatings(value)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: getColor(value) }}>
+                <Text style={styles.buttonText}>{value}</Text>
+            </TouchableOpacity>
+        ))}
+        <TouchableOpacity onPress={() => setBothRatings(0)} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkred' }}>
+            <Text style={styles.buttonText}>Not Rated</Text>
+            <Text style={{ ...styles.buttonText, fontSize: 12 }}>(0 ~ 0)</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setBothRatings(8)} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgoldenrod' }}>
+            <Text style={styles.buttonText}>Best Rated</Text>
+            <Text style={{ ...styles.buttonText, fontSize: 12 }}>(8 ~ 10)</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setBothRatings(0)} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgreen' }}>
+            <Text style={styles.buttonText}>All Ratings</Text>
+            <Text style={{ ...styles.buttonText, fontSize: 12 }}>Reset (0 ~ 10)</Text>
+        </TouchableOpacity>
+    </View>
+));
+
+const getColor = (value) => {
+    if (value <= 2) return 'darkred';
+    if (value <= 4) return 'chocolate';
+    if (value <= 6) return 'goldenrod';
+    if (value <= 8) return 'darkgreen';
+    return 'steelblue';
 };
 
 const styles = StyleSheet.create({
@@ -206,7 +210,10 @@ const styles = StyleSheet.create({
     searchButton: {
         marginLeft: 10,
     },
-
+    filterText: {
+        color: 'white',
+        marginRight: 8,
+    },
     modalContainer: {
         justifyContent: 'center',
         alignItems: 'center',
@@ -219,7 +226,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    
     modalTitle: {
         color: 'white',
         fontSize: 28,
@@ -229,7 +235,6 @@ const styles = StyleSheet.create({
         fontSize: 40,
         marginBottom: 16,
     },
-
     ratingContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -243,8 +248,6 @@ const styles = StyleSheet.create({
     ratingButton: {
         paddingBottom: 10,
     },
-
-    
     buttonsRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -259,6 +262,13 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 18,
         textAlign: 'center',
+    },
+    applyButton: {
+        borderRadius: 8,
+        padding: 8,
+        marginTop: 10,
+        backgroundColor: 'rebeccapurple',
+        width: '100%',
     },
 });
 

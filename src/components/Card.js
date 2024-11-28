@@ -1,7 +1,4 @@
-// This file contains the Card component which is used to display a song's information in a card format.
-// It includes the song's title, artist, album, release date, rating, and an edit button that allows users to edit the song's information or delete.
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { globalStyles } from '../styles/global';
@@ -14,153 +11,109 @@ import RatingModal from './RatingModal';
 import SongOptionsModal from './SongOptionsModal';
 
 const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
-    // Cover Image
-        const [coverImage, setCoverImage] = useState(cardSong.cover_path);
+    const [coverImage, setCoverImage] = useState(cardSong.cover_path);
+    const [associatedTags, setAssociatedTags] = useState([]);
+    const [isRatingModalVisible, setRatingModalVisible] = useState(false);
+    const [isSongOptionsVisible, setSongOptionsVisible] = useState(false);
 
-        // 1. Fetch cover image from cache
-        useEffect(() => {
-            // If cardSong.cover_path is not set, check for cover
-            if (!coverImage && global.showCovers != 'false') fetchCover();
-            else {
-                // Check if coverImage is a URL, not a file, then download cover
-                if (coverImage && !coverImage.startsWith('file://') && global.downloadCovers !== 'false') downloadCoverImage(coverImage);
-            }
-        }, [cardSong.artist, cardSong.album, cardSong.cover_path]);
+    const fetchCoverFromCache = useCallback(async () => {
+        const cacheKey = generateCacheKey(cardSong.artist, cardSong.album);
+        const coverPath = await getImageFromCache(cacheKey);
+        if (coverPath) {
+            setCoverImage(coverPath);
+        }
+        return coverPath;
+    }, [cardSong]);
 
-        // 2. Fetch cover image locally. If not found, fetch on internet
-        const fetchCover = async () => {
-            // Check for cover in cache
-            console.log(`Checking for local cover for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}.`);
-            let coverPath = await fetchCoverFromCache();
-            // If not found in cache, fetch cover from internet
-            if (!coverPath) {
-                coverPath = await fetchCoverFromMusicBrainz();
-                // If found on internet, download cover
-                if (coverPath && global.downloadCovers !== 'false') {
-                    coverPath = await downloadCoverImage(coverPath);
-                }
-            }
-            // If found, update database
-            if (coverPath) {
-                updateDatabaseWithCoverPath(coverPath);
-                cardSong.cover_path = coverPath;
-            }
-        };
+    const fetchCoverFromMusicBrainz = useCallback(async () => {
+        const coverPath = await addToQueue(cardSong.artist, cardSong.album);
+        if (coverPath) {
+            setCoverImage(coverPath);
+        }
+        return coverPath;
+    }, [cardSong]);
 
-        // 3. Fetch cover image from cache
-        const fetchCoverFromCache = async () => {
-            console.log(`(fetchCoverFromCache) Checking for local cover for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}.`);
-            const cacheKey = generateCacheKey(cardSong.artist, cardSong.album);
-            const coverPath = await getImageFromCache(cacheKey);
-            if (coverPath) {
-                console.log(`(fetchCoverFromCache) Cover image URL fetched from cache for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}. coverPath: ${coverPath}.`);
-                setCoverImage(coverPath);
-                return coverPath;
+    const downloadCoverImage = useCallback(async (coverPath) => {
+        if (global.downloadCovers) {
+            const downloadedPath = await downloadImage(coverPath, generateCacheKey(cardSong.artist, cardSong.album));
+            if (downloadedPath) {
+                setCoverImage(downloadedPath);
+                await updateDatabaseWithCoverPath(downloadedPath);
+                cardSong.cover_path = downloadedPath;
+                return downloadedPath;
             }
             return null;
-        };
+        }
+        return coverPath;
+    }, [cardSong]);
 
-        // 4. Fetch cover image from MusicBrainz API
-        const fetchCoverFromMusicBrainz = async () => {
-            const coverPath = await addToQueue(cardSong.artist, cardSong.album);
-            if (coverPath) {
-                console.log(`(fetchCoverFromMusicBrainz) Cover image URL from internet for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncoverPath: ${coverPath}.`);
-                setCoverImage(coverPath);
-                return coverPath;
-            }
-            return null;
-        };
+    const updateDatabaseWithCoverPath = useCallback(async (coverPath) => {
+        try {
+            await updateSongCoverPath(cardSong.id, coverPath);
+        } catch (error) {
+            console.error('Error updating cover path:', error);
+        }
+    }, [cardSong]);
 
-        // 5. Download cover image
-        const downloadCoverImage = async (coverPath) => {
-            console.log(`(downloadCoverImage) Checking for internet cover for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ncardSong.cover_path: ${cardSong.cover_path}. coverPath: ${coverPath}.`);
-            if(global.downloadCovers){
-                const downloadedPath = await downloadImage(coverPath, generateCacheKey(cardSong.artist, cardSong.album));
-                if (downloadedPath) {
-                    console.log(`(downloadCoverImage) Cover image URL downloaded for song: ${cardSong.title} by ${cardSong.artist} from ${cardSong.album}.\ndownloadedPath: ${downloadedPath}.`);
-                    setCoverImage(downloadedPath);
-                    updateDatabaseWithCoverPath(downloadedPath);
-                    cardSong.cover_path = downloadedPath;
-                    return downloadedPath;
-                }
-                return null;
-            }
-            else return coverPath;
-        };
-
-        // 6. Update database with new cover path
-        const updateDatabaseWithCoverPath = async (coverPath) => {
-            try {
-                await updateSongCoverPath(cardSong.id, coverPath);
-                console.log(`(updateDatabaseWithCoverPath) Cover path updated in the database for song: ${cardSong.title}.\ncardSong.cover_path: ${cardSong.cover_path}`);
-            } catch (error) {
-                console.log('Error updating cover path:', error);
-            }
-        };
-
-    // Tags
-        const [associatedTags, setAssociatedTags] = useState([]);
-
-        useEffect(() => {
-            if (cardSong.id) {
-                getTagsForSong(cardSong.id).then(associatedTags => setAssociatedTags(associatedTags));
-            }
-        }, [cardSong.id]);
+    const fetchCover = useCallback(async () => {
+        let coverPath = await fetchCoverFromCache();
+        if (!coverPath) {
+            coverPath = await fetchCoverFromMusicBrainz();
+        }
+        if (coverPath && global.downloadCovers !== 'false' && coverPath.startsWith('http')) {
+            coverPath = await downloadCoverImage(coverPath);
+        }
+        if (coverPath) {
+            await updateDatabaseWithCoverPath(coverPath);
+            cardSong.cover_path = coverPath;
+        }
+    }, [cardSong, fetchCoverFromCache, fetchCoverFromMusicBrainz, downloadCoverImage, updateDatabaseWithCoverPath]);
     
-        // useEffect to check the associated tags through a console log
-        useEffect(() => {
-            console.log('Associated tags:', associatedTags);
-        }, [associatedTags]);
+    useEffect(() => {
+        if (!coverImage && global.showCovers !== 'false') {
+            fetchCover();
+        } else if (coverImage && !coverImage.startsWith('file://') && global.downloadCovers !== 'false') {
+            downloadCoverImage(coverImage);
+        }
+    }, [cardSong, coverImage, fetchCover, downloadCoverImage]);
 
-        const renderTags = () => {
-            return (
-                <View style={styles.tagsContainer}>
-                    {associatedTags.map((tag, index) => (
-                        <View key={index} style={{ ...styles.tagItem, backgroundColor: tag.color }}>
-                            <Text style={styles.tagText}>{tag.name}</Text>
-                        </View>
-                    ))}
+    useEffect(() => {
+        if (cardSong.id) {
+            getTagsForSong(cardSong.id).then(setAssociatedTags);
+        }
+    }, [cardSong.id]);
+
+    const openRatingModal = () => setRatingModalVisible(true);
+
+    const handleRatingSelect = async (rating) => {
+        try {
+            await updateSongRating(cardSong.id, rating, cardSong.rating);
+            setRatingModalVisible(false);
+        } catch (error) {
+            console.error('Error updating song rating:', error);
+        }
+    };
+
+    const openOptionsModal = () => setSongOptionsVisible(true);
+
+    const renderRatingColor = () => {
+        if (cardSong.rating === 0) return 'grey';
+        if (cardSong.rating <= 2.5) return 'red';
+        if (cardSong.rating > 2.5 && cardSong.rating <= 5) return 'orange';
+        if (cardSong.rating > 5 && cardSong.rating <= 7.5) return 'yellow';
+        if (cardSong.rating > 7.5 && cardSong.rating < 10) return 'lime';
+        return 'turquoise';
+    };
+
+    const renderTags = () => (
+        <View style={styles.tagsContainer}>
+            {associatedTags.map((tag, index) => (
+                <View key={index} style={[styles.tagItem, { backgroundColor: tag.color }]}>
+                    <Text style={styles.tagText}>{tag.name}</Text>
                 </View>
-            );
-        };
-
-    // Rating Modal
-        const [isRatingModalVisible, setRatingModalVisible] = useState(false);
-
-        // Handle Card Press (Show Rating Modal)
-        const openRatingModal = () => {
-            console.log(`Song selected for rating: ${cardSong.title} by ${cardSong.artist}`);
-            setRatingModalVisible(true);
-        };
-        
-        // Handle Rating Select (Update Song Rating)
-        const handleRatingSelect = async (rating) => {
-            try {
-                await updateSongRating(cardSong.id, rating, cardSong.rating);
-                console.log(`Song rating updated successfully for song: ${cardSong.title} by ${cardSong.artist}, New Rating: ${rating}`);
-                setRatingModalVisible(false);
-            } catch (error) {
-                console.log('Error updating song rating:', error);
-            }
-        };
-
-    // Song Options Modal
-        const [isSongOptionsVisible, setSongOptionsVisible] = useState(false);
-
-        // Handle Long Press (Show Edit/Delete Modal)
-        const openOptionsModal = () => {
-            setSongOptionsVisible(true);
-        };
-
-        // Function to render the color of the rating based on its value
-        const renderRatingColor = () => {
-            if (cardSong.rating === 0) return 'grey';
-            if (cardSong.rating <= 2.5) return 'red';
-            if (cardSong.rating > 2.5 && cardSong.rating <= 5) return 'orange';
-            if (cardSong.rating > 5 && cardSong.rating <= 7.5) return 'yellow';
-            if (cardSong.rating > 7.5 && cardSong.rating < 10) return 'lime';
-            return 'turquoise';
-        };
+            ))}
+        </View>
+    );
 
     return (
         <View>
@@ -168,10 +121,8 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
                 onPress={openRatingModal}
                 onLongPress={openOptionsModal} 
                 delayLongPress={200}
-                style={({pressed}) => [
-                    {
-                        backgroundColor: pressed ? globalStyles.black1 : globalStyles.black1,
-                    },
+                style={({ pressed }) => [
+                    { backgroundColor: pressed ? globalStyles.black1 : globalStyles.black1 },
                     styles.cardContainer
                 ]}
             >
@@ -181,51 +132,32 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
                         placeholder={require('../../assets/albumPlaceholder60.jpg')}
                         style={styles.image}
                         placeholderContentFit={'cover'}
-                        cachePolicy={'none'} // Disable expo-image cache (Cache is done manually)
+                        cachePolicy={'none'}
                         contentFit={'cover'}
                     />
                 )}
                 <View style={styles.songInfoContainer}>
                     <View style={styles.songInfoTextContainer}>
                         <Text numberOfLines={1} ellipsizeMode='tail' style={styles.songTitle}>{cardSong.title || 'Unknown Title'}</Text>
-                        <Text numberOfLines={1} ellipsizeMode='tail'  style={styles.songInfoText}>{cardSong.artist || 'Unknown Artist'}<Text style={{color: 'lightgrey'}}> - {cardSong.album || 'Unknown Album'}</Text></Text>
+                        <Text numberOfLines={1} ellipsizeMode='tail' style={styles.songInfoText}>{cardSong.artist || 'Unknown Artist'}<Text style={{ color: 'lightgrey' }}> - {cardSong.album || 'Unknown Album'}</Text></Text>
                         <Text style={styles.songInfoText}>{cardSong.release || 'Unknown Release Date'}</Text>
                         {renderTags()}
                     </View>
                 </View>
-                
                 <View style={styles.ratingAndEditContainer}>
                     <View style={styles.ratingContainer}>
-                        <Icon 
-                            name="star" 
-                            size={20} 
-                            color={renderRatingColor()} 
-                        />
-                        <Text 
-                            style={[
-                                styles.ratingText,
-                                {color: cardSong.rating === 0 ? 'lightgrey' : 'white'}
-                            ]}                        
-                        >
-                            {cardSong.rating ? (cardSong.rating.toFixed(1)) : 'N/A'}
+                        <Icon name="star" size={20} color={renderRatingColor()} />
+                        <Text style={[styles.ratingText, { color: cardSong.rating === 0 ? 'lightgrey' : 'white' }]}>
+                            {cardSong.rating ? cardSong.rating.toFixed(1) : 'N/A'}
                         </Text>
                     </View>
-
-                    <View style={{position: 'absolute', right: 0,}}>
-                        <Pressable 
-                            onPress={openOptionsModal} 
-                            hitSlop={10}
-                        >
-                            <Icon 
-                                name="more-vertical" 
-                                size={22} 
-                                color="white"
-                            />
+                    <View style={{ position: 'absolute', right: 0 }}>
+                        <Pressable onPress={openOptionsModal} hitSlop={10}>
+                            <Icon name="more-vertical" size={22} color="white" />
                         </Pressable>
                     </View>
                 </View>
             </Pressable>
-
             <RatingModal
                 isRatingModalVisible={isRatingModalVisible}
                 closeModal={() => setRatingModalVisible(false)}
@@ -234,7 +166,6 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
                 songs={songs}
                 setSongs={setSongs}
             />
-
             <SongOptionsModal
                 isSongOptionsVisible={isSongOptionsVisible}
                 closeModal={() => setSongOptionsVisible(false)}
@@ -289,7 +220,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontFamily: globalStyles.defaultFont,
     },
-
     ratingAndEditContainer: {
         flex: 1,
         flexDirection: 'row',
@@ -309,8 +239,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontFamily: globalStyles.defaultFont,
     },
-    
-
     tagsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',

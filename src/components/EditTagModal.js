@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { updateTag } from '../database/databaseOperations';
 import Modal from 'react-native-modal';
@@ -7,7 +7,7 @@ import { globalStyles } from '../styles/global';
 
 const EditTagModal = ({ isEditModalVisible, setIsEditModalVisible, tagToEdit, updateTagList }) => {
     const [newTagName, setNewTagName] = useState('');
-    const [newTagColor, setNewTagColor] = useState(globalStyles.defaultTagColor); // Default color
+    const [newTagColor, setNewTagColor] = useState(globalStyles.defaultTagColor);
     const [isColorPickerEditModalVisible, setIsColorPickerEditModalVisible] = useState(false);
 
     useEffect(() => {
@@ -17,16 +17,15 @@ const EditTagModal = ({ isEditModalVisible, setIsEditModalVisible, tagToEdit, up
         }
     }, [tagToEdit]);
 
-    const toggleColorPickerEditModal = () => {
-        setIsColorPickerEditModalVisible(!isColorPickerEditModalVisible);
-    };
+    const toggleColorPickerEditModal = useCallback(() => {
+        setIsColorPickerEditModalVisible(prev => !prev);
+    }, []);
 
-    const handleSaveEdit = async () => {
-        if (newTagName.trim() && newTagColor) {
+    const handleSaveEdit = useCallback(async () => {
+        if (tagToEdit && newTagName.trim() && newTagColor) {
             try {
                 await updateTag(tagToEdit.id, { name: newTagName, color: newTagColor });
-                updateTagList(); // Refresh the tag list after saving
-                Alert.alert('Success', 'Tag updated successfully!');
+                updateTagList();
                 setIsEditModalVisible(false);
             } catch (error) {
                 console.error('Failed to update tag:', error);
@@ -35,7 +34,44 @@ const EditTagModal = ({ isEditModalVisible, setIsEditModalVisible, tagToEdit, up
         } else {
             Alert.alert('Error', 'Please enter a valid tag name and color.');
         }
-    };
+    }, [newTagName, newTagColor, tagToEdit, updateTagList, setIsEditModalVisible]);
+
+    const styles = useMemo(() => StyleSheet.create({
+        modalContent: {
+            backgroundColor: globalStyles.modalBackgroundColor,
+            padding: 22,
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: 4,
+        },
+        title: {
+            fontSize: 20,
+            marginBottom: 12,
+            color: 'white',
+        },
+        inputText: {
+            color: 'white',
+            height: 40,
+            borderColor: 'gray',
+            borderWidth: 1,
+            borderRadius: 5,
+            width: '80%',
+            marginBottom: 10,
+            paddingLeft: 10,
+        },
+        button: {
+            padding: 10,
+            borderRadius: 5,
+            alignSelf: 'center',
+            marginBottom: 10,
+        },
+        saveButton: {
+            backgroundColor: 'darkgreen',
+        },
+        saveButtonText: {
+            color: 'white',
+        },
+    }), []);
 
     return (
         <View>
@@ -54,15 +90,15 @@ const EditTagModal = ({ isEditModalVisible, setIsEditModalVisible, tagToEdit, up
                     <TextInput
                         style={styles.inputText}
                         value={newTagName}
-                        onChangeText={(text) => setNewTagName(text)}
+                        onChangeText={setNewTagName}
                         placeholder="New Tag Name"
                         placeholderTextColor="white"
                     />
-                    <TouchableOpacity style={{ ...styles.colorButton, backgroundColor: newTagColor }} onPress={toggleColorPickerEditModal}>
+                    <TouchableOpacity style={[styles.button, { backgroundColor: newTagColor }]} onPress={toggleColorPickerEditModal}>
                         <Text style={{ color: 'white' }}>Tag Color</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={styles.saveButton}
+                        style={[styles.button, styles.saveButton]}
                         onPress={handleSaveEdit}
                     >
                         <Text style={styles.saveButtonText}>Save Changes</Text>
@@ -70,7 +106,6 @@ const EditTagModal = ({ isEditModalVisible, setIsEditModalVisible, tagToEdit, up
                 </View>
             </Modal>
 
-            {/* Color Picker for editing */}
             <ColorPickerComponent
                 isVisible={isColorPickerEditModalVisible}
                 toggleModal={toggleColorPickerEditModal}
@@ -80,44 +115,5 @@ const EditTagModal = ({ isEditModalVisible, setIsEditModalVisible, tagToEdit, up
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    modalContent: {
-        backgroundColor: globalStyles.modalBackgroundColor,
-        padding: 22,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 4,
-    },
-    title: {
-        fontSize: 20,
-        marginBottom: 12,
-        color: 'white',
-    },
-    inputText: {
-        color: 'white',
-        height: 40,
-        borderColor: 'gray',
-        borderWidth: 1,
-        borderRadius: 5,
-        width: '80%',
-        marginBottom: 10,
-        paddingLeft: 10,
-    },
-    colorButton: {
-        padding: 10,
-        borderRadius: 5,
-        alignSelf: 'center',
-        marginBottom: 10,
-    },
-    saveButton: {
-        backgroundColor: 'darkgreen',
-        padding: 10,
-        borderRadius: 5,
-    },
-    saveButtonText: {
-        color: 'white',
-    },
-});
 
 export default EditTagModal;

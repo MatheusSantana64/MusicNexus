@@ -1,68 +1,107 @@
-// This file contains the Music screen component, which is responsible for rendering the Music screen components (SearchBar, SongList, FloatingButton, Modals).
-// The Music screen allows users to search for songs, filter songs by rating, add new songs, edit song details, delete songs, and rate songs.
-
-import React, { useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import SearchBar from '../components/SearchBar';
 import SongList from '../components/SongList';
 import FloatingButton from '../components/FloatingButton';
 import { fetchSongs } from '../database/databaseOperations';
 import { globalStyles } from '../styles/global';
+import { useFocusEffect } from '@react-navigation/native';
 
 const OFFSET_SIZE = 100;
 
 export function Music() {
-    // Define state variables
     const [searchText, setSearchText] = useState('');
     const [orderBy, setOrderBy] = useState('release');
     const [orderDirection, setOrderDirection] = useState('desc');
     const [ratingRange, setRatingRange] = useState({ min: 0, max: 10 });
-
     const [songs, setSongs] = useState([]);
-
     const [offset, setOffset] = useState(0);
     const [hasMoreSongs, setHasMoreSongs] = useState(true);
 
-    // Fetch songs from the SQLite database with dynamic query and pagination
-    const fetchSongsWrapper = async (searchText, orderBy, orderDirection, offset = 0, isScroll = false, ratingRange = { min: 0, max: 10 }) => {
-        // If not in scroll mode, reset the songs and offset
-        if (!isScroll) {
-            setSongs([]);
-            setOffset(0);
-        }
-        // Fetch songs from the SQLite database
-        const fetchedSongs = await fetchSongs(searchText, orderBy, orderDirection, offset, isScroll, ratingRange);
-        if (isScroll) {
-            setSongs(prevSongs => [...prevSongs, ...fetchedSongs]);
-        } else {
-            setSongs(fetchedSongs);
-        }
-        setHasMoreSongs(fetchedSongs.length >= OFFSET_SIZE);
-    };
+    const scrollOffset = useRef(0);
+    const listRef = useRef(null);
 
-    // Fetch more songs when the user scrolls down the list
-    const fetchMoreSongs = () => {
-        const newOffset = offset + OFFSET_SIZE;
-        fetchSongsWrapper(searchText, orderBy, orderDirection, newOffset, true, ratingRange);
-        setOffset(newOffset);
-    };
-
-    // Fetch songs when the screen is focused
-    useFocusEffect(
-        React.useCallback(() => {
-            fetchSongsWrapper(searchText, orderBy, orderDirection, 0, false, ratingRange);
-        }, [searchText, orderBy, orderDirection, ratingRange])
+    const fetchSongsWrapper = useCallback(
+        async (
+            searchText,
+            orderBy,
+            orderDirection,
+            offset = 0,
+            isScroll = false,
+            ratingRange = { min: 0, max: 10 },
+            preserveOffset = false
+        ) => {
+            if (!isScroll && !preserveOffset) {
+                setSongs([]);
+                setOffset(0);
+            }
+            const fetchedSongs = await fetchSongs(
+                searchText,
+                orderBy,
+                orderDirection,
+                offset,
+                isScroll,
+                ratingRange
+            );
+            setSongs(prevSongs => (isScroll ? [...prevSongs, ...fetchedSongs] : fetchedSongs));
+            setHasMoreSongs(fetchedSongs.length >= OFFSET_SIZE);
+        },
+        []
     );
 
-    // Function to refresh the songs list
-    const refreshSongsList = () => {
-        fetchSongsWrapper(searchText, orderBy, orderDirection, 0, false, ratingRange);
-    };
+    const fetchMoreSongs = useCallback(() => {
+        const newOffset = offset + OFFSET_SIZE;
+        fetchSongsWrapper(
+            searchText,
+            orderBy,
+            orderDirection,
+            newOffset,
+            true,
+            ratingRange
+        );
+        setOffset(newOffset);
+    }, [offset, searchText, orderBy, orderDirection, ratingRange, fetchSongsWrapper]);
 
-    // Render the Music screen components (SearchBar, SongList, FloatingButton, Modals)
+    const refreshSongsList = useCallback(() => {
+        fetchSongsWrapper(
+            searchText,
+            orderBy,
+            orderDirection,
+            0,
+            false,
+            ratingRange
+        );
+    }, [searchText, orderBy, orderDirection, ratingRange, fetchSongsWrapper]);
+
+    // Save scroll position
+    const handleScroll = useCallback(event => {
+        scrollOffset.current = event.nativeEvent.contentOffset.y;
+    }, []);
+
+    // Restore scroll position after songs are loaded
+    useEffect(() => {
+        if (listRef.current) {
+            listRef.current.scrollToOffset({ offset: scrollOffset.current, animated: false });
+        }
+    }, [songs]);
+
+    // Refresh songs when the screen gains focus
+    useFocusEffect(
+        useCallback(() => {
+            fetchSongsWrapper(
+                searchText,
+                orderBy,
+                orderDirection,
+                offset,
+                false,
+                ratingRange,
+                true
+            );
+        }, [searchText, orderBy, orderDirection, ratingRange, offset, fetchSongsWrapper])
+    );
+
     return (
-        <View style={{ flex: 1, backgroundColor: globalStyles.black1}}>
+        <View style={{ flex: 1, backgroundColor: globalStyles.black1 }}>
             <View style={{ marginHorizontal: 10, marginTop: 16 }}>
                 <SearchBar
                     searchText={searchText}
@@ -76,11 +115,13 @@ export function Music() {
             </View>
 
             <SongList
+                ref={listRef}
                 songs={songs}
                 fetchMoreSongs={fetchMoreSongs}
                 hasMoreSongs={hasMoreSongs}
                 setSongs={setSongs}
                 refreshSongsList={refreshSongsList}
+                onScroll={handleScroll}
             />
 
             <FloatingButton

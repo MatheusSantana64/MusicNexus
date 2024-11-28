@@ -1,38 +1,54 @@
-// The SongList component is a reusable component that renders a list of songs.
-// It uses the FlashList component to render a list of songs as Card components.
-
-import React from 'react';
+import React, { useCallback, forwardRef } from 'react';
 import { View } from 'react-native';
 import Card from './Card';
 import { FlashList } from '@shopify/flash-list';
 
-const SongList = ({ songs, fetchMoreSongs, hasMoreSongs, setSongs, refreshSongsList }) => {
+const SongList = forwardRef(
+    ({ songs, fetchMoreSongs, hasMoreSongs, setSongs, refreshSongsList, onScroll }, ref) => {
+        const handleScroll = useCallback(
+            event => {
+                const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+                const isEndReached =
+                    layoutMeasurement.height + contentOffset.y >= contentSize.height - 2000;
+                if (isEndReached && hasMoreSongs) {
+                    fetchMoreSongs();
+                }
+                if (onScroll) {
+                    onScroll(event);
+                }
+            },
+            [hasMoreSongs, fetchMoreSongs, onScroll]
+        );
 
-    const handleScroll = (event) => {
-        const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-        const isEndReached = layoutMeasurement.height + contentOffset.y >= contentSize.height - 2000;
-        if (isEndReached && hasMoreSongs) {
-            fetchMoreSongs();
-        }
-    };
+        const extractKey = useCallback((item, index) => String(index), []);
 
-    const extractKey = (item, index) => String(index);
+        const renderCard = useCallback(
+            ({ item }) => (
+                <Card
+                    key={item.id}
+                    cardSong={item}
+                    songs={songs}
+                    setSongs={setSongs}
+                    refreshSongsList={refreshSongsList}
+                />
+            ),
+            [songs, setSongs, refreshSongsList]
+        );
 
-    const renderCard = ({ item }) => (<Card key={item.id} cardSong={item} songs={songs} setSongs={setSongs} refreshSongsList={refreshSongsList} />);
-
-    // Render the list of songs
-    return (
-        <View style={{flex: 1, height: '100%', width: '100%',}}>
-            <FlashList
-                data={songs}
-                keyExtractor={extractKey}
-                estimatedItemSize={60} // FlashList requirement
-                renderItem={renderCard}
-                onScroll={handleScroll}
-                removeClippedSubviews={false}
-            />
-        </View>
-    );
-};
+        return (
+            <View style={{ flex: 1, height: '100%', width: '100%' }}>
+                <FlashList
+                    ref={ref}
+                    data={songs}
+                    keyExtractor={extractKey}
+                    estimatedItemSize={60}
+                    renderItem={renderCard}
+                    onScroll={handleScroll}
+                    removeClippedSubviews={false}
+                />
+            </View>
+        );
+    }
+);
 
 export default SongList;

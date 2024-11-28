@@ -1,41 +1,25 @@
-// The SongOptionsModal component is a reusable modal component that displays options for a song.
-// It allows users to edit or delete a song by providing buttons for each action.
-
-import React, { useState } from 'react';
-import { TouchableWithoutFeedback, View, StyleSheet, Text, TouchableOpacity, Alert, Button, ScrollView } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { TouchableWithoutFeedback, View, StyleSheet, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import Modal from 'react-native-modal';
-import { deleteCover, deleteSong, getSongRatingHistory, getTagsForSong } from '../database/databaseOperations';
+import { deleteCover, deleteSong, getSongRatingHistory } from '../database/databaseOperations';
 import SongFormModal from './SongFormModal';
 import TagsModal from './Tags';
 import { globalStyles } from '../styles/global';
 
 const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, songs, setSongs, refreshSongsList }) => {
-    const [isFormModalVisible, setFormModalVisible] = useState(false);
-
-    const [isRatingHistoryModalVisible, setRatingHistoryModalVisible] = useState(false);
+    const [modalsVisibility, setModalsVisibility] = useState({
+        formModal: false,
+        ratingHistoryModal: false,
+        tagsModal: false,
+    });
     const [ratingHistory, setRatingHistory] = useState([]);
 
-    const [isTagsModalVisible, setTagsModalVisible] = useState(false);
-    const [associatedTags, setAssociatedTags] = useState([]);
-
-    // Handle Edit Song (Edit Song Details)
-    const openFormModal = () => {
-        setFormModalVisible(true);
-    };
-
-    // Handle Edit Song (Edit Song Details)
-    const openTagsModal = () => {
-        setTagsModalVisible(true);
-    };
-
+    const openModal = (modal) => setModalsVisibility({ ...modalsVisibility, [modal]: true });
     const closeModals = () => {
-        setFormModalVisible(false);
-        setRatingHistoryModalVisible(false);
-        setTagsModalVisible(false);
+        setModalsVisibility({ formModal: false, ratingHistoryModal: false, tagsModal: false });
         closeModal();
-    }
+    };
 
-    // Function to handle the delete of the cover image for the selected song
     const handleDeleteCover = async () => {
         try {
             await deleteCover(selectedSong.artist, selectedSong.album);
@@ -46,26 +30,19 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
         }
     };
 
-    // Function to handle the delete of a song
     const handleDeleteSong = () => {
         if (!selectedSong) return;
-    
         Alert.alert(
             "Delete Song",
             `Are you sure you want to delete "${selectedSong.title}"?`,
             [
-                {
-                    text: "Cancel",
-                    onPress: () => console.log("Cancel Pressed"),
-                    style: "cancel"
-                },
+                { text: "Cancel", style: "cancel" },
                 {
                     text: "Delete",
                     onPress: async () => {
                         try {
                             await deleteSong(selectedSong.id);
-                            const updatedSongs = songs.filter(song => song.id !== selectedSong.id);
-                            setSongs(updatedSongs);
+                            setSongs(songs.filter(song => song.id !== selectedSong.id));
                             closeModal();
                         } catch (error) {
                             console.error('Error deleting song:', error);
@@ -78,7 +55,6 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
         );
     };
 
-    // Function to handle checking the cover path of the selected song
     const handleCheckCoverPath = () => {
         Alert.alert(
             "Cover Path",
@@ -87,12 +63,11 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
         );
     };
 
-    // Function to handle viewing the rating history
     const handleViewRatingHistory = async () => {
         try {
             const history = await getSongRatingHistory(selectedSong.id);
-            setRatingHistory(history); // Store the fetched history in the state
-            setRatingHistoryModalVisible(true); // Show the modal
+            setRatingHistory(history);
+            openModal('ratingHistoryModal');
             closeModal();
         } catch (error) {
             console.error('Error fetching song rating history:', error);
@@ -102,72 +77,50 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
 
     const formatDateTime = (datetimeString) => {
         const date = new Date(datetimeString);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero based.
-        const year = date.getFullYear();
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-
-        return `${day}/${month}/${year} - ${hours}:${minutes}:${seconds}`;
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} - ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
     };
 
-    // Render the modal with the song options
+    const renderOptionButton = (onPress, text, style = {}) => (
+        <TouchableOpacity onPress={onPress} style={{ ...styles.optionButton, ...style }}>
+            <Text style={styles.optionText}>{text}</Text>
+        </TouchableOpacity>
+    );
+
     return (
         <View>
             <Modal
                 isVisible={isSongOptionsVisible}
                 onBackdropPress={closeModal}
                 onBackButtonPress={closeModal}
-                useNativeDriverForBackdrop={true}
-                hideModalContentWhileAnimating={true}
+                useNativeDriverForBackdrop
+                hideModalContentWhileAnimating
                 animationInTiming={100}
                 animationOutTiming={100}
-                children={
-                    <TouchableWithoutFeedback onPress={closeModal}>
-                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                            <TouchableWithoutFeedback onPress={() => {}}>
-                                <View style={styles.optionsContainer}>
-
-                                    <Text style={styles.optionsTitle}>Song Options</Text>
-                                    <Text style={{ ...styles.optionsTitle, fontSize: 14, marginBottom: 12 }}>{selectedSong.title}</Text>
-
-                                    <TouchableOpacity onPress={openFormModal} style={styles.optionButton}>
-                                        <Text style={styles.optionText}>Edit Song</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity onPress={handleViewRatingHistory} style={{ ...styles.optionButton, backgroundColor: globalStyles.yellow1 }}>
-                                        <Text style={styles.optionText}>View Rating History</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity onPress={openTagsModal} style={{ ...styles.optionButton, backgroundColor: globalStyles.pink1 }}>
-                                        <Text style={styles.optionText}>Open Tags</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity onPress={handleDeleteSong} style={{ ...styles.optionButton, backgroundColor: globalStyles.red2 }}>
-                                        <Text style={styles.optionText}>Delete Song</Text>
-                                    </TouchableOpacity>
-
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-                                        <TouchableOpacity onPress={handleDeleteCover} style={styles.optionButtonSmall}>
-                                            <Text style={styles.optionText}>Reload Cover</Text>
-                                        </TouchableOpacity>
-
-                                        <TouchableOpacity onPress={handleCheckCoverPath} style={{ ...styles.optionButtonSmall, backgroundColor: globalStyles.purple2}}>
-                                            <Text style={styles.optionText}>Check Cover Path</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            </TouchableWithoutFeedback>
-                        </View>
-                    </TouchableWithoutFeedback>
-                }
+                style={styles.fullScreenModal}
             >
+                <TouchableWithoutFeedback onPress={closeModal}>
+                    <View style={styles.modalContainer}>
+                        <TouchableWithoutFeedback>
+                            <View style={styles.optionsContainer}>
+                                <Text style={styles.optionsTitle}>Song Options</Text>
+                                <Text style={{ ...styles.optionsTitle, fontSize: 14, marginBottom: 12 }}>{selectedSong.title}</Text>
+                                {renderOptionButton(() => openModal('formModal'), 'Edit Song')}
+                                {renderOptionButton(handleViewRatingHistory, 'View Rating History', { backgroundColor: globalStyles.yellow1 })}
+                                {renderOptionButton(() => openModal('tagsModal'), 'Tags', { backgroundColor: globalStyles.pink1 })}
+                                {renderOptionButton(handleDeleteSong, 'Delete Song', { backgroundColor: globalStyles.red2 })}
+                                <View style={styles.row}>
+                                    {renderOptionButton(handleDeleteCover, 'Reload Cover', styles.optionButtonSmall)}
+                                    {renderOptionButton(handleCheckCoverPath, 'Check Cover Path', { ...styles.optionButtonSmall, backgroundColor: globalStyles.purple2 })}
+                                </View>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
             </Modal>
 
             <SongFormModal
-                isFormModalVisible={isFormModalVisible}
-                closeModal={() => closeModals()}
+                isFormModalVisible={modalsVisibility.formModal}
+                closeModal={closeModals}
                 selectedSong={selectedSong}
                 songs={songs}
                 setSongs={setSongs}
@@ -175,44 +128,42 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
             />
 
             <TagsModal
-                isTagsModalVisible={isTagsModalVisible}
-                closeModals={() => closeModals()}
+                isTagsModalVisible={modalsVisibility.tagsModal}
+                closeModals={closeModals}
                 selectedSong={selectedSong}
             />
 
             <Modal
-                isVisible={isRatingHistoryModalVisible}
+                isVisible={modalsVisibility.ratingHistoryModal}
                 onBackdropPress={closeModals}
                 onBackButtonPress={closeModals}
-                useNativeDriverForBackdrop={true}
-                hideModalContentWhileAnimating={true}
+                useNativeDriverForBackdrop
+                hideModalContentWhileAnimating
                 animationInTiming={100}
                 animationOutTiming={100}
-                onRequestClose={() => {
-                    setRatingHistoryModalVisible(!isRatingHistoryModalVisible);
-                }}
-                children={
-                    <View style={styles.centeredView}>
-                        <View style={styles.modalView}>
-                            <Text style={{ ...styles.modalText, borderWidth: 0, padding: 0, marginBottom: 15}}>{`Rating History for "${selectedSong.title}"\nby ${selectedSong.artist}`}</Text>
-                            <ScrollView showsVerticalScrollIndicator={false}>
-                                {ratingHistory.map((item, index) => (
-                                    <Text key={index} style={styles.modalText}>{`${formatDateTime(item.datetime)}\nRating: ${item.rating}`}</Text>
-                                ))}
-                            </ScrollView>
-                            <TouchableOpacity onPress={() => setRatingHistoryModalVisible(false)} style={{ ...styles.optionButton, backgroundColor: 'darkred', marginBottom: 0}}>
-                                <Text style={styles.optionText}>Close</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                }
+                style={styles.fullScreenModal}
             >
+                <View style={styles.centeredView}>
+                    <View style={styles.modalView}>
+                        <Text style={{ ...styles.modalText, borderWidth: 0, padding: 0, marginBottom: 15 }}>{`Rating History for "${selectedSong.title}"\nby ${selectedSong.artist}`}</Text>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {ratingHistory.map((item, index) => (
+                                <Text key={index} style={styles.modalText}>{`${formatDateTime(item.datetime)}\nRating: ${item.rating}`}</Text>
+                            ))}
+                        </ScrollView>
+                        {renderOptionButton(() => setModalsVisibility({ ...modalsVisibility, ratingHistoryModal: false }), 'Close', { backgroundColor: 'darkred', marginBottom: 0 })}
+                    </View>
+                </View>
             </Modal>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
+    fullScreenModal: {
+        margin: 0,
+        justifyContent: 'center',
+    },
     modalContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -239,18 +190,19 @@ const styles = StyleSheet.create({
     optionButtonSmall: {
         backgroundColor: globalStyles.green2,
         borderRadius: 8,
-        padding: 10,
-        marginBottom: 16,
-        width: '48%',
         padding: 5,
-        marginBottom: 0,
+        width: '48%',
         justifyContent: 'center',
     },
     optionText: {
         color: 'white',
         textAlign: 'center',
     },
-
+    row: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
     centeredView: {
         flex: 1,
         justifyContent: "center",

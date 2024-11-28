@@ -1,87 +1,102 @@
-// This file is the home screen of the application. It displays the list of not rated songs (rating = 0) and favorite songs (rating >= 8).
-// It also allows users to search for songs online and add it to their list.
-
-// Home.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useFocusEffect, useNavigation  } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { initDatabase } from '../database/databaseSetup';
-
 import { fetchSongs } from '../database/databaseOperations';
 import SongList from '../components/SongList';
 import OrderButtons from '../components/OrderButtons';
-
-import OnlineSearchBar from '../components/OnlineSearchBar';
-import { fetchSongsOnline } from '../api/MusicBrainzAPI';
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function Home() {
-    const [favoriteSongs, setFavoriteSongs] = useState([]);
-    const [orderFav, setOrderFav] = useState('rating');
-    const [orderDirectionFav, setOrderDirectionFav] = useState('desc');
-    
-    const [notRatedSongs, setNotRatedSongs] = useState([]);
-    const [orderNotRated, setOrderNotRated] = useState('release');
-    const [orderDirectionNotRated, setOrderDirectionNotRated] = useState('asc');
+    const [state, setState] = useState({
+        favoriteSongs: [],
+        orderFav: 'rating',
+        orderDirectionFav: 'desc',
+        notRatedSongs: [],
+        orderNotRated: 'release',
+        orderDirectionNotRated: 'asc',
+    });
 
-    // Initialize the SQLite database
+    const { favoriteSongs, orderFav, orderDirectionFav, notRatedSongs, orderNotRated, orderDirectionNotRated } = state;
+
     useEffect(() => {
         initDatabase();
     }, []);
 
     useFocusEffect(
-        React.useCallback(() => {
+        useCallback(() => {
             const loadSettings = async () => {
-                global.showCovers = await AsyncStorage.getItem('@music_nexus_show_covers');
+                const [showCovers, downloadCovers] = await Promise.all([
+                    AsyncStorage.getItem('@music_nexus_show_covers'),
+                    AsyncStorage.getItem('@music_nexus_download_covers'),
+                ]);
+                global.showCovers = showCovers;
+                global.downloadCovers = downloadCovers;
                 console.log('global.showCovers:', global.showCovers);
-                global.downloadCovers = await AsyncStorage.getItem('@music_nexus_download_covers');
                 console.log('global.downloadCovers:', global.downloadCovers);
             };
 
-            loadSettings();
-
             const fetchSongsWrapper = async () => {
-                const songsFav = await fetchSongs('', orderFav, orderDirectionFav, 0, false, { min: 5, max: 10 });
-                setFavoriteSongs(songsFav);
-                const songsNotRated = await fetchSongs('', orderNotRated, orderDirectionNotRated, 0, false, { min: 0, max: 0 });
-                setNotRatedSongs(songsNotRated);
+                const [songsFav, songsNotRated] = await Promise.all([
+                    fetchSongs('', orderFav, orderDirectionFav, 0, false, { min: 5, max: 10 }),
+                    fetchSongs('', orderNotRated, orderDirectionNotRated, 0, false, { min: 0, max: 0 }),
+                ]);
+                setState(prevState => ({
+                    ...prevState,
+                    favoriteSongs: songsFav,
+                    notRatedSongs: songsNotRated,
+                }));
             };
 
+            loadSettings();
             fetchSongsWrapper();
         }, [orderFav, orderDirectionFav, orderNotRated, orderDirectionNotRated])
     );
 
-    const handleSearch = async (searchText) => {
-        // List songs from MusicBrainz API based on the search text
-    };
-    
+    const handleOrderChange = useCallback((type, order, direction) => {
+        setState(prevState => ({
+            ...prevState,
+            [type]: order,
+            [direction]: direction,
+        }));
+    }, []);
+
     return (
         <View style={styles.screen}>
-            <View style={styles.titleContainer}>
-                <Text style={styles.title}>Favorite Songs</Text>
-                <OrderButtons
-                    order={orderFav}
-                    setOrder={setOrderFav}
-                    orderDirection={orderDirectionFav}
-                    setOrderDirection={setOrderDirectionFav}
-                />
-            </View>
-            <SongList songs={favoriteSongs} setSongs={setFavoriteSongs} />
-
-            <View style={styles.titleContainer}>
-                <Text style={styles.title}>Not Rated Songs</Text>
-                <OrderButtons
-                    order={orderNotRated}
-                    setOrder={setOrderNotRated}
-                    orderDirection={orderDirectionNotRated}
-                    setOrderDirection={setOrderDirectionNotRated}
-                />
-            </View>
-            <SongList songs={notRatedSongs} setSongs={setNotRatedSongs} />
+            <Section
+                title="Favorite Songs"
+                songs={favoriteSongs}
+                setSongs={(newSongs) => setState(prevState => ({ ...prevState, favoriteSongs: newSongs }))}
+                order={orderFav}
+                orderDirection={orderDirectionFav}
+                onOrderChange={(order, direction) => handleOrderChange('orderFav', order, 'orderDirectionFav', direction)}
+            />
+            <Section
+                title="Not Rated Songs"
+                songs={notRatedSongs}
+                setSongs={(newSongs) => setState(prevState => ({ ...prevState, notRatedSongs: newSongs }))}
+                order={orderNotRated}
+                orderDirection={orderDirectionNotRated}
+                onOrderChange={(order, direction) => handleOrderChange('orderNotRated', order, 'orderDirectionNotRated', direction)}
+            />
         </View>
     );
 }
+
+const Section = ({ title, songs, setSongs, order, orderDirection, onOrderChange }) => (
+    <View style={styles.sectionContainer}>
+        <View style={styles.titleContainer}>
+            <Text style={styles.title}>{title}</Text>
+            <OrderButtons
+                order={order}
+                setOrder={(newOrder) => onOrderChange(newOrder, orderDirection)}
+                orderDirection={orderDirection}
+                setOrderDirection={(newDirection) => onOrderChange(order, newDirection)}
+            />
+        </View>
+        <SongList songs={songs} setSongs={setSongs} />
+    </View>
+);
 
 const styles = StyleSheet.create({
     title: {
@@ -94,20 +109,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginVertical: 12,
     },
-    orderButtonsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    orderButton: {
-        marginLeft: 10,
-    },
-    orderDirectionButton: {
-        marginLeft: 10,
-    },
     screen: {
         flex: 1,
         backgroundColor: '#090909',
         paddingTop: 4,
+    },
+    sectionContainer: {
+        flex: 1,
     },
 });
 

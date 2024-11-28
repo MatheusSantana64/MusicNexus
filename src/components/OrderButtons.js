@@ -1,64 +1,43 @@
-// src/components/OrderButtons.js
-
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 
 const OrderButtons = ({ order, setOrder, orderDirection, setOrderDirection, setMusicOrder = () => {}, setMusicOrderDirection = () => {} }) => {
-    const toggleOrder = () => {
-        let newOrder;
-        switch (order) {
-            case 'title':
-                newOrder = 'artist';
-                break;
-            case 'artist':
-                newOrder = 'release';
-                break;
-            case 'release':
-                newOrder = 'rating';
-                break;
-            default:
-                newOrder = 'title';
-                break;
-        }
+    const toggleOrder = useCallback(() => {
+        const orders = ['title', 'artist', 'release', 'rating'];
+        const newOrder = orders[(orders.indexOf(order) + 1) % orders.length];
         setOrder(newOrder);
         setMusicOrder(newOrder);
-    };
+    }, [order, setOrder, setMusicOrder]);
 
-    const toggleOrderDirection = () => {
+    const toggleOrderDirection = useCallback(() => {
         const newDirection = orderDirection === 'asc' ? 'desc' : 'asc';
         setOrderDirection(newDirection);
         setMusicOrderDirection(newDirection);
-    };
+    }, [orderDirection, setOrderDirection, setMusicOrderDirection]);
 
-    const getOrderColor = () => {
-        switch (order) {
-            case 'title':
-                return 'aqua';
-            case 'artist':
-                return 'violet';
-            case 'release':
-                return 'sandybrown';
-            default:
-                return 'yellow';
-        }
-    };
+    const orderColors = useMemo(() => ({
+        title: 'aqua',
+        artist: 'violet',
+        release: 'sandybrown',
+        rating: 'yellow'
+    }), []);
 
-    const getOrderDirectionColor = () => {
-        return orderDirection === 'asc' ? 'springgreen' : 'tomato';
-    };
+    const getOrderColor = useMemo(() => orderColors[order] || 'yellow', [order, orderColors]);
+
+    const getOrderDirectionColor = useMemo(() => orderDirection === 'asc' ? 'springgreen' : 'tomato', [orderDirection]);
 
     return (
         <View style={styles.orderButtonsContainer}>
             <TouchableOpacity onPress={toggleOrder} style={styles.orderButton}>
-                <Text style={[{color: getOrderColor()}]}>Sort by {order.charAt(0).toUpperCase() + order.slice(1)}</Text>
+                <Text style={[{color: getOrderColor}]}>Sort by {order.charAt(0).toUpperCase() + order.slice(1)}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={toggleOrderDirection} style={styles.orderDirectionButton}>
                 {orderDirection === 'asc' ? (
-                    <Icon name="chevron-up" size={18} color={getOrderDirectionColor()} />
+                    <Icon name="chevron-up" size={18} color={getOrderDirectionColor} />
                 ) : (
-                    <Icon name="chevron-down" size={18} color={getOrderDirectionColor()} />
+                    <Icon name="chevron-down" size={18} color={getOrderDirectionColor} />
                 )}
             </TouchableOpacity>
         </View>
