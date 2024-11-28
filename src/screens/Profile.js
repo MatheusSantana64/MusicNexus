@@ -27,9 +27,10 @@ import {
     clearDatabase,
     insertTag,
     addTag,
+    getTagsWithSongCount // Import the new function
 } from '../database/databaseOperations';
 
-const Stats = ({ totalSongs, totalArtists, totalAlbums, songsCountByRating, songsCountByYear }) => (
+const Stats = ({ totalSongs, totalArtists, totalAlbums, songsCountByRating, songsCountByYear, tagsWithSongCount }) => (
     <View style={styles.stats}>
         <Text style={styles.statsTitle}>Stats</Text>
         <ScrollView contentContainerStyle={{ flexDirection: 'row', justifyContent: 'space-between' }} persistentScrollbar={true}>
@@ -49,6 +50,10 @@ const Stats = ({ totalSongs, totalArtists, totalAlbums, songsCountByRating, song
                 <Text style={{ ...styles.statsText, marginBottom: 2, color: 'mediumpurple' }}>Years:</Text>
                 {songsCountByYear.map((item, index) => (
                     <Text style={{ ...styles.statsText, marginBottom: 2, color: 'mediumpurple', fontWeight: 'normal' }} key={index}>{item.year}: <Text style={{ fontWeight: 'bold', color: 'white' }}>{item.count}</Text></Text>
+                ))}
+                <Text style={{ ...styles.statsText, marginBottom: 2, color: 'lightcoral' }}>Tags:</Text>
+                {tagsWithSongCount.map((tag, index) => (
+                    <Text style={{ ...styles.statsText, marginBottom: 2, color: 'lightcoral', fontWeight: 'normal' }} key={index}>{tag.name}: <Text style={{ fontWeight: 'bold', color: 'white' }}>{tag.count}</Text></Text>
                 ))}
             </View>
         </ScrollView>
@@ -78,6 +83,7 @@ export function Profile() {
         totalAlbums: 0,
         songsCountByRating: [],
         songsCountByYear: [],
+        tagsWithSongCount: [], // Add this to the state
         isBackupModalVisible: false,
         progress: 0,
         totalOperation: 0,
@@ -96,6 +102,7 @@ export function Profile() {
                 const totalAlb = await getTotalAlbums();
                 const songsCountByRating = await getSongsCountByRating();
                 const songsCountByYear = await getSongsCountByYear();
+                const tagsWithSongCount = await getTagsWithSongCount(); // Fetch tags with song count
 
                 setState(prevState => ({
                     ...prevState,
@@ -104,6 +111,7 @@ export function Profile() {
                     totalAlbums: totalAlb,
                     songsCountByRating,
                     songsCountByYear,
+                    tagsWithSongCount, // Update the state
                 }));
             };
 
@@ -295,6 +303,7 @@ export function Profile() {
                     totalAlbums={state.totalAlbums}
                     songsCountByRating={state.songsCountByRating}
                     songsCountByYear={state.songsCountByYear}
+                    tagsWithSongCount={state.tagsWithSongCount} // Pass the tags with song count
                 />
 
                 <View style={{ marginBottom: 10, width: '80%' }}>

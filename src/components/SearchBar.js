@@ -58,15 +58,12 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
             <View style={styles.inputContainer}>
                 <TextInput
                     placeholder="Search"
-                    placeholderTextColor='white'
+                    placeholderTextColor='grey'
                     style={styles.input}
                     value={inputText}
                     onChangeText={setInputText}
                     onSubmitEditing={handleEnterPress}
                 />
-                <TouchableOpacity onPress={handleEnterPress} style={styles.searchButton}>
-                    <Icon name="search" size={24} color="white" />
-                </TouchableOpacity>
                 {inputText && (
                     <TouchableOpacity onPress={clearSearchInput} style={styles.clearButton}>
                         <Icon name="x" size={30} color="white" />
@@ -147,24 +144,28 @@ const RatingControls = React.memo(({ low, high, updateLowRating, updateHighRatin
 ));
 
 const RatingPresets = React.memo(({ setBothRatings }) => (
-    <View style={styles.buttonsRow}>
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
-            <TouchableOpacity key={value} onPress={() => setBothRatings(value)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: getColor(value) }}>
-                <Text style={styles.buttonText}>{value}</Text>
+    <View style={styles.presetsContainer}>
+        <View style={styles.buttonsRow}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+                <TouchableOpacity key={value} onPress={() => setBothRatings(value)} style={{ ...styles.button, paddingVertical: 5, backgroundColor: getColor(value) }}>
+                    <Text style={styles.buttonText}>{value}</Text>
+                </TouchableOpacity>
+            ))}
+        </View>
+        <View style={styles.buttonsColumn}>
+            <TouchableOpacity onPress={() => setBothRatings(0)} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkred', minWidth: 150 }}>
+                <Text style={styles.buttonText}>Not Rated</Text>
+                <Text style={{ ...styles.buttonText, fontSize: 12 }}>(0 ~ 0)</Text>
             </TouchableOpacity>
-        ))}
-        <TouchableOpacity onPress={() => setBothRatings(0)} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkred' }}>
-            <Text style={styles.buttonText}>Not Rated</Text>
-            <Text style={{ ...styles.buttonText, fontSize: 12 }}>(0 ~ 0)</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setBothRatings(8)} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgoldenrod' }}>
-            <Text style={styles.buttonText}>Best Rated</Text>
-            <Text style={{ ...styles.buttonText, fontSize: 12 }}>(8 ~ 10)</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setBothRatings(0)} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgreen' }}>
-            <Text style={styles.buttonText}>All Ratings</Text>
-            <Text style={{ ...styles.buttonText, fontSize: 12 }}>Reset (0 ~ 10)</Text>
-        </TouchableOpacity>
+            <TouchableOpacity onPress={() => setBothRatings(8)} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgoldenrod', minWidth: 150 }}>
+                <Text style={styles.buttonText}>Best Rated</Text>
+                <Text style={{ ...styles.buttonText, fontSize: 12 }}>(8 ~ 10)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setBothRatings(0)} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgreen', minWidth: 150 }}>
+                <Text style={styles.buttonText}>All Ratings</Text>
+                <Text style={{ ...styles.buttonText, fontSize: 12 }}>Reset (0 ~ 10)</Text>
+            </TouchableOpacity>
+        </View>
     </View>
 ));
 
@@ -193,9 +194,9 @@ const styles = StyleSheet.create({
         height: 32,
         paddingHorizontal: 16,
         paddingRight: 40,
-        width: '100%',
+        width: '80%',
         fontSize: 18,
-        height: 50,
+        height: 40,
     },
     buttonsContainer: {
         flexDirection: 'row',
@@ -248,8 +249,17 @@ const styles = StyleSheet.create({
     ratingButton: {
         paddingBottom: 10,
     },
+    presetsContainer: {
+        width: '100%',
+    },
     buttonsRow: {
         flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
+    buttonsColumn: {
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'space-between',
         width: '100%',

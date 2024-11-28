@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { TouchableOpacity, StyleSheet, View } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import { TouchableOpacity, StyleSheet, View, Text } from 'react-native';
 import SongFormModal from './SongFormModal';
+import { globalStyles } from '../styles/global';
 
 const FloatingButton = ({ songs, setSongs, refreshSongsList }) => {
     const [isFormModalVisible, setFormModalVisible] = useState(false);
@@ -13,7 +13,7 @@ const FloatingButton = ({ songs, setSongs, refreshSongsList }) => {
     return (
         <View>
             <TouchableOpacity onPress={toggleFormModal} style={styles.button}>
-                <Icon name="plus-circle" size={40} color="green" />
+                <Text style={styles.buttonText}>+ New Song</Text>
             </TouchableOpacity>
 
             <SongFormModal
@@ -31,8 +31,20 @@ const FloatingButton = ({ songs, setSongs, refreshSongsList }) => {
 const styles = StyleSheet.create({
     button: {
         position: 'absolute',
-        bottom: 30,
-        right: 30,
+        top: 16,
+        right: 6,
+        zIndex: 1,
+        justifyContent: 'center',
+        backgroundColor: globalStyles.green1,
+        paddingHorizontal: 6,
+        borderRadius: 5,
+        height: 40,
+        width: 100,
+    },
+    buttonText: {
+        color: 'white',
+        fontSize: 16,
+        textAlign: 'center',
     },
 });
 

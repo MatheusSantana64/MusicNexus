@@ -102,6 +102,12 @@ export function Music() {
 
     return (
         <View style={{ flex: 1, backgroundColor: globalStyles.black1 }}>
+            <FloatingButton
+                songs={songs}
+                setSongs={setSongs}
+                refreshSongsList={refreshSongsList}
+            />
+            
             <View style={{ marginHorizontal: 10, marginTop: 16 }}>
                 <SearchBar
                     searchText={searchText}
@@ -122,12 +128,6 @@ export function Music() {
                 setSongs={setSongs}
                 refreshSongsList={refreshSongsList}
                 onScroll={handleScroll}
-            />
-
-            <FloatingButton
-                songs={songs}
-                setSongs={setSongs}
-                refreshSongsList={refreshSongsList}
             />
         </View>
     );

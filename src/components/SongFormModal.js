@@ -1,5 +1,5 @@
 import React, { useRef, useCallback } from 'react';
-import { TouchableWithoutFeedback, StyleSheet, View, TextInput, Button, Dimensions, TouchableOpacity } from 'react-native';
+import { TouchableWithoutFeedback, StyleSheet, View, TextInput, Button, Dimensions, TouchableOpacity, KeyboardAvoidingView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Modal from 'react-native-modal';
 import { submitForm } from '../database/databaseOperations';
@@ -66,74 +66,76 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, se
                 animationInTiming={100}
                 animationOutTiming={100}
             >
-                <TouchableWithoutFeedback onPress={closeModal}>
-                    <View style={styles.modalContainer}>
-                        <TouchableWithoutFeedback onPress={() => {}}>
-                            <View>
-                                <View style={styles.formContainer}>
-                                    <TextInput
-                                        ref={titleRef}
-                                        placeholder="Title"
-                                        value={title}
-                                        onChangeText={setTitle}
-                                        onSubmitEditing={() => artistRef.current?.focus()}
-                                        style={styles.input}
-                                        placeholderTextColor="grey"
-                                    />
-                                    <TextInput
-                                        ref={artistRef}
-                                        placeholder="Artist"
-                                        value={artist}
-                                        onChangeText={setArtist}
-                                        onSubmitEditing={() => albumRef.current?.focus()}
-                                        style={styles.input}
-                                        placeholderTextColor="grey"
-                                    />
-                                    <TextInput
-                                        ref={albumRef}
-                                        placeholder="Album"
-                                        value={album}
-                                        onChangeText={setAlbum}
-                                        style={styles.input}
-                                        placeholderTextColor="grey"
-                                    />
-                                    <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
+                <KeyboardAvoidingView behavior="padding" style={styles.modalContainer}>
+                    <TouchableWithoutFeedback onPress={closeModal}>
+                        <View style={styles.modalContainer}>
+                            <TouchableWithoutFeedback onPress={() => {}}>
+                                <View>
+                                    <View style={styles.formContainer}>
                                         <TextInput
-                                            placeholder="Release Date"
-                                            value={release}
-                                            editable={false}
+                                            ref={titleRef}
+                                            placeholder="Title"
+                                            value={title}
+                                            onChangeText={setTitle}
+                                            onSubmitEditing={() => artistRef.current?.focus()}
                                             style={styles.input}
                                             placeholderTextColor="grey"
                                         />
-                                    </TouchableOpacity>
-                                    {datePickerVisible && (
-                                        <DateTimePicker
-                                            value={new Date(release + 'T00:00:00')}
-                                            mode="date"
-                                            display="default"
-                                            onChange={(event, selectedDate) => {
-                                                setDatePickerVisible(false);
-                                                if (selectedDate) {
-                                                    const localDate = new Date(selectedDate.getTime() - selectedDate.getTimezoneOffset() * 60000);
-                                                    setRelease(localDate.toISOString().split('T')[0]);
-                                                }
-                                            }}
+                                        <TextInput
+                                            ref={artistRef}
+                                            placeholder="Artist"
+                                            value={artist}
+                                            onChangeText={setArtist}
+                                            onSubmitEditing={() => albumRef.current?.focus()}
+                                            style={styles.input}
+                                            placeholderTextColor="grey"
                                         />
-                                    )}
-                                    <View style={styles.buttonContainer}>
-                                        <Button title={editMode ? "Save Changes" : "Add Song"} onPress={handleSubmit} color={globalStyles.defaultButtonColor} />
-                                    </View>
-                                    <View style={[styles.buttonContainer, styles.marginTop]}>
-                                        <Button title={editMode ? "Save Changes and Add Another Song From This Album" : "Add Another Song From This Album"} onPress={handleAddAnotherSong} color={globalStyles.green2} />
-                                    </View>
-                                    <View style={[styles.buttonContainer, styles.marginTop]}>
-                                        <Button title="Cancel" onPress={closeModal} color={globalStyles.red2}/>
+                                        <TextInput
+                                            ref={albumRef}
+                                            placeholder="Album"
+                                            value={album}
+                                            onChangeText={setAlbum}
+                                            style={styles.input}
+                                            placeholderTextColor="grey"
+                                        />
+                                        <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
+                                            <TextInput
+                                                placeholder="Release Date"
+                                                value={release}
+                                                editable={false}
+                                                style={styles.input}
+                                                placeholderTextColor="grey"
+                                            />
+                                        </TouchableOpacity>
+                                        {datePickerVisible && (
+                                            <DateTimePicker
+                                                value={new Date(release + 'T00:00:00')}
+                                                mode="date"
+                                                display="default"
+                                                onChange={(event, selectedDate) => {
+                                                    setDatePickerVisible(false);
+                                                    if (selectedDate) {
+                                                        const localDate = new Date(selectedDate.getTime() - selectedDate.getTimezoneOffset() * 60000);
+                                                        setRelease(localDate.toISOString().split('T')[0]);
+                                                    }
+                                                }}
+                                            />
+                                        )}
+                                        <View style={styles.buttonContainer}>
+                                            <Button title={editMode ? "Save Changes" : "Add Song"} onPress={handleSubmit} color={globalStyles.defaultButtonColor} />
+                                        </View>
+                                        <View style={[styles.buttonContainer, styles.marginTop]}>
+                                            <Button title={editMode ? "Save & Add Another" : "Add Another Song"} onPress={handleAddAnotherSong} color={globalStyles.green2} />
+                                        </View>
+                                        <View style={[styles.buttonContainer, styles.marginTop]}>
+                                            <Button title="Cancel" onPress={closeModal} color={globalStyles.red2}/>
+                                        </View>
                                     </View>
                                 </View>
-                            </View>
-                        </TouchableWithoutFeedback>
-                    </View>
-                </TouchableWithoutFeedback>
+                            </TouchableWithoutFeedback>
+                        </View>
+                    </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
             </Modal>
         </View>
     );
@@ -148,7 +150,8 @@ const styles = StyleSheet.create({
     },
     modalContainer: {
         flex: 1,
-        justifyContent: 'center',
+        justifyContent: 'flex-start', // Align to the top
+        marginTop: 20,
         alignItems: 'center',
     },
     formContainer: {
@@ -163,7 +166,7 @@ const styles = StyleSheet.create({
         color: 'white',
         height: 48,
         paddingHorizontal: 16,
-        marginBottom: 16,
+        marginBottom: 10,
         borderWidth: 1,
         borderColor: globalStyles.gray2,
         textAlignVertical: 'center',
@@ -173,7 +176,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     marginTop: {
-        marginTop: 10,
+        marginTop: 5,
     },
 });
 

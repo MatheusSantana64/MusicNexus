@@ -113,6 +113,17 @@ export const getSongsCountByYear = async () => {
     return result.rows._array;
 };
 
+// Function to get tags with their associated song count
+export const getTagsWithSongCount = async () => {
+    const result = await executeSql(
+        `SELECT tags.name, COUNT(song_tags.song_id) as count
+         FROM tags
+         LEFT JOIN song_tags ON tags.id = song_tags.tag_id
+         GROUP BY tags.id`
+    );
+    return result.rows._array;
+};
+
 // Function to fetch all songs from the database and return them as a JSON array
 export const fetchAllSongsAsJson = async () => {
     const result = await executeSql('SELECT id, title, artist, album, release, rating FROM songs');
