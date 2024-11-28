@@ -326,27 +326,36 @@ export const fetchAllDataAsJson = async () => {
 };
 
 // Function to insert all data into the database
-// Function to insert all data into the database
-export const insertAllDataIntoDatabase = async (data) => {
+export const insertAllDataIntoDatabase = async (data, progressCallback) => {
     const { songs, ratingHistory, tags, songTags } = data;
 
     // Insert songs
-    for (const song of songs) {
-        await insertSongIntoDatabase(song);
+    for (let i = 0; i < songs.length; i++) {
+        await insertSongIntoDatabase(songs[i]);
+        progressCallback(i + 1, songs.length);
     }
 
     // Insert rating history
-    for (const history of ratingHistory) {
-        await insertRatingHistory(history.song_id, history.rating, history.previous_rating, history.datetime);
+    for (let i = 0; i < ratingHistory.length; i++) {
+        await insertRatingHistory(ratingHistory[i].song_id, ratingHistory[i].rating, ratingHistory[i].previous_rating, ratingHistory[i].datetime);
     }
 
     // Insert tags
-    for (const tag of tags) {
-        await insertTag(tag);
+    for (let i = 0; i < tags.length; i++) {
+        await insertTag(tags[i]);
     }
 
     // Insert song tags
-    for (const songTag of songTags) {
-        await addTag(songTag.song_id, songTag.tag_id);
+    for (let i = 0; i < songTags.length; i++) {
+        await addTag(songTags[i].song_id, songTags[i].tag_id);
     }
+};
+
+// Function to clear all data from the database
+export const clearDatabase = async () => {
+    await executeSql('DELETE FROM songs');
+    await executeSql('DELETE FROM song_rating_history');
+    await executeSql('DELETE FROM tags');
+    await executeSql('DELETE FROM song_tags');
+    console.log('Database cleared.');
 };

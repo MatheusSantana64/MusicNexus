@@ -4,6 +4,12 @@ import { View, Button, Alert, Text, Modal, StyleSheet, ScrollView, Pressable } f
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { addToQueue } from '../api/MusicBrainzAPI';
+import { downloadImage, generateCacheKey, getImageFromCache, deleteAllFilesFromCache } from '../utils/cacheManager';
+import SettingsModal from '../components/SettingsModal';
+import { useKeepAwake, activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import { globalStyles } from '../styles/global';
 import { 
     getTotalSongs, 
     getTotalArtists, 
@@ -17,14 +23,11 @@ import {
     fetchAlbumsWithoutCover, 
     updateSongCoverPath, 
     coverPathToNull, 
-    deleteData 
+    deleteData,
+    clearDatabase,
+    insertTag,
+    addTag,
 } from '../database/databaseOperations';
-import { addToQueue } from '../api/MusicBrainzAPI';
-import { downloadImage, generateCacheKey, getImageFromCache, deleteAllFilesFromCache } from '../utils/cacheManager';
-import SettingsModal from '../components/SettingsModal';
-import { useKeepAwake, activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import Icon from 'react-native-vector-icons/FontAwesome';
-import { globalStyles } from '../styles/global';
 
 const Stats = ({ totalSongs, totalArtists, totalAlbums, songsCountByRating, songsCountByYear }) => (
     <View style={styles.stats}>
@@ -133,6 +136,20 @@ export function Profile() {
     }, []);
     
     const handleImportData = useCallback(async () => {
+        const confirmImport = await new Promise((resolve, reject) => {
+            Alert.alert(
+                "Import Backup",
+                "Importing a backup file will delete all current data. Do you want to proceed?",
+                [
+                    { text: 'Cancel', onPress: () => reject(new Error('Cancelled')) },
+                    { text: 'OK', onPress: () => resolve(true) },
+                ],
+                { cancelable: false }
+            );
+        });
+    
+        if (!confirmImport) return;
+    
         setState(prevState => ({ ...prevState, isImportModalVisible: true }));
         activateKeepAwakeAsync();
     
@@ -142,7 +159,13 @@ export function Profile() {
                 const fileContent = await FileSystem.readAsStringAsync(result.assets[0].uri);
                 const data = JSON.parse(fileContent);
     
-                await insertAllDataIntoDatabase(data);
+                await clearDatabase(); // Clear the database before importing new data
+    
+                setState(prevState => ({ ...prevState, totalOperation: data.songs.length, progress: 0 }));
+    
+                await insertAllDataIntoDatabase(data, (currentProgress, total) => {
+                    setState(prevState => ({ ...prevState, progress: currentProgress, totalOperation: total }));
+                });
     
                 Alert.alert('Success', 'Data has been imported successfully.');
             } else {
@@ -194,7 +217,7 @@ export function Profile() {
             if (cancellationToken.cancelled) {
                 Alert.alert('Operation Stopped', 'The cover download operation has been stopped.');
             } else {
-                Alert.alert('Success', `Covers downloaded for ${processedSongs} songs. ${errors} errors encountered.`);
+                Alert.alert('Success', `Covers downloaded for ${processedSongs} songs.\nUnable to find covers for ${errors} songs.`);
             }
         } catch (error) {
             console.error('Error downloading covers:', error);
@@ -275,10 +298,10 @@ export function Profile() {
                 />
 
                 <View style={{ marginBottom: 10, width: '80%' }}>
-                    <Button title="Backup Songs" onPress={handleBackupData} color={globalStyles.green2} />
+                    <Button title="Export Backup as File" onPress={handleBackupData} color={globalStyles.green2} />
                 </View>
                 <View style={{ marginBottom: 10, width: '80%' }}>
-                    <Button title="Import Songs From File" onPress={handleImportData} color={globalStyles.blue2} />
+                    <Button title="Import Backup as File" onPress={handleImportData} color={globalStyles.blue2} />
                 </View>
                 <View style={{ marginBottom: 10, width: '80%' }}>
                     <Button title="Download All Covers" onPress={handleDownloadCovers} color={globalStyles.gray3} />
