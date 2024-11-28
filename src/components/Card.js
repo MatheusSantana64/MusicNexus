@@ -77,6 +77,17 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
         }
     }, [cardSong, coverImage, fetchCover, downloadCoverImage]);
 
+    const fetchAssociatedTags = useCallback(async () => {
+        if (cardSong.id) {
+            const tags = await getTagsForSong(cardSong.id);
+            setAssociatedTags(tags);
+        }
+    }, [cardSong.id]);
+
+    useEffect(() => {
+        fetchAssociatedTags();
+    }, [fetchAssociatedTags]);
+
     useEffect(() => {
         if (cardSong.id) {
             getTagsForSong(cardSong.id).then(setAssociatedTags);
@@ -165,6 +176,7 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
                 selectedSong={cardSong}
                 songs={songs}
                 setSongs={setSongs}
+                onTagsChange={fetchAssociatedTags}
             />
             <SongOptionsModal
                 isSongOptionsVisible={isSongOptionsVisible}

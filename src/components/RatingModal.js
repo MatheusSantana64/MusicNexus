@@ -16,7 +16,8 @@ const RatingModal = ({
     handleRatingSelect, 
     selectedSong, 
     songs, 
-    setSongs 
+    setSongs,
+    onTagsChange
 }) => {
     const [rating, setRating] = useState(selectedSong.rating);
     const [tags, setTags] = useState([]);
@@ -64,14 +65,20 @@ const RatingModal = ({
         handleRatingSelect(rating);
     };
 
-    const handleTagToggle = async (tagId) => {
-        if (associatedTags.some(associatedTag => associatedTag.tag_id === tagId)) {
-            await removeTag(selectedSong.id, tagId);
-        } else {
-            await addTag(selectedSong.id, tagId);
+    const handleTagToggle = useCallback(async (tagId) => {
+        try {
+            if (associatedTags.some(associatedTag => associatedTag.tag_id === tagId)) {
+                await removeTag(selectedSong.id, tagId);
+            } else {
+                await addTag(selectedSong.id, tagId);
+            }
+            await fetchAssociatedTags();
+            onTagsChange();
+        } catch (error) {
+            console.error('Failed to toggle tag:', error);
+            Alert.alert('Error', 'Failed to update tag.');
         }
-        await fetchAssociatedTags();
-    };
+    }, [associatedTags, selectedSong.id, fetchAssociatedTags, onTagsChange]);
 
     const handleEditTag = async (tagId) => {
         const editedTag = await getTagById(tagId);
@@ -83,7 +90,7 @@ const RatingModal = ({
         setIsEditModalVisible(true);
     };
 
-    const handleDeleteTag = async (tagId, tagName) => {
+    const handleDeleteTag = useCallback(async (tagId, tagName) => {
         Alert.alert(
             `Delete Tag "${tagName}"?`,
             `Are you sure you want to delete this tag? It will be removed from all songs that use it.`,
@@ -94,14 +101,15 @@ const RatingModal = ({
                         await deleteTag(tagId);
                         setTags(tags.filter(tag => tag.id !== tagId));
                         await fetchAssociatedTags();
+                        onTagsChange(); // Call this after tag deletion
                     } catch (error) {
-                        console.error('Failed to delete tag:', error);
+                        console.error('Failed to delete tag:', error);  
                         Alert.alert('Error', 'Failed to delete tag.');
                     }
                 }}
             ]
         );
-    };
+    }, [fetchAssociatedTags, onTagsChange, tags]);
 
     const handleCreateTag = async () => {
         if (!newTagName.trim()) {
