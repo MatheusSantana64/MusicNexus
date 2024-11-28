@@ -128,11 +128,13 @@ export const fetchAllSongsAsJson = async () => {
 
 // Function to insert a song into the database and return the inserted ID
 export const insertSongIntoDatabase = async (song) => {
-    const { title, artist, album, release, rating, cover_path } = song;
+    const { id, title, artist, album, release, rating, cover_path } = song;
     const result = await executeSql(
-        `INSERT INTO songs (title, artist, album, release, rating, cover_path)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [title, artist, album, release, rating, cover_path || null]
+        `INSERT INTO songs (id, title, artist, album, release, rating, cover_path)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+         title=excluded.title, artist=excluded.artist, album=excluded.album, release=excluded.release, rating=excluded.rating, cover_path=excluded.cover_path`,
+        [id, title, artist, album, release, rating, cover_path || null]
     );
     return result.insertId;
 };
@@ -304,4 +306,47 @@ export const getTagById = async (tagId) => {
 // Function to update a tag
 export const updateTag = async (tagId, updatedTagData) => {
     await executeSql('UPDATE tags SET name = ?, color = ? WHERE id = ?', [updatedTagData.name, updatedTagData.color, tagId]);
+};
+
+// Function to fetch all data from the database
+export const fetchAllDataAsJson = async () => {
+    const songsResult = await executeSql('SELECT * FROM songs');
+    const songs = songsResult.rows._array;
+
+    const ratingHistoryResult = await executeSql('SELECT * FROM song_rating_history');
+    const ratingHistory = ratingHistoryResult.rows._array;
+
+    const tagsResult = await executeSql('SELECT * FROM tags');
+    const tags = tagsResult.rows._array;
+
+    const songTagsResult = await executeSql('SELECT * FROM song_tags');
+    const songTags = songTagsResult.rows._array;
+
+    return { songs, ratingHistory, tags, songTags };
+};
+
+// Function to insert all data into the database
+// Function to insert all data into the database
+export const insertAllDataIntoDatabase = async (data) => {
+    const { songs, ratingHistory, tags, songTags } = data;
+
+    // Insert songs
+    for (const song of songs) {
+        await insertSongIntoDatabase(song);
+    }
+
+    // Insert rating history
+    for (const history of ratingHistory) {
+        await insertRatingHistory(history.song_id, history.rating, history.previous_rating, history.datetime);
+    }
+
+    // Insert tags
+    for (const tag of tags) {
+        await insertTag(tag);
+    }
+
+    // Insert song tags
+    for (const songTag of songTags) {
+        await addTag(songTag.song_id, songTag.tag_id);
+    }
 };

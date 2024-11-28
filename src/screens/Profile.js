@@ -4,7 +4,21 @@ import { View, Button, Alert, Text, Modal, StyleSheet, ScrollView, Pressable } f
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { getTotalSongs, getTotalArtists, getTotalAlbums, getSongsCountByRating, getSongsCountByYear, fetchAllSongsAsJson, insertSongIntoDatabase, insertRatingHistory, fetchAlbumsWithoutCover, updateSongCoverPath, coverPathToNull, deleteData } from '../database/databaseOperations';
+import { 
+    getTotalSongs, 
+    getTotalArtists, 
+    getTotalAlbums, 
+    getSongsCountByRating, 
+    getSongsCountByYear, 
+    fetchAllDataAsJson, 
+    insertAllDataIntoDatabase, 
+    insertSongIntoDatabase, 
+    insertRatingHistory, 
+    fetchAlbumsWithoutCover, 
+    updateSongCoverPath, 
+    coverPathToNull, 
+    deleteData 
+} from '../database/databaseOperations';
 import { addToQueue } from '../api/MusicBrainzAPI';
 import { downloadImage, generateCacheKey, getImageFromCache, deleteAllFilesFromCache } from '../utils/cacheManager';
 import SettingsModal from '../components/SettingsModal';
@@ -96,19 +110,19 @@ export function Profile() {
 
     const handleBackupData = useCallback(async () => {
         setState(prevState => ({ ...prevState, isBackupModalVisible: true }));
-
+    
         try {
-            const songs = await fetchAllSongsAsJson();
-            const jsonData = JSON.stringify(songs);
+            const data = await fetchAllDataAsJson();
+            const jsonData = JSON.stringify(data);
             const tempFile = FileSystem.cacheDirectory + 'MusicNexus_backup.json';
             await FileSystem.writeAsStringAsync(tempFile, jsonData);
-
+    
             const isAvailable = await Sharing.isAvailableAsync();
             if (!isAvailable) {
                 Alert.alert('Error', 'Sharing is not available on this device.');
                 return;
             }
-
+    
             await Sharing.shareAsync(tempFile);
         } catch (error) {
             console.error('Backup process failed:', error);
@@ -117,47 +131,26 @@ export function Profile() {
             setState(prevState => ({ ...prevState, isBackupModalVisible: false }));
         }
     }, []);
-
+    
     const handleImportData = useCallback(async () => {
         setState(prevState => ({ ...prevState, isImportModalVisible: true }));
         activateKeepAwakeAsync();
-
+    
         try {
             const result = await DocumentPicker.getDocumentAsync({ type: 'application/json' });
             if (result.assets && result.assets.length > 0) {
                 const fileContent = await FileSystem.readAsStringAsync(result.assets[0].uri);
-                const songs = JSON.parse(fileContent);
-                setState(prevState => ({ ...prevState, totalOperation: songs.length }));
-
-                let insertedSongs = 0;
-                let errors = [];
-
-                for (const song of songs) {
-                    try {
-                        const insertedSongId = await insertSongIntoDatabase(song);
-                        insertedSongs++;
-                        if (song.ratingHistory && song.ratingHistory.length > 0) {
-                            for (const ratingHistory of song.ratingHistory) {
-                                await insertRatingHistory(insertedSongId, ratingHistory.rating, ratingHistory.previous_rating, ratingHistory.datetime);
-                            }
-                        }
-                        setState(prevState => ({ ...prevState, progress: insertedSongs }));
-                    } catch (error) {
-                        errors.push(error);
-                    }
-                }
-
-                if (errors.length > 0) {
-                    Alert.alert('Error', 'Some songs failed to insert.');
-                } else {
-                    Alert.alert('Success', 'Songs have been imported successfully.');
-                }
+                const data = JSON.parse(fileContent);
+    
+                await insertAllDataIntoDatabase(data);
+    
+                Alert.alert('Success', 'Data has been imported successfully.');
             } else {
                 Alert.alert('Error', 'No file selected.');
             }
         } catch (error) {
             console.error('Import process failed:', error);
-            Alert.alert('Error', 'Failed to import songs. Error: ' + error.message);
+            Alert.alert('Error', 'Failed to import data. Error: ' + error.message);
         } finally {
             setState(prevState => ({ ...prevState, isImportModalVisible: false }));
             deactivateKeepAwake();
