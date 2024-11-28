@@ -53,11 +53,11 @@ export function Home() {
         }, [orderFav, orderDirectionFav, orderNotRated, orderDirectionNotRated])
     );
 
-    const handleOrderChange = useCallback((type, order, direction) => {
+    const handleOrderChange = useCallback((orderKey, orderValue, directionKey, directionValue) => {
         setState(prevState => ({
             ...prevState,
-            [type]: order,
-            [direction]: direction,
+            [orderKey]: orderValue,
+            [directionKey]: directionValue,
         }));
     }, []);
 
@@ -68,30 +68,34 @@ export function Home() {
                 songs={favoriteSongs}
                 setSongs={(newSongs) => setState(prevState => ({ ...prevState, favoriteSongs: newSongs }))}
                 order={orderFav}
+                orderKey="orderFav"
                 orderDirection={orderDirectionFav}
-                onOrderChange={(order, direction) => handleOrderChange('orderFav', order, 'orderDirectionFav', direction)}
+                directionKey="orderDirectionFav"
+                onOrderChange={handleOrderChange}
             />
             <Section
                 title="Not Rated Songs"
                 songs={notRatedSongs}
                 setSongs={(newSongs) => setState(prevState => ({ ...prevState, notRatedSongs: newSongs }))}
                 order={orderNotRated}
+                orderKey="orderNotRated"
                 orderDirection={orderDirectionNotRated}
-                onOrderChange={(order, direction) => handleOrderChange('orderNotRated', order, 'orderDirectionNotRated', direction)}
+                directionKey="orderDirectionNotRated"
+                onOrderChange={handleOrderChange}
             />
         </View>
     );
 }
 
-const Section = ({ title, songs, setSongs, order, orderDirection, onOrderChange }) => (
+const Section = ({ title, songs, setSongs, order, orderKey, orderDirection, directionKey, onOrderChange }) => (
     <View style={styles.sectionContainer}>
         <View style={styles.titleContainer}>
             <Text style={styles.title}>{title}</Text>
             <OrderButtons
                 order={order}
-                setOrder={(newOrder) => onOrderChange(newOrder, orderDirection)}
+                setOrder={(newOrder) => onOrderChange(orderKey, newOrder, directionKey, orderDirection)}
                 orderDirection={orderDirection}
-                setOrderDirection={(newDirection) => onOrderChange(order, newDirection)}
+                setOrderDirection={(newDirection) => onOrderChange(orderKey, order, directionKey, newDirection)}
             />
         </View>
         <SongList songs={songs} setSongs={setSongs} />
@@ -113,6 +117,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#090909',
         paddingTop: 4,
+        paddingHorizontal: 5,
     },
     sectionContainer: {
         flex: 1,
