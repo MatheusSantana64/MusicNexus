@@ -10,6 +10,8 @@ import { updateSongCoverPath, updateSongRating, getTagsForSong } from '../databa
 import RatingModal from './RatingModal';
 import SongOptionsModal from './SongOptionsModal';
 
+const coverRequestCache = {};
+
 const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
     const [coverImage, setCoverImage] = useState(cardSong.cover_path);
     const [associatedTags, setAssociatedTags] = useState([]);
@@ -56,9 +58,21 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
     }, [cardSong]);
 
     const fetchCover = useCallback(async () => {
+        const cacheKey = generateCacheKey(cardSong.artist, cardSong.album);
+
+        if (coverRequestCache[cacheKey]) {
+            // Wait for the ongoing request to complete
+            await coverRequestCache[cacheKey];
+            setCoverImage(cardSong.cover_path);
+            return;
+        }
+
         let coverPath = await fetchCoverFromCache();
         if (!coverPath) {
-            coverPath = await fetchCoverFromMusicBrainz();
+            const fetchPromise = fetchCoverFromMusicBrainz();
+            coverRequestCache[cacheKey] = fetchPromise;
+            coverPath = await fetchPromise;
+            delete coverRequestCache[cacheKey];
         }
         if (coverPath && global.downloadCovers !== 'false' && coverPath.startsWith('http')) {
             coverPath = await downloadCoverImage(coverPath);
@@ -68,7 +82,7 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
             cardSong.cover_path = coverPath;
         }
     }, [cardSong, fetchCoverFromCache, fetchCoverFromMusicBrainz, downloadCoverImage, updateDatabaseWithCoverPath]);
-    
+
     useEffect(() => {
         if (!coverImage && global.showCovers !== 'false') {
             fetchCover();

@@ -66,7 +66,7 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
                 />
                 {inputText && (
                     <TouchableOpacity onPress={clearSearchInput} style={styles.clearButton}>
-                        <Icon name="x" size={30} color="white" />
+                        <Icon name="x" size={24} color="white" />
                     </TouchableOpacity>
                 )}
             </View>
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        width: '90%',
+        width: '70%',
     },
     input: {
         backgroundColor: globalStyles.gray1,
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
         height: 32,
         paddingHorizontal: 16,
         paddingRight: 40,
-        width: '80%',
+        width: '100%',
         fontSize: 18,
         height: 40,
     },
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     },
     clearButton: {
         position: 'absolute',
-        right: 10,
+        right: 4,
     },
     searchButton: {
         marginLeft: 10,

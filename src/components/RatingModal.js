@@ -132,29 +132,19 @@ const RatingModal = ({
     const renderTags = () => {
         return tags.map((tag, index) => (
             <View key={index} style={styles.tagContainer}>
-                <View style={styles.tagRow}>
-                    <Checkbox
-                        value={associatedTags.some(associatedTag => associatedTag.tag_id === tag.id)}
-                        onValueChange={() => handleTagToggle(tag.id)}
-                        style={styles.checkboxStyle}
-                    />
-                    <TouchableOpacity
-                        style={{ ...styles.tagButton, backgroundColor: tag.color }}
-                        onPress={() => handleTagToggle(tag.id)}
-                    >
-                        <Text style={styles.tagText} numberOfLines={1} ellipsizeMode="tail">
-                            {tag.name}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.tagActions}>
-                    <TouchableOpacity style={styles.editButton} onPress={() => handleEditTag(tag.id)}>
-                        <Icon name="edit" size={16} color="white" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteTag(tag.id, tag.name)}>
-                        <Icon name="trash" size={16} color="white" />
-                    </TouchableOpacity>
-                </View>
+                <Checkbox
+                    value={associatedTags.some(associatedTag => associatedTag.tag_id === tag.id)}
+                    onValueChange={() => handleTagToggle(tag.id)}
+                    style={styles.checkboxStyle}
+                />
+                <TouchableOpacity
+                    style={{ ...styles.tagButton, backgroundColor: tag.color }}
+                    onPress={() => handleTagToggle(tag.id)}
+                >
+                    <Text style={styles.tagText} numberOfLines={1} ellipsizeMode="tail">
+                        {tag.name}
+                    </Text>
+                </TouchableOpacity>
             </View>
         ));
     };
@@ -241,6 +231,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         maxHeight: '70%',
         marginVertical: 20,
+        width: '100%',
     },
     title: {
         fontSize: 20,
@@ -276,32 +267,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         width: '100%',
-    },
-    tagRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    tagActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    editButton: {
-        padding: 5,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'cornflowerblue',
-        borderRadius: 15,
-        marginTop: 10,
-    },
-    deleteButton: {
-        padding: 5,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'crimson',
-        borderRadius: 15,
-        marginTop: 10,
-        marginLeft: 10,
     },
 });
 

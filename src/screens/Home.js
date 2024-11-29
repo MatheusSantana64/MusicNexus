@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { initDatabase } from '../database/databaseSetup';
+import { getTags } from '../database/databaseOperations';
 import { fetchSongs } from '../database/databaseOperations';
 import SongList from '../components/SongList';
 import OrderButtons from '../components/OrderButtons';
+import TagsList from '../components/TagsList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { globalStyles } from '../styles/global';
 
 export function Home() {
     const [state, setState] = useState({
@@ -14,10 +17,19 @@ export function Home() {
         orderDirectionFav: 'desc',
         notRatedSongs: [],
         orderNotRated: 'release',
-        orderDirectionNotRated: 'asc',
+        orderDirectionNotRated: 'desc',
+        tags: [],
     });
 
-    const { favoriteSongs, orderFav, orderDirectionFav, notRatedSongs, orderNotRated, orderDirectionNotRated } = state;
+    const {
+        favoriteSongs,
+        orderFav,
+        orderDirectionFav,
+        notRatedSongs,
+        orderNotRated,
+        orderDirectionNotRated,
+        tags,
+    } = state;
 
     useEffect(() => {
         initDatabase();
@@ -32,19 +44,19 @@ export function Home() {
                 ]);
                 global.showCovers = showCovers;
                 global.downloadCovers = downloadCovers;
-                console.log('global.showCovers:', global.showCovers);
-                console.log('global.downloadCovers:', global.downloadCovers);
             };
 
             const fetchSongsWrapper = async () => {
-                const [songsFav, songsNotRated] = await Promise.all([
+                const [songsFav, songsNotRated, fetchedTags] = await Promise.all([
                     fetchSongs('', orderFav, orderDirectionFav, 0, false, { min: 5, max: 10 }),
                     fetchSongs('', orderNotRated, orderDirectionNotRated, 0, false, { min: 0, max: 0 }),
+                    getTags(),
                 ]);
                 setState(prevState => ({
                     ...prevState,
                     favoriteSongs: songsFav,
                     notRatedSongs: songsNotRated,
+                    tags: fetchedTags,
                 }));
             };
 
@@ -64,17 +76,7 @@ export function Home() {
     return (
         <View style={styles.screen}>
             <Section
-                title="Favorite Songs"
-                songs={favoriteSongs}
-                setSongs={(newSongs) => setState(prevState => ({ ...prevState, favoriteSongs: newSongs }))}
-                order={orderFav}
-                orderKey="orderFav"
-                orderDirection={orderDirectionFav}
-                directionKey="orderDirectionFav"
-                onOrderChange={handleOrderChange}
-            />
-            <Section
-                title="Not Rated Songs"
+                title="Songs Not Rated"
                 songs={notRatedSongs}
                 setSongs={(newSongs) => setState(prevState => ({ ...prevState, notRatedSongs: newSongs }))}
                 order={orderNotRated}
@@ -83,6 +85,19 @@ export function Home() {
                 directionKey="orderDirectionNotRated"
                 onOrderChange={handleOrderChange}
             />
+            <View style={styles.tagsSectionContainer}>
+                <Text style={{...styles.title, marginVertical: 6}}>Tags Manager</Text>
+                <TagsList
+                    tags={tags}
+                    refreshTags={async () => {
+                        const fetchedTags = await getTags();
+                        setState(prevState => ({
+                            ...prevState,
+                            tags: fetchedTags,
+                        }));
+                    }}
+                />
+            </View>
         </View>
     );
 }
@@ -115,12 +130,17 @@ const styles = StyleSheet.create({
     },
     screen: {
         flex: 1,
-        backgroundColor: '#090909',
+        backgroundColor: globalStyles.defaultBackgroundColor,
         paddingTop: 4,
         paddingHorizontal: 5,
     },
     sectionContainer: {
         flex: 1,
+        borderBottomWidth: 1,
+        borderBottomColor: globalStyles.gray2,
+    },
+    tagsSectionContainer: {
+        flex: 0.5,
     },
 });
 
