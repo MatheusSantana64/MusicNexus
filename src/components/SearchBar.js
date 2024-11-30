@@ -1,20 +1,30 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet, Keyboard } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, Keyboard, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Modal from 'react-native-modal';
 import OrderButtons from './OrderButtons';
 import { globalStyles } from '../styles/global';
+import { getTags } from '../database/databaseOperations';
 
-const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, setRatingRange, showFilters = false }) => {
+const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, setRatingRange, showFilters = false, setTagFilter }) => {
     const [inputText, setInputText] = useState('');
     const [order, setOrder] = useState('release');
     const [orderDirection, setOrderDirectionState] = useState('desc');
     const [modalVisible, setModalVisible] = useState(false);
+    const [tagModalVisible, setTagModalVisible] = useState(false);
     const [ratings, setRatings] = useState({ low: 0, high: 10 });
+    const [tags, setTags] = useState([]);
+    const [selectedTags, setSelectedTags] = useState([]);
 
     const toggleModal = useCallback(() => {
         setModalVisible(!modalVisible);
     }, [modalVisible]);
+
+    const toggleTagModal = useCallback(async () => {
+        const fetchedTags = await getTags();
+        setTags(fetchedTags);
+        setTagModalVisible(!tagModalVisible);
+    }, [tagModalVisible]);
 
     const handleEnterPress = useCallback(() => {
         setSearchText(inputText.trim());
@@ -47,6 +57,13 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
         setRatingRange({ min: ratings.low, max: ratings.high });
     }, [ratings, setRatingRange, toggleModal]);
 
+    const applyTagFilter = useCallback(() => {
+        const validSelectedTags = selectedTags.filter(tagId => tags.some(tag => tag.id === tagId));
+        setSelectedTags(validSelectedTags);
+        toggleTagModal();
+        setTagFilter(validSelectedTags);
+    }, [selectedTags, setTagFilter, toggleTagModal, tags]);
+
     useEffect(() => {
         const handler = setTimeout(() => {
             setSearchText(inputText.trim());
@@ -56,6 +73,25 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
             clearTimeout(handler);
         };
     }, [inputText, setSearchText]);
+
+    useEffect(() => {
+        const fetchTags = async () => {
+            const fetchedTags = await getTags();
+            setTags(fetchedTags);
+        };
+
+        fetchTags();
+    }, []);
+
+    const handleTagToggle = (tagId) => {
+        setSelectedTags((prevSelectedTags) => {
+            if (prevSelectedTags.includes(tagId)) {
+                return prevSelectedTags.filter((id) => id !== tagId);
+            } else {
+                return [...prevSelectedTags, tagId];
+            }
+        });
+    };
 
     return (
         <View style={styles.container}>
@@ -102,6 +138,39 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
                             />
                             <RatingPresets setBothRatings={setBothRatings} />
                             <TouchableOpacity onPress={applyRatings} style={styles.applyButton}>
+                                <Text style={styles.buttonText}>Apply</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Modal>
+                    
+                    <TouchableOpacity onPress={toggleTagModal}>
+                        <Text style={styles.filterText}>Filter Tags</Text>
+                    </TouchableOpacity>
+
+                    <Modal
+                        isVisible={tagModalVisible}
+                        onBackdropPress={toggleTagModal}
+                        onBackButtonPress={toggleTagModal}
+                        style={styles.modalContainer}
+                        useNativeDriverForBackdrop={true}
+                        hideModalContentWhileAnimating={true}
+                        animationInTiming={100}
+                        animationOutTiming={100}
+                    >
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Select Tags:</Text>
+                            <ScrollView>
+                                {tags.map((tag) => (
+                                    <TouchableOpacity
+                                        key={tag.id}
+                                        style={[styles.tagButton, selectedTags.includes(tag.id) && styles.selectedTagButton]}
+                                        onPress={() => handleTagToggle(tag.id)}
+                                    >
+                                        <Text style={styles.buttonText}>{tag.name}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                            <TouchableOpacity onPress={applyTagFilter} style={styles.applyButton}>
                                 <Text style={styles.buttonText}>Apply</Text>
                             </TouchableOpacity>
                         </View>
@@ -166,7 +235,6 @@ const RatingPresets = React.memo(({ setBothRatings }) => (
                 <Text style={{ ...styles.buttonText, fontSize: 12 }}>(8 ~ 10)</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setBothRatings({ low: 0, high: 10 })} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgreen', minWidth: 150 }}>
-                <Text style={styles.buttonText}>All Ratings</Text>
                 <Text style={{ ...styles.buttonText, fontSize: 12 }}>Reset (0 ~ 10)</Text>
             </TouchableOpacity>
         </View>
@@ -283,6 +351,17 @@ const styles = StyleSheet.create({
         marginTop: 10,
         backgroundColor: 'rebeccapurple',
         width: '100%',
+    },
+    tagButton: {
+        borderRadius: 8,
+        padding: 8,
+        marginVertical: 5,
+        backgroundColor: globalStyles.gray2,
+        width: '100%',
+        alignItems: 'center',
+    },
+    selectedTagButton: {
+        backgroundColor: globalStyles.blue2,
     },
 });
 

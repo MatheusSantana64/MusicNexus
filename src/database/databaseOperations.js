@@ -25,10 +25,18 @@ const executeSql = (query, params = []) => {
 };
 
 // Function to fetch songs from the SQLite database with dynamic query and pagination
-export const fetchSongs = async (searchText, orderBy, orderDirection, offset = 0, isScroll = false, ratingRange = { min: 0, max: 10 }) => {
-    let query = 'SELECT * FROM songs';
+export const fetchSongs = async (searchText, orderBy, orderDirection, offset = 0, isScroll = false, ratingRange = { min: 0, max: 10 }, tagFilter = []) => {
+    let query = 'SELECT songs.* FROM songs';
     const params = [];
     const conditions = [];
+
+    // Join with song_tags for each tag in tagFilter
+    if (tagFilter.length > 0) {
+        tagFilter.forEach((tagId, index) => {
+            query += ` INNER JOIN song_tags AS st${index} ON songs.id = st${index}.song_id AND st${index}.tag_id = ?`;
+            params.push(tagId);
+        });
+    }
 
     // Split search text into individual words
     const searchWords = searchText.trim().split(/\s+/);

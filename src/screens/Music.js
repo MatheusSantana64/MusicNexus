@@ -14,6 +14,7 @@ export function Music() {
     const [orderBy, setOrderBy] = useState('release');
     const [orderDirection, setOrderDirection] = useState('desc');
     const [ratingRange, setRatingRange] = useState({ min: 0, max: 10 });
+    const [tagFilter, setTagFilter] = useState([]);
     const [songs, setSongs] = useState([]);
     const [offset, setOffset] = useState(0);
     const [hasMoreSongs, setHasMoreSongs] = useState(true);
@@ -21,26 +22,26 @@ export function Music() {
     // Add ref to track if initial data has been loaded
     const isInitialLoadDone = useRef(false);
 
-    const fetchSongsWrapper = useCallback(async (searchText, orderBy, orderDirection, offset = 0, isScroll = false, ratingRange = { min: 0, max: 10 }) => {
+    const fetchSongsWrapper = useCallback(async (searchText, orderBy, orderDirection, offset = 0, isScroll = false, ratingRange = { min: 0, max: 10 }, tagFilter = []) => {
         if (!isScroll) {
             setSongs([]);
             setOffset(0);
         }
-        const fetchedSongs = await fetchSongs(searchText, orderBy, orderDirection, offset, isScroll, ratingRange);
+        const fetchedSongs = await fetchSongs(searchText, orderBy, orderDirection, offset, isScroll, ratingRange, tagFilter);
         setSongs(prevSongs => (isScroll ? [...prevSongs, ...fetchedSongs] : fetchedSongs));
         setHasMoreSongs(fetchedSongs.length >= OFFSET_SIZE);
     }, []);
 
     const fetchMoreSongs = useCallback(() => {
         const newOffset = offset + OFFSET_SIZE;
-        fetchSongsWrapper(searchText, orderBy, orderDirection, newOffset, true, ratingRange);
+        fetchSongsWrapper(searchText, orderBy, orderDirection, newOffset, true, ratingRange, tagFilter);
         setOffset(newOffset);
-    }, [offset, searchText, orderBy, orderDirection, ratingRange, fetchSongsWrapper]);
+    }, [offset, searchText, orderBy, orderDirection, ratingRange, tagFilter, fetchSongsWrapper]);
 
     // Initial data load using useEffect
     useEffect(() => {
         if (!isInitialLoadDone.current) {
-            fetchSongsWrapper(searchText, orderBy, orderDirection, 0, false, ratingRange);
+            fetchSongsWrapper(searchText, orderBy, orderDirection, 0, false, ratingRange, tagFilter);
             isInitialLoadDone.current = true;
         }
     }, []);
@@ -48,13 +49,13 @@ export function Music() {
     // Only reload when search params change, not on every focus
     useEffect(() => {
         if (isInitialLoadDone.current) {
-            fetchSongsWrapper(searchText, orderBy, orderDirection, 0, false, ratingRange);
+            fetchSongsWrapper(searchText, orderBy, orderDirection, 0, false, ratingRange, tagFilter);
         }
-    }, [searchText, orderBy, orderDirection, ratingRange]);
+    }, [searchText, orderBy, orderDirection, ratingRange, tagFilter]);
 
     const refreshSongsList = useCallback(() => {
-        fetchSongsWrapper(searchText, orderBy, orderDirection, 0, false, ratingRange);
-    }, [searchText, orderBy, orderDirection, ratingRange, fetchSongsWrapper]);
+        fetchSongsWrapper(searchText, orderBy, orderDirection, 0, false, ratingRange, tagFilter);
+    }, [searchText, orderBy, orderDirection, ratingRange, tagFilter, fetchSongsWrapper]);
 
     const searchBarProps = useMemo(() => ({
         searchText,
@@ -63,8 +64,9 @@ export function Music() {
         setOrderDirection,
         ratingRange,
         setRatingRange,
-        showFilters: true
-    }), [searchText, setSearchText, setOrderBy, setOrderDirection, ratingRange, setRatingRange]);
+        showFilters: true,
+        setTagFilter
+    }), [searchText, setSearchText, setOrderBy, setOrderDirection, ratingRange, setRatingRange, setTagFilter]);
 
     const songListProps = useMemo(() => ({
         songs,
