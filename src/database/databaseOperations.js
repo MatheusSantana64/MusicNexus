@@ -1,7 +1,7 @@
 // This file contains functions to interact with the SQLite database.
 // It includes functions to fetch songs, delete cache, delete data, fetch all songs as JSON, insert a single song into the database, delete the cover image for a song, delete a song from the database, submit form data, and add another song from the same album.
 
-import { db, initDatabase } from '../database/databaseSetup';
+import { db, initDatabase, initializeTagPositions } from '../database/databaseSetup';
 import { deleteImageFromCache, generateCacheKey } from '../utils/cacheManager';
 
 // Helper function to execute SQL queries
@@ -384,15 +384,22 @@ export const insertAllDataIntoDatabase = async (data, progressCallback) => {
         await insertRatingHistory(ratingHistory[i].song_id, ratingHistory[i].rating, ratingHistory[i].previous_rating, ratingHistory[i].datetime);
     }
 
-    // Insert tags
+    // Insert tags with default position if missing
     for (let i = 0; i < tags.length; i++) {
-        await insertTag(tags[i]);
+        const tag = tags[i];
+        if (tag.position === undefined) {
+            tag.position = i; // Assign a default position based on the order
+        }
+        await insertTag(tag);
     }
 
     // Insert song tags
     for (let i = 0; i < songTags.length; i++) {
         await addTag(songTags[i].song_id, songTags[i].tag_id);
     }
+
+    // Ensure positions are set correctly for all tags
+    await initializeTagPositions();
 };
 
 // Function to clear all data from the database

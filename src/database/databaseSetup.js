@@ -118,21 +118,12 @@ export const initDatabase = () => {
     });
 };
 
-const initializeTagPositions = () => {
-    db.transaction(tx => {
-        executeSql('SELECT id FROM tags WHERE position = 0 ORDER BY id').then(result => {
-            const tags = result.rows._array;
-            tags.forEach((tag, index) => {
-                executeSql('UPDATE tags SET position = ? WHERE id = ?', [index, tag.id]);
-            });
-        }).catch(error => {
-            console.log("Error initializing tag positions: ", error);
-        });
-    }, (error) => {
-        console.log("Error initializing tag positions: ", error);
-    }, () => {
-        console.log("Tag positions initialized successfully");
-    });
+const initializeTagPositions = async () => {
+    const result = await executeSql('SELECT id FROM tags ORDER BY id');
+    const tags = result.rows._array;
+    for (let i = 0; i < tags.length; i++) {
+        await executeSql('UPDATE tags SET position = ? WHERE id = ?', [i, tags[i].id]);
+    }
 };
 
-export { db, executeSql };
+export { db, executeSql, initializeTagPositions };
