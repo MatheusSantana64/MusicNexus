@@ -27,7 +27,11 @@ const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, 
     }, [setSearchText]);
 
     const setBothRatings = useCallback((value) => {
-        setRatings({ low: value, high: value });
+        if (typeof value === 'number') {
+            setRatings({ low: value, high: value });
+        } else {
+            setRatings(value);
+        }
     }, []);
 
     const updateLowRating = useCallback((value) => {
@@ -157,11 +161,11 @@ const RatingPresets = React.memo(({ setBothRatings }) => (
                 <Text style={styles.buttonText}>Not Rated</Text>
                 <Text style={{ ...styles.buttonText, fontSize: 12 }}>(0 ~ 0)</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setBothRatings(8)} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgoldenrod', minWidth: 150 }}>
+            <TouchableOpacity onPress={() => setBothRatings({ low: 8, high: 10 })} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgoldenrod', minWidth: 150 }}>
                 <Text style={styles.buttonText}>Best Rated</Text>
                 <Text style={{ ...styles.buttonText, fontSize: 12 }}>(8 ~ 10)</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setBothRatings(0)} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgreen', minWidth: 150 }}>
+            <TouchableOpacity onPress={() => setBothRatings({ low: 0, high: 10 })} style={{ ...styles.button, marginTop: 10, backgroundColor: 'darkgreen', minWidth: 150 }}>
                 <Text style={styles.buttonText}>All Ratings</Text>
                 <Text style={{ ...styles.buttonText, fontSize: 12 }}>Reset (0 ~ 10)</Text>
             </TouchableOpacity>
