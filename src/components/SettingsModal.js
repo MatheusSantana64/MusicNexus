@@ -32,9 +32,9 @@ const PickerComponent = ({ selectedValue, onValueChange, items }) => (
 );
 
 export default function SettingsModal({ isVisible, closeModal }) {
-    // Initialize global settings with default values if they are null
-    if (global.showCovers === null) global.showCovers = "true";
-    if (global.downloadCovers === null) global.downloadCovers = "true";
+    // Initialize global settings with default values if they are null or undefined
+    if (global.showCovers === null || global.showCovers === undefined) global.showCovers = "true";
+    if (global.downloadCovers === null || global.downloadCovers === undefined) global.downloadCovers = "true";
 
     const [showCovers, setShowCovers] = useState(global.showCovers);
     const [downloadCovers, setDownloadCovers] = useState(global.downloadCovers);
@@ -64,10 +64,10 @@ export default function SettingsModal({ isVisible, closeModal }) {
     useEffect(() => {
         const saveSettings = async () => {
             try {
-                if (global.showCovers !== null) {
+                if (global.showCovers !== null && global.showCovers !== undefined) {
                     await AsyncStorage.setItem('@music_nexus_show_covers', global.showCovers);
                 }
-                if (global.downloadCovers !== null) {
+                if (global.downloadCovers !== null && global.downloadCovers !== undefined) {
                     await AsyncStorage.setItem('@music_nexus_download_covers', global.downloadCovers);
                 }
                 console.log('Settings saved successfully: showCovers:', global.showCovers, 'downloadCovers:', global.downloadCovers);

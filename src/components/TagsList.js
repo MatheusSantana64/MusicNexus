@@ -1,10 +1,10 @@
-// TagsList.js
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, TextInput } from 'react-native';
-import { deleteTag, insertTag, getTags } from '../database/databaseOperations';
+import { deleteTag, insertTag, getTags, moveTagUp, moveTagDown } from '../database/databaseOperations';
 import EditTagModal from './EditTagModal';
 import ColorPickerComponent from './ColorPicker';
 import Icon from 'react-native-vector-icons/Feather';
+import { globalStyles } from '../styles/global';
 
 const TagsList = ({ tags, refreshTags }) => {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -21,7 +21,7 @@ const TagsList = ({ tags, refreshTags }) => {
   const handleDeleteTag = (tagId, tagName) => {
     Alert.alert(
       `Delete Tag "${tagName}"?`,
-      'Are you sure you want to delete this tag?',
+      'Are you sure you want to delete this tag?\nThis will also remove this tag from all tagged songs.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -56,6 +56,26 @@ const TagsList = ({ tags, refreshTags }) => {
     }
   };
 
+  const handleMoveTagUp = async (tagId) => {
+    try {
+      await moveTagUp(tagId);
+      refreshTags();
+    } catch (error) {
+      console.error('Failed to move tag up:', error);
+      Alert.alert('Error', 'Failed to move tag up.');
+    }
+  };
+
+  const handleMoveTagDown = async (tagId) => {
+    try {
+      await moveTagDown(tagId);
+      refreshTags();
+    } catch (error) {
+      console.error('Failed to move tag down:', error);
+      Alert.alert('Error', 'Failed to move tag down.');
+    }
+  };
+
   return (
     <ScrollView>
       <View style={styles.createTagContainer}>
@@ -73,16 +93,22 @@ const TagsList = ({ tags, refreshTags }) => {
           <Text style={styles.buttonText}>Create Tag</Text>
         </TouchableOpacity>
       </View>
-      {tags.map(tag => (
+      {tags.map((tag, index) => (
         <View key={tag.id} style={styles.tagContainer}>
+          <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteTag(tag.id, tag.name)}>
+            <Icon name="trash" size={16} color="white" />
+          </TouchableOpacity>
+
           <TouchableOpacity style={[styles.tagButton, { backgroundColor: tag.color }]} onPress={() => handleEditTag(tag)}>
             <Text style={styles.tagText}>{tag.name}</Text>
           </TouchableOpacity>
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteTag(tag.id, tag.name)}>
-              <Icon name="trash" size={16} color="white" />
-            </TouchableOpacity>
-          </View>
+
+          <TouchableOpacity style={styles.moveButton} onPress={() => handleMoveTagUp(tag.id)}>
+            <Icon name="arrow-up" size={16} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.moveButton} onPress={() => handleMoveTagDown(tag.id)}>
+            <Icon name="arrow-down" size={16} color="white" />
+          </TouchableOpacity>
         </View>
       ))}
       {isEditModalVisible && (
@@ -106,70 +132,82 @@ const TagsList = ({ tags, refreshTags }) => {
 };
 
 const styles = StyleSheet.create({
-    tagContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginVertical: 5,
-      flex: 1,
-      justifyContent: 'space-between',
-    },
-    tagButton: {
-        marginHorizontal: 10,
-        padding: 4,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        flex: 1,
-        marginLeft: 'auto',
-    },
-    tagText: {
-      color: 'white',
-      fontSize: 16,
-    },
-    actionButtons: {
-      flexDirection: 'row',
-      marginLeft: 'auto',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    deleteButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'crimson',
-      padding: 5,
-      paddingHorizontal: 10,
-      borderRadius: 15,
-    },
-    buttonText: {
-        color: 'white',
-    },
-    createTagContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 6,
-        marginTop: 10,
-    },
-    input: {
-        flex: 1,
-        color: 'white',
-        borderColor: 'gray',
-        borderWidth: 1,
-        borderRadius: 5,
-        paddingVertical: 2,
-        paddingHorizontal: 8,
-        marginRight: 10,
-    },
-    colorButton: {
-        padding: 8,
-        borderRadius: 5,
-        marginRight: 10,
-    },
-    createButton: {
-        backgroundColor: 'green',
-        padding: 8,
-        borderRadius: 5,
-    },
+  tagContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 5,
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  tagButton: {
+    padding: 4,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: 'auto',
+  },
+  tagText: {
+    color: 'white',
+    fontSize: 16,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    marginLeft: 'auto',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: globalStyles.blue3,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 15,
+    marginLeft: 5,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: globalStyles.red3,
+    padding: 5,
+    paddingHorizontal: 5,
+    borderRadius: 15,
+    marginRight: 5,
+  },
+  buttonText: {
+    color: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  createTagContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    marginTop: 10,
+  },
+  input: {
+    flex: 1,
+    color: 'white',
+    borderColor: 'gray',
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    marginRight: 10,
+  },
+  colorButton: {
+    padding: 8,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+  createButton: {
+    backgroundColor: 'green',
+    padding: 8,
+    borderRadius: 5,
+  },
 });
 
 export default TagsList;

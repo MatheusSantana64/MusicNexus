@@ -1,12 +1,11 @@
+// src/screens/Home.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { initDatabase } from '../database/databaseSetup';
-import { getTags } from '../database/databaseOperations';
 import { fetchSongs } from '../database/databaseOperations';
 import SongList from '../components/SongList';
 import OrderButtons from '../components/OrderButtons';
-import TagsList from '../components/TagsList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { globalStyles } from '../styles/global';
 
@@ -18,7 +17,6 @@ export function Home() {
         notRatedSongs: [],
         orderNotRated: 'release',
         orderDirectionNotRated: 'desc',
-        tags: [],
     });
 
     const {
@@ -28,7 +26,6 @@ export function Home() {
         notRatedSongs,
         orderNotRated,
         orderDirectionNotRated,
-        tags,
     } = state;
 
     useEffect(() => {
@@ -47,16 +44,14 @@ export function Home() {
             };
 
             const fetchSongsWrapper = async () => {
-                const [songsFav, songsNotRated, fetchedTags] = await Promise.all([
+                const [songsFav, songsNotRated] = await Promise.all([
                     fetchSongs('', orderFav, orderDirectionFav, 0, false, { min: 5, max: 10 }),
                     fetchSongs('', orderNotRated, orderDirectionNotRated, 0, false, { min: 0, max: 0 }),
-                    getTags(),
                 ]);
                 setState(prevState => ({
                     ...prevState,
                     favoriteSongs: songsFav,
                     notRatedSongs: songsNotRated,
-                    tags: fetchedTags,
                 }));
             };
 
@@ -85,19 +80,6 @@ export function Home() {
                 directionKey="orderDirectionNotRated"
                 onOrderChange={handleOrderChange}
             />
-            <View style={styles.tagsSectionContainer}>
-                <Text style={{...styles.title, marginVertical: 6}}>Tags Manager</Text>
-                <TagsList
-                    tags={tags}
-                    refreshTags={async () => {
-                        const fetchedTags = await getTags();
-                        setState(prevState => ({
-                            ...prevState,
-                            tags: fetchedTags,
-                        }));
-                    }}
-                />
-            </View>
         </View>
     );
 }
@@ -138,9 +120,6 @@ const styles = StyleSheet.create({
         flex: 1,
         borderBottomWidth: 1,
         borderBottomColor: globalStyles.gray2,
-    },
-    tagsSectionContainer: {
-        flex: 0.5,
     },
 });
 

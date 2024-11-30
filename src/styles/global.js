@@ -16,12 +16,14 @@ export const globalStyles = StyleSheet.create({
 
     blue1: "#041C32",
     blue2: "#141E61", // Default Button Color
+    blue3: "#4682B4",
 
     green1: "#102c16",
     green2: "#1E5128",
 
     red1: "#3b0b0b",
     red2: "#700606",
+    red3: "#A40000",
 
     purple1: "#2A0944",
     purple2: "#3F0071",

@@ -119,7 +119,8 @@ export const getTagsWithSongCount = async () => {
         `SELECT tags.name, COUNT(song_tags.song_id) as count
          FROM tags
          LEFT JOIN song_tags ON tags.id = song_tags.tag_id
-         GROUP BY tags.id`
+         GROUP BY tags.id
+         ORDER BY tags.position`
     );
     return result.rows._array;
 };
@@ -266,7 +267,12 @@ export const submitForm = async (song, editMode) => {
 
 // Function to insert a new tag into the database
 export const insertTag = async (tag) => {
-    await executeSql('INSERT INTO tags (name, color) VALUES (?, ?)', [tag.name, tag.color]);
+    // Get the current maximum position
+    const result = await executeSql('SELECT MAX(position) as maxPosition FROM tags');
+    const maxPosition = result.rows.item(0).maxPosition || 0;
+
+    // Insert the new tag with the position set to maxPosition + 1
+    await executeSql('INSERT INTO tags (name, color, position) VALUES (?, ?, ?)', [tag.name, tag.color, maxPosition + 1]);
 };
 
 // Function to add a tag to a song
@@ -276,7 +282,7 @@ export const addTag = async (songId, tagId) => {
 
 // Function to select all tags
 export const getTags = async () => {
-    const result = await executeSql('SELECT * FROM tags');
+    const result = await executeSql('SELECT * FROM tags ORDER BY position');
     return result.rows._array;
 };
 
@@ -292,7 +298,8 @@ export const getTagsForSong = async (songId) => {
         `SELECT tags.name, tags.color 
          FROM tags 
          INNER JOIN song_tags ON tags.id = song_tags.tag_id 
-         WHERE song_tags.song_id = ?`,
+         WHERE song_tags.song_id = ?
+         ORDER BY tags.position`,
         [songId]
     );
     return result.rows._array;
@@ -303,9 +310,27 @@ export const removeTag = async (songId, tagId) => {
     await executeSql('DELETE FROM song_tags WHERE song_id = ? AND tag_id = ?', [songId, tagId]);
 };
 
-// Function to delete a tag from the database
+// Function to delete a tag from the database and update positions
 export const deleteTag = async (tagId) => {
+    // Get the position of the tag to be deleted
+    const tagToDelete = await executeSql('SELECT position FROM tags WHERE id = ?', [tagId]);
+    if (tagToDelete.rows.length === 0) {
+        return;
+    }
+
+    const positionToDelete = tagToDelete.rows.item(0).position;
+
+    // Delete the tag
     await executeSql('DELETE FROM tags WHERE id = ?', [tagId]);
+
+    // Update positions of remaining tags
+    await updateTagPositions(positionToDelete);
+};
+
+// Function to update positions of remaining tags after a deletion
+const updateTagPositions = async (deletedPosition) => {
+    // Decrease the position of all tags with a position greater than the deleted position
+    await executeSql('UPDATE tags SET position = position - 1 WHERE position > ?', [deletedPosition]);
 };
 
 // Function to get a tag by ID
@@ -369,4 +394,50 @@ export const clearDatabase = async () => {
     await executeSql('DELETE FROM tags');
     await executeSql('DELETE FROM song_tags');
     console.log('Database cleared.');
+};
+
+// Function to move a tag up
+export const moveTagUp = async (tagId) => {
+    // Get the current position of the tag
+    const currentTag = await executeSql('SELECT id, position FROM tags WHERE id = ?', [tagId]);
+    if (currentTag.rows.length === 0) {
+        return;
+    }
+
+    const currentPosition = currentTag.rows.item(0).position;
+
+    // Find the tag that is currently above the current tag
+    const aboveTag = await executeSql('SELECT id, position FROM tags WHERE position = ?', [currentPosition - 1]);
+    if (aboveTag.rows.length === 0) {
+        return;
+    }
+
+    const aboveTagId = aboveTag.rows.item(0).id;
+
+    // Swap positions
+    await executeSql('UPDATE tags SET position = ? WHERE id = ?', [currentPosition - 1, tagId]);
+    await executeSql('UPDATE tags SET position = ? WHERE id = ?', [currentPosition, aboveTagId]);
+};
+
+// Function to move a tag down
+export const moveTagDown = async (tagId) => {
+    // Get the current position of the tag
+    const currentTag = await executeSql('SELECT id, position FROM tags WHERE id = ?', [tagId]);
+    if (currentTag.rows.length === 0) {
+        return;
+    }
+
+    const currentPosition = currentTag.rows.item(0).position;
+
+    // Find the tag that is currently below the current tag
+    const belowTag = await executeSql('SELECT id, position FROM tags WHERE position = ?', [currentPosition + 1]);
+    if (belowTag.rows.length === 0) {
+        return;
+    }
+
+    const belowTagId = belowTag.rows.item(0).id;
+
+    // Swap positions
+    await executeSql('UPDATE tags SET position = ? WHERE id = ?', [currentPosition + 1, tagId]);
+    await executeSql('UPDATE tags SET position = ? WHERE id = ?', [currentPosition, belowTagId]);
 };

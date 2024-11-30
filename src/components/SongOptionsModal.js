@@ -3,20 +3,18 @@ import { TouchableWithoutFeedback, View, StyleSheet, Text, TouchableOpacity, Ale
 import Modal from 'react-native-modal';
 import { deleteCover, deleteSong, getSongRatingHistory } from '../database/databaseOperations';
 import SongFormModal from './SongFormModal';
-import TagsModal from './Tags';
 import { globalStyles } from '../styles/global';
 
 const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, songs, setSongs, refreshSongsList }) => {
     const [modalsVisibility, setModalsVisibility] = useState({
         formModal: false,
         ratingHistoryModal: false,
-        tagsModal: false,
     });
     const [ratingHistory, setRatingHistory] = useState([]);
 
     const openModal = (modal) => setModalsVisibility({ ...modalsVisibility, [modal]: true });
     const closeModals = () => {
-        setModalsVisibility({ formModal: false, ratingHistoryModal: false, tagsModal: false });
+        setModalsVisibility({ formModal: false, ratingHistoryModal: false });
         closeModal();
     };
 
@@ -106,7 +104,6 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
                                 <Text style={{ ...styles.optionsTitle, fontSize: 14, marginBottom: 12 }}>{selectedSong.title}</Text>
                                 {renderOptionButton(() => openModal('formModal'), 'Edit Song')}
                                 {renderOptionButton(handleViewRatingHistory, 'View Rating History', { backgroundColor: globalStyles.yellow1 })}
-                                {renderOptionButton(() => openModal('tagsModal'), 'Tags', { backgroundColor: globalStyles.pink1 })}
                                 {renderOptionButton(handleDeleteSong, 'Delete Song', { backgroundColor: globalStyles.red2 })}
                                 <View style={styles.row}>
                                     {renderOptionButton(handleDeleteCover, 'Reload Cover', styles.optionButtonSmall)}
@@ -125,12 +122,6 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
                 songs={songs}
                 setSongs={setSongs}
                 refreshSongsList={refreshSongsList}
-            />
-
-            <TagsModal
-                isTagsModalVisible={modalsVisibility.tagsModal}
-                closeModals={closeModals}
-                selectedSong={selectedSong}
             />
 
             <Modal

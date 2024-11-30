@@ -1,11 +1,12 @@
+// src/routes/index.js
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import Icon from 'react-native-vector-icons/FontAwesome';
 
-import { Home } from "../screens/Home";
 import { Music } from "../screens/Music";
 import History from "../screens/History";
 import { Profile } from "../screens/Profile";
+import { Tags } from "../screens/Tags";
 
 const { Navigator, Screen } = createBottomTabNavigator();
 
@@ -24,8 +25,8 @@ const screenOptions = {
 };
 
 const screens = [
-  { name: "Home", component: Home, icon: "home" },
   { name: "Music", component: Music, icon: "music" },
+  { name: "Tags", component: Tags, icon: "tags" },
   { name: "History", component: History, icon: "history" },
   { name: "Profile", component: Profile, icon: "user" }
 ];
@@ -33,7 +34,7 @@ const screens = [
 export function Routes() {
   return (
     <NavigationContainer>
-      <Navigator screenOptions={screenOptions}>
+      <Navigator screenOptions={screenOptions} initialRouteName="Music">
         {screens.map(({ name, component, icon }) => (
           <Screen 
             key={name}

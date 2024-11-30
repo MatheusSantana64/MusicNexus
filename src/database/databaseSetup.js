@@ -3,10 +3,22 @@ import * as SQLite from 'expo-sqlite';
 // Open or create the database
 const db = SQLite.openDatabase('musicnexus.db');
 
+const executeSql = (query, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.transaction(tx => {
+            tx.executeSql(query, params, (tx, result) => {
+                resolve(result);
+            }, (tx, error) => {
+                reject(error);
+            });
+        });
+    });
+};
+
 export const initDatabase = () => {
     db.transaction(tx => {
         // Create songs table
-        tx.executeSql(`
+        executeSql(`
             CREATE TABLE IF NOT EXISTS songs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
@@ -16,9 +28,9 @@ export const initDatabase = () => {
                 rating REAL NOT NULL,
                 cover_path TEXT
             );
-        `, [], (tx, result) => {
+        `).then(result => {
             console.log("Songs table created successfully");
-        }, (tx, error) => {
+        }).catch(error => {
             console.log("Error creating songs table: ", error);
         });
 
@@ -32,15 +44,15 @@ export const initDatabase = () => {
         ];
 
         indexes.forEach(query => {
-            tx.executeSql(query, [], (tx, result) => {
+            executeSql(query).then(result => {
                 console.log("Index created successfully");
-            }, (tx, error) => {
+            }).catch(error => {
                 console.log("Error creating index: ", error);
             });
         });
 
         // Create song_rating_history table
-        tx.executeSql(`
+        executeSql(`
             CREATE TABLE IF NOT EXISTS song_rating_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 song_id INTEGER,
@@ -49,27 +61,41 @@ export const initDatabase = () => {
                 datetime TEXT NOT NULL,
                 FOREIGN KEY(song_id) REFERENCES songs(id)
             );
-        `, [], (tx, result) => {
+        `).then(result => {
             console.log("Song rating history table created successfully");
-        }, (tx, error) => {
+        }).catch(error => {
             console.log("Error creating song rating history table: ", error);
         });
 
         // Create tags table
-        tx.executeSql(`
+        executeSql(`
             CREATE TABLE IF NOT EXISTS tags (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
-                color TEXT NOT NULL
+                color TEXT NOT NULL,
+                position INTEGER NOT NULL DEFAULT 0
             );
-        `, [], (tx, result) => {
+        `).then(result => {
             console.log("Tags table created successfully");
-        }, (tx, error) => {
+        }).catch(error => {
             console.log("Error creating tags table: ", error);
         });
 
+        // Alter tags table to add position column if it doesn't exist
+        executeSql(`
+            ALTER TABLE tags ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
+        `).then(result => {
+            console.log("Position column added to tags table successfully");
+        }).catch(error => {
+            if (error.message.includes('duplicate column name')) {
+                console.log("Position column already exists in tags table");
+            } else {
+                console.log("Error adding position column to tags table: ", error);
+            }
+        });
+
         // Create song_tags table
-        tx.executeSql(`
+        executeSql(`
             CREATE TABLE IF NOT EXISTS song_tags (
                 song_id INTEGER,
                 tag_id INTEGER,
@@ -77,11 +103,14 @@ export const initDatabase = () => {
                 FOREIGN KEY(tag_id) REFERENCES tags(id),
                 PRIMARY KEY(song_id, tag_id)
             );
-        `, [], (tx, result) => {
+        `).then(result => {
             console.log("Song tags table created successfully");
-        }, (tx, error) => {
+        }).catch(error => {
             console.log("Error creating song tags table: ", error);
         });
+
+        // Initialize positions for existing tags
+        initializeTagPositions();
     }, (error) => {
         console.log("Error initializing database: ", error);
     }, () => {
@@ -89,4 +118,21 @@ export const initDatabase = () => {
     });
 };
 
-export { db };
+const initializeTagPositions = () => {
+    db.transaction(tx => {
+        executeSql('SELECT id FROM tags WHERE position = 0 ORDER BY id').then(result => {
+            const tags = result.rows._array;
+            tags.forEach((tag, index) => {
+                executeSql('UPDATE tags SET position = ? WHERE id = ?', [index, tag.id]);
+            });
+        }).catch(error => {
+            console.log("Error initializing tag positions: ", error);
+        });
+    }, (error) => {
+        console.log("Error initializing tag positions: ", error);
+    }, () => {
+        console.log("Tag positions initialized successfully");
+    });
+};
+
+export { db, executeSql };
