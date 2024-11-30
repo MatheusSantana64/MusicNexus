@@ -1,11 +1,30 @@
 # MusicNexus
 
 ## Screenshots
-![Music Screenshot](https://drive.google.com/uc?export=view&id=1b98wvrbTNs0QmPc810UUWJm9AsdmLtQa)
-![Rating Screenshot](https://drive.google.com/uc?export=view&id=1b2DjY8VT3fXRinoUdNlHo0P6fTy68OkA)
-![Tags Screenshot](https://drive.google.com/uc?export=view&id=1b06KOMwdY6FN6uW-aSVpbUdwew_2UVcI)
-![History Screenshot](https://drive.google.com/uc?export=view&id=1azOLSCLXM1ckpy2wNLzXxK8ULMATDSXf)
-![Settings Screenshot](https://drive.google.com/uc?export=view&id=1avR149yOhFNMwf9blSPOOQc5GfxL-oc_)
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="https://drive.google.com/uc?export=view&id=1b98wvrbTNs0QmPc810UUWJm9AsdmLtQa" alt="Music Screenshot" width="300">
+      </td>
+      <td align="center">
+        <img src="https://drive.google.com/uc?export=view&id=1b2DjY8VT3fXRinoUdNlHo0P6fTy68OkA" alt="Rating Screenshot" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <img src="https://drive.google.com/uc?export=view&id=1b06KOMwdY6FN6uW-aSVpbUdwew_2UVcI" alt="Tags Screenshot" width="300">
+      </td>
+      <td align="center">
+        <img src="https://drive.google.com/uc?export=view&id=1azOLSCLXM1ckpy2wNLzXxK8ULMATDSXf" alt="History Screenshot" width="300">
+      </td>
+    </tr>
+  </table>
+
+  <div>
+    <img src="https://drive.google.com/uc?export=view&id=1avR149yOhFNMwf9blSPOOQc5GfxL-oc_" alt="Settings Screenshot" width="400">
+  </div>
+</div>
 
 ## Download
 Download the latest APK [here](https://github.com/MatheusSantana64/MusicNexus/releases).
