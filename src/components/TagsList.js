@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   createButton: {
-    backgroundColor: 'green',
+    backgroundColor: globalStyles.green2,
     padding: 8,
     borderRadius: 5,
   },

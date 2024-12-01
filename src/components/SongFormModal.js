@@ -1,21 +1,36 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import { TouchableWithoutFeedback, StyleSheet, View, TextInput, Button, Dimensions, TouchableOpacity, KeyboardAvoidingView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Modal from 'react-native-modal';
 import { submitForm } from '../database/databaseOperations';
 import { globalStyles } from '../styles/global';
 
-const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, setSongs, refreshSongsList }) => {
-    const [title, setTitle] = React.useState(selectedSong ? selectedSong.title : '');
-    const [artist, setArtist] = React.useState(selectedSong ? selectedSong.artist : '');
-    const [album, setAlbum] = React.useState(selectedSong ? selectedSong.album : '');
-    const [release, setRelease] = React.useState(selectedSong ? selectedSong.release : new Date().toISOString().split('T')[0]);
+const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, setSongs, refreshSongsList, fromDiscover }) => {
+    const [title, setTitle] = React.useState('');
+    const [artist, setArtist] = React.useState('');
+    const [album, setAlbum] = React.useState('');
+    const [release, setRelease] = React.useState(new Date().toISOString().split('T')[0]);
     const [datePickerVisible, setDatePickerVisible] = React.useState(false);
-    const [editMode, setEditMode] = React.useState(!!selectedSong);
+    const [editMode, setEditMode] = React.useState(false);
 
     const titleRef = useRef(null);
     const artistRef = useRef(null);
     const albumRef = useRef(null);
+
+    useEffect(() => {
+        if (isFormModalVisible) {
+            if (selectedSong) {
+                setTitle(selectedSong.title);
+                setArtist(selectedSong.artist);
+                setAlbum(selectedSong.album);
+                setRelease(selectedSong.release);
+                setEditMode(!!selectedSong.id);
+            } else {
+                clearForm();
+                setEditMode(false);
+            }
+        }
+    }, [isFormModalVisible]);
 
     const constructSongData = useCallback(() => ({
         id: editMode ? selectedSong.id : null,
@@ -41,19 +56,20 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, se
             const updatedSongs = songs.map(song => song.id === songData.id ? songData : song);
             setSongs(updatedSongs);
         } else {
-            clearForm();
+            setSongs([...songs, songData]);
             refreshSongsList();
         }
         closeModal();
-    }, [constructSongData, editMode, songs, setSongs, clearForm, refreshSongsList, closeModal]);
+    }, [constructSongData, editMode, songs, setSongs, refreshSongsList, closeModal]);
 
     const handleAddAnotherSong = useCallback(async () => {
         const songData = constructSongData();
         await submitForm(songData, editMode);
-        setTitle('');
+        setSongs([...songs, songData]);
+        clearForm();
         titleRef.current.focus();
         setEditMode(false);
-    }, [constructSongData, editMode]);
+    }, [constructSongData, editMode, clearForm, songs, setSongs]);
 
     return (
         <View style={styles.absoluteContainer}>
@@ -124,9 +140,11 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, se
                                         <View style={styles.buttonContainer}>
                                             <Button title={editMode ? "Save Changes" : "Add Song"} onPress={handleSubmit} color={globalStyles.defaultButtonColor} />
                                         </View>
-                                        <View style={[styles.buttonContainer, styles.marginTop]}>
-                                            <Button title={editMode ? "Save & Add Another" : "Add Another Song"} onPress={handleAddAnotherSong} color={globalStyles.green2} />
-                                        </View>
+                                        {!fromDiscover && (
+                                            <View style={[styles.buttonContainer, styles.marginTop]}>
+                                                <Button title={editMode ? "Save & Add Another" : "Add Another Song"} onPress={handleAddAnotherSong} color={globalStyles.green2} />
+                                            </View>
+                                        )}
                                         <View style={[styles.buttonContainer, styles.marginTop]}>
                                             <Button title="Cancel" onPress={closeModal} color={globalStyles.red2}/>
                                         </View>

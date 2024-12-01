@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
-import { View } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import Icon from 'react-native-vector-icons/Feather';
 import SearchBar from '../components/SearchBar';
 import SongList from '../components/SongList';
-import FloatingButton from '../components/FloatingButton';
+import SongFormModal from '../components/SongFormModal';
 import { fetchSongs } from '../database/databaseOperations';
 import { globalStyles } from '../styles/global';
 
@@ -18,8 +18,9 @@ export function Music() {
     const [songs, setSongs] = useState([]);
     const [offset, setOffset] = useState(0);
     const [hasMoreSongs, setHasMoreSongs] = useState(true);
+    const [isFormModalVisible, setFormModalVisible] = useState(false);
     
-    // Add ref to track if initial data has been loaded
+    // Ref to track if initial data has been loaded
     const isInitialLoadDone = useRef(false);
 
     const fetchSongsWrapper = useCallback(async (searchText, orderBy, orderDirection, offset = 0, isScroll = false, ratingRange = { min: 0, max: 10 }, tagFilter = []) => {
@@ -76,19 +77,62 @@ export function Music() {
         refreshSongsList
     }), [songs, fetchMoreSongs, hasMoreSongs, setSongs, refreshSongsList]);
 
-    const floatingButtonProps = useMemo(() => ({
-        songs,
-        setSongs,
-        refreshSongsList
-    }), [songs, setSongs, refreshSongsList]);
+    const toggleFormModal = () => {
+        setFormModalVisible(!isFormModalVisible);
+    };
 
     return (
         <View style={{ flex: 1, backgroundColor: globalStyles.black1 }}>
-            <FloatingButton {...floatingButtonProps} />
+            <View style={styles.buttonContainer}>
+                <TouchableOpacity onPress={refreshSongsList} style={styles.refreshButton}>
+                    <Icon name="refresh-cw" size={24} color="white" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={toggleFormModal} style={styles.floatingButton}>
+                    <Icon name="plus" size={24} color="white" />
+                </TouchableOpacity>
+            </View>
             <View style={{ marginHorizontal: 10, marginTop: 16 }}>
                 <SearchBar {...searchBarProps} />
             </View>
             <SongList {...songListProps} />
+            <SongFormModal
+                isFormModalVisible={isFormModalVisible}
+                closeModal={toggleFormModal}
+                selectedSong={null}
+                songs={songs}
+                setSongs={setSongs}
+                refreshSongsList={refreshSongsList}
+            />
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    buttonContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        zIndex: 1,
+    },
+    refreshButton: {
+        marginRight: 10,
+        backgroundColor: globalStyles.blue1,
+        paddingHorizontal: 6,
+        borderRadius: 5,
+        height: 40,
+        width: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    floatingButton: {
+        backgroundColor: globalStyles.green1,
+        paddingHorizontal: 6,
+        borderRadius: 5,
+        height: 40,
+        width: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+});

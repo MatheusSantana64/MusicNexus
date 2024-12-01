@@ -1,6 +1,6 @@
 // MusicBrainz API for fetching album cover and release MBID
 
-const USER_AGENT = 'MusicNexusApp/0.5.0 ( https://github.com/MatheusSantana64/MusicNexus )';
+const USER_AGENT = 'MusicNexusApp/0.5.1 ( https://github.com/MatheusSantana64/MusicNexus )';
 
 let queue = [];
 let isProcessing = false;
@@ -85,4 +85,81 @@ async function fetchReleaseMbid(artist, album) {
   }
 }
 
-export { addToQueue, fetchAlbumCover, cleanAlbumName };
+async function fetchAlbumCoverByMbid(releases, artist, album) {
+  const sizes = ['front-250', 'front-500', 'front'];
+  for (const release of releases) {
+    const mbid = release.id;
+    for (const size of sizes) {
+      try {
+        const response = await fetch(`https://coverartarchive.org/release/${mbid}/${size}`, {
+          headers: {
+            'User-Agent': USER_AGENT,
+            Accept: 'image/jpeg',
+          },
+        });
+        if (response.ok) {
+          console.log(`Found cover for MBID ${mbid} with size ${size}`);
+          return response.url || null;
+        }
+      } catch (error) {
+        console.log(`Error fetching cover for MBID ${mbid} with size ${size}:`, error);
+      }
+    }
+  }
+
+  // Search by album-artist combination if no cover found
+  try {
+    const query = `artist:"${encodeURIComponent(artist)}" AND release:"${encodeURIComponent(album)}"`;
+    const response = await fetch(`https://musicbrainz.org/ws/2/release/?query=${query}&fmt=json&limit=5`, {
+      headers: {
+        'User-Agent': USER_AGENT,
+      },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      const additionalReleases = data.releases || [];
+      for (const release of additionalReleases) {
+        for (const size of sizes) {
+          try {
+            const coverResponse = await fetch(`https://coverartarchive.org/release/${release.id}/${size}`, {
+              headers: {
+                'User-Agent': USER_AGENT,
+                Accept: 'image/jpeg',
+              },
+            });
+            if (coverResponse.ok) {
+              console.log(`Found cover for release ${release.id} with size ${size}`);
+              return coverResponse.url || null;
+            }
+          } catch (error) {
+            console.log(`Error fetching cover for release ${release.id} with size ${size}:`, error);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.log(`Error searching for album-artist combination:`, error);
+  }
+
+  console.log(`No cover found for album: ${album}, artist: ${artist}`);
+  return 'NO_COVER_FOUND';
+}
+
+async function searchRecordings(query) {
+  const url = `https://musicbrainz.org/ws/2/recording/?query=${query}&fmt=json&limit=100`;
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': USER_AGENT,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Error fetching data: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    throw new Error(`Failed to fetch search results: ${error.message}`);
+  }
+}
+
+export { addToQueue, fetchAlbumCover, cleanAlbumName, fetchAlbumCoverByMbid, fetchReleaseMbid, searchRecordings };

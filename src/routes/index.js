@@ -7,7 +7,7 @@ import { Music } from "../screens/Music";
 import History from "../screens/History";
 import { Profile } from "../screens/Profile";
 import { Tags } from "../screens/Tags";
-import OnlineSearch from "../screens/OnlineSearch";
+import Discover from "../screens/Discover";
 
 const { Navigator, Screen } = createBottomTabNavigator();
 
@@ -27,7 +27,7 @@ const screenOptions = {
 
 const screens = [
   { name: "Music", component: Music, icon: "music" },
-  { name: "Discover", component: OnlineSearch, icon: "search-plus" },
+  { name: "Discover", component: Discover, icon: "search-plus" },
   { name: "Tags", component: Tags, icon: "tags" },
   { name: "History", component: History, icon: "history" },
   { name: "Profile", component: Profile, icon: "user" }
