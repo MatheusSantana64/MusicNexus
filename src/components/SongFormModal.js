@@ -5,7 +5,7 @@ import Modal from 'react-native-modal';
 import { submitForm } from '../database/databaseOperations';
 import { globalStyles } from '../styles/global';
 
-const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, setSongs, refreshSongsList, fromDiscover }) => {
+const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, setSongs, refreshSongsList, fromDiscover, onSongAdded }) => {
     const [title, setTitle] = React.useState('');
     const [artist, setArtist] = React.useState('');
     const [album, setAlbum] = React.useState('');
@@ -52,15 +52,16 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, se
     const handleSubmit = useCallback(async () => {
         const songData = constructSongData();
         await submitForm(songData, editMode);
-        if (editMode) {
-            const updatedSongs = songs.map(song => song.id === songData.id ? songData : song);
-            setSongs(updatedSongs);
-        } else {
+        if (!editMode) {
             setSongs([...songs, songData]);
-            refreshSongsList();
+            if (onSongAdded) {
+                onSongAdded();
+            }
+        } else {
+            // Handle edit mode if necessary
         }
         closeModal();
-    }, [constructSongData, editMode, songs, setSongs, refreshSongsList, closeModal]);
+    }, [constructSongData, editMode, songs, setSongs, closeModal, onSongAdded]);
 
     const handleAddAnotherSong = useCallback(async () => {
         const songData = constructSongData();

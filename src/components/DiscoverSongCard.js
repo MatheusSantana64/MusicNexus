@@ -14,15 +14,18 @@ const DiscoverSongCard = ({ item, handleAddSong }) => {
     const trackNumber = item.releases?.[0]?.media?.[0]?.track?.[0]?.number || 'N/A';
     const releaseDate = item.releases?.[0]?.date || 'Unknown Release Date';
 
-    useEffect(() => {
-        const checkIfSongExists = async () => {
-            const exists = await songExistsInDatabase(item.title, artistName, albumTitle);
-            console.log(`Checking if song exists: ${item.title} by ${artistName} from ${albumTitle} - ${exists}`);
-            setIsSongInLibrary(exists);
-        };
+    const checkIfSongExists = async () => {
+        const exists = await songExistsInDatabase(item.title, artistName, albumTitle);
+        setIsSongInLibrary(exists);
+    };
 
+    useEffect(() => {
         checkIfSongExists();
     }, [item.title, artistName, albumTitle]);
+
+    const handleSongAdded = () => {
+        checkIfSongExists();
+    };
 
     const openFormModal = (song) => {
         if (isSongInLibrary) {
@@ -94,6 +97,7 @@ const DiscoverSongCard = ({ item, handleAddSong }) => {
                     setSongs={() => {}}
                     refreshSongsList={() => {}}
                     fromDiscover={true}
+                    onSongAdded={handleSongAdded} // Pass the callback here
                 />
             )}
         </View>
