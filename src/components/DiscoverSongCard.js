@@ -1,20 +1,53 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { globalStyles } from '../styles/global';
 import SongFormModal from './SongFormModal';
+import { songExistsInDatabase } from '../database/databaseOperations';
 
 const DiscoverSongCard = ({ item, handleAddSong }) => {
     const [isFormModalVisible, setFormModalVisible] = useState(false);
     const [selectedSong, setSelectedSong] = useState(null);
+    const [isSongInLibrary, setIsSongInLibrary] = useState(false);
 
     const artistName = item['artist-credit']?.[0]?.name || 'Unknown Artist';
     const albumTitle = item.releases?.[0]?.title || 'Unknown Album';
     const trackNumber = item.releases?.[0]?.media?.[0]?.track?.[0]?.number || 'N/A';
     const releaseDate = item.releases?.[0]?.date || 'Unknown Release Date';
 
+    useEffect(() => {
+        const checkIfSongExists = async () => {
+            const exists = await songExistsInDatabase(item.title, artistName, albumTitle);
+            console.log(`Checking if song exists: ${item.title} by ${artistName} from ${albumTitle} - ${exists}`);
+            setIsSongInLibrary(exists);
+        };
+
+        checkIfSongExists();
+    }, [item.title, artistName, albumTitle]);
+
     const openFormModal = (song) => {
-        setSelectedSong(song);
-        setFormModalVisible(true);
+        if (isSongInLibrary) {
+            Alert.alert(
+                'Check Library',
+                'This song might already be in your library. Do you want to add it again?',
+                [
+                    {
+                        text: 'Cancel',
+                        style: 'cancel',
+                    },
+                    {
+                        text: 'Add Song',
+                        onPress: () => {
+                            setSelectedSong(song);
+                            setFormModalVisible(true);
+                        },
+                    },
+                ],
+                { cancelable: true }
+            );
+        } else {
+            setSelectedSong(song);
+            setFormModalVisible(true);
+        }
     };
 
     return (
@@ -38,8 +71,14 @@ const DiscoverSongCard = ({ item, handleAddSong }) => {
                 <Text style={styles.songAlbum}>{albumTitle}</Text>
                 <Text style={styles.songReleaseDate}>{releaseDate}</Text>
             </View>
-            <TouchableOpacity onPress={() => openFormModal(item)} style={styles.addButton}>
-                <Text style={styles.addButtonText}>Add</Text>
+            <TouchableOpacity
+                onPress={() => openFormModal(item)}
+                style={[
+                    styles.addButton,
+                    { backgroundColor: isSongInLibrary ? globalStyles.green2 : globalStyles.blue2 } // Replace 'defaultColor' with your default button color
+                ]}
+            >
+                <Text style={styles.addButtonText}>{isSongInLibrary ? 'Added' : 'Add'}</Text>
             </TouchableOpacity>
             {isFormModalVisible && (
                 <SongFormModal
@@ -120,7 +159,6 @@ const styles = StyleSheet.create({
         fontSize: 10,
     },
     addButton: {
-        backgroundColor: globalStyles.blue2,
         marginRight: 10,
         borderRadius: 8,
         padding: 10,

@@ -16,19 +16,19 @@ const Discover = () => {
         setLoading(true);
         const currentSearchId = Date.now();
         activeSearchRef.current = currentSearchId;
-
-        const { songTitle, artist, album, year } = searchParams;
+    
+        const { title, artist, album, year } = searchParams;
         const queryParts = [];
-        if (songTitle) queryParts.push(`recording:"${encodeURIComponent(songTitle)}"`);
+        if (title) queryParts.push(`title:"${encodeURIComponent(title)}"`);
         if (artist) queryParts.push(`artist:"${encodeURIComponent(artist)}"`);
         if (album) queryParts.push(`release:"${encodeURIComponent(album)}"`);
         if (year) queryParts.push(`date:${encodeURIComponent(year)}`);
         const query = queryParts.join(' AND ');
-
+    
         try {
             const data = await searchRecordings(query);
             const recordings = data.recordings || [];
-
+    
             const initialResults = recordings.map(recording => {
                 if (!recording || !recording['artist-credit'] || !recording.releases) {
                     return null;
@@ -39,7 +39,7 @@ const Discover = () => {
                 }
                 return { ...recording, coverPath: null, noCover: false };
             }).filter(recording => recording !== null);
-
+    
             const sortedResults = initialResults.sort((a, b) => {
                 const dateA = new Date(a.releases?.[0]?.date || '1900-01-01');
                 const dateB = new Date(b.releases?.[0]?.date || '1900-01-01');
@@ -50,9 +50,9 @@ const Discover = () => {
                 const trackNumberB = parseInt(b.releases?.[0]?.media?.[0]?.track?.[0]?.number || '0', 10);
                 return trackNumberA - trackNumberB;
             });
-
+    
             setSearchResults(sortedResults);
-
+    
             sortedResults.forEach(async (recording, index) => {
                 if (activeSearchRef.current !== currentSearchId) return;
                 if (!recording || !recording['artist-credit'] || !recording.releases) return;

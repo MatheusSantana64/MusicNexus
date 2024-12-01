@@ -1,6 +1,6 @@
 // MusicBrainz API for fetching album cover and release MBID
 
-const USER_AGENT = 'MusicNexusApp/0.5.1 ( https://github.com/MatheusSantana64/MusicNexus )';
+const USER_AGENT = 'MusicNexusApp/0.5.2 ( https://github.com/MatheusSantana64/MusicNexus )';
 
 let queue = [];
 let isProcessing = false;
@@ -98,7 +98,6 @@ async function fetchAlbumCoverByMbid(releases, artist, album) {
           },
         });
         if (response.ok) {
-          console.log(`Found cover for MBID ${mbid} with size ${size}`);
           return response.url || null;
         }
       } catch (error) {

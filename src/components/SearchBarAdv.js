@@ -6,7 +6,7 @@ import { globalStyles } from '../styles/global';
 const SearchBarAdv = ({ searchParams, setSearchParams, handleSearch }) => {
     return (
         <View style={styles.searchBarContainer}>
-            {['Title', 'Artist', 'Album', 'Year'].map((placeholder, index) => (
+            {['Title', 'Artist', 'Album'].map((placeholder, index) => (
                 <View key={index} style={styles.inputContainer}>
                     <TextInput
                         placeholder={placeholder}
@@ -22,8 +22,22 @@ const SearchBarAdv = ({ searchParams, setSearchParams, handleSearch }) => {
                     ) : null}
                 </View>
             ))}
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity onPress={handleSearch} style={styles.searchButton}>
+            <View style={styles.rowContainer}>
+                <View style={styles.inputContainerHalf}>
+                    <TextInput
+                        placeholder='Year'
+                        placeholderTextColor='grey'
+                        style={styles.input}
+                        value={searchParams['year']}
+                        onChangeText={(text) => setSearchParams(prev => ({ ...prev, year: text }))}
+                    />
+                    {searchParams['year'] ? (
+                        <TouchableOpacity onPress={() => setSearchParams(prev => ({ ...prev, year: '' }))} style={styles.clearButton}>
+                            <Icon name="x" size={24} color="white" />
+                        </TouchableOpacity>
+                    ) : null}
+                </View>
+                <TouchableOpacity onPress={handleSearch} style={styles.searchButtonHalf}>
                     <Text style={styles.buttonText}>Search <Icon name="search" size={20} color="white" /></Text>
                 </TouchableOpacity>
             </View>
@@ -37,6 +51,7 @@ const styles = StyleSheet.create({
         backgroundColor: globalStyles.gray1,
         borderRadius: 8,
         padding: 5,
+        paddingHorizontal: 10,
     },
     inputContainer: {
         flexDirection: 'row',
@@ -57,18 +72,24 @@ const styles = StyleSheet.create({
         position: 'absolute',
         right: 10,
     },
-    buttonContainer: {
+    rowContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 5,
+        alignItems: 'center',
+        marginVertical: 3,
     },
-    searchButton: {
+    inputContainerHalf: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginRight: 5,
+    },
+    searchButtonHalf: {
+        flex: 1,
         padding: 10,
         backgroundColor: globalStyles.blue2,
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        flex: 1,
     },
     buttonText: {
         color: 'white',

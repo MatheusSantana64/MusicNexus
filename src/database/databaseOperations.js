@@ -456,3 +456,29 @@ export const moveTagDown = async (tagId) => {
     await executeSql('UPDATE tags SET position = ? WHERE id = ?', [currentPosition + 1, tagId]);
     await executeSql('UPDATE tags SET position = ? WHERE id = ?', [currentPosition, belowTagId]);
 };
+
+// Function to check if a string is a substring of another string (case insensitive)
+const isSubstring = (str1, str2) => {
+    return str1.toLowerCase().includes(str2.toLowerCase()) || str2.toLowerCase().includes(str1.toLowerCase());
+};
+
+// Function to check if a song exists in the database with flexible comparison
+export const songExistsInDatabase = async (title, artist, album) => {
+    const result = await executeSql(
+        'SELECT title, artist, album FROM songs WHERE LOWER(artist) = LOWER(?)',
+        [artist]
+    );
+
+    for (let i = 0; i < result.rows.length; i++) {
+        const row = result.rows.item(i);
+        const titleMatch = row.title.toLowerCase() === title.toLowerCase();
+        const albumMatch = isSubstring(row.album, album);
+
+        // Consider the song exists if the title matches exactly and the album is a substring match
+        if (titleMatch && albumMatch) {
+            return true;
+        }
+    }
+
+    return false;
+};

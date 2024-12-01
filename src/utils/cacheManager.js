@@ -32,7 +32,6 @@ const getImageFromCache = async (filename) => {
   const uri = `${cacheDirectory}${filename}`;
   try {
     const fileInfo = await FileSystem.getInfoAsync(uri);
-    console.log(`Image cache status for ${filename}: ${fileInfo.exists}`);
     return fileInfo.exists ? uri : null;
   } catch (error) {
     console.error(`Error accessing cache for ${filename}`, error);
