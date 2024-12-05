@@ -116,7 +116,7 @@ const Discover = () => {
                 <FlatList
                     data={searchResults}
                     keyExtractor={keyExtractor}
-                    renderItem={({ item }) => <DiscoverSongCard item={item} handleAddSong={handleAddSong} />}
+                    renderItem={({ item }) => <DiscoverSongCard item={item}/>}
                     contentContainerStyle={styles.listContainer}
                 />
             )}

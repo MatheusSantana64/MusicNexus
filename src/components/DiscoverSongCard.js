@@ -4,7 +4,7 @@ import { globalStyles } from '../styles/global';
 import SongFormModal from './SongFormModal';
 import { songExistsInDatabase } from '../database/databaseOperations';
 
-const DiscoverSongCard = ({ item, handleAddSong }) => {
+const DiscoverSongCard = ({ item }) => {
     const [isFormModalVisible, setFormModalVisible] = useState(false);
     const [selectedSong, setSelectedSong] = useState(null);
     const [isSongInLibrary, setIsSongInLibrary] = useState(false);
@@ -78,7 +78,7 @@ const DiscoverSongCard = ({ item, handleAddSong }) => {
                 onPress={() => openFormModal(item)}
                 style={[
                     styles.addButton,
-                    { backgroundColor: isSongInLibrary ? globalStyles.green2 : globalStyles.blue2 } // Replace 'defaultColor' with your default button color
+                    { backgroundColor: isSongInLibrary ? globalStyles.green2 : globalStyles.blue2 }
                 ]}
             >
                 <Text style={styles.addButtonText}>{isSongInLibrary ? 'Added' : 'Add'}</Text>
@@ -97,7 +97,7 @@ const DiscoverSongCard = ({ item, handleAddSong }) => {
                     setSongs={() => {}}
                     refreshSongsList={() => {}}
                     fromDiscover={true}
-                    onSongAdded={handleSongAdded} // Pass the callback here
+                    onSongAdded={handleSongAdded}
                 />
             )}
         </View>
