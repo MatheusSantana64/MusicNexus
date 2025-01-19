@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet, Keyboard, ScrollView } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, Keyboard, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Modal from 'react-native-modal';
 import OrderButtons from './OrderButtons';
-import { globalStyles } from '../styles/global';
 import { getTags } from '../database/databaseOperations';
+import { searchBarStyles as styles } from '../styles/componentsStyles';
 
 const SearchBar = ({ setSearchText, setOrderBy, setOrderDirection, ratingRange, setRatingRange, showFilters = false, setTagFilter }) => {
     const [inputText, setInputText] = useState('');
@@ -248,121 +248,5 @@ const getColor = (value) => {
     if (value <= 8) return 'darkgreen';
     return 'steelblue';
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flexDirection: 'column',
-        marginBottom: 16,
-    },
-    inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        width: '70%',
-    },
-    input: {
-        backgroundColor: globalStyles.gray1,
-        borderRadius: 8,
-        color: 'white',
-        height: 32,
-        paddingHorizontal: 16,
-        paddingRight: 40,
-        width: '100%',
-        fontSize: 18,
-        height: 40,
-    },
-    buttonsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: 16,
-    },
-    clearButton: {
-        position: 'absolute',
-        right: 4,
-    },
-    searchButton: {
-        marginLeft: 10,
-    },
-    filterText: {
-        color: 'white',
-        marginRight: 8,
-    },
-    modalContainer: {
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    modalContent: {
-        backgroundColor: globalStyles.gray1,
-        padding: 20,
-        borderRadius: 8,
-        width: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    modalTitle: {
-        color: 'white',
-        fontSize: 28,
-    },
-    modalSubtitle: {
-        color: 'white',
-        fontSize: 40,
-        marginBottom: 16,
-    },
-    ratingContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-        marginBottom: 16,
-    },
-    ratingButtons: {
-        flexDirection: 'column',
-    },
-    ratingButton: {
-        paddingBottom: 10,
-    },
-    presetsContainer: {
-        width: '100%',
-    },
-    buttonsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-    },
-    buttonsColumn: {
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-    },
-    button: {
-        borderRadius: 8,
-        padding: 8,
-    },
-    buttonText: {
-        color: 'white',
-        fontSize: 18,
-        textAlign: 'center',
-    },
-    applyButton: {
-        borderRadius: 8,
-        padding: 8,
-        marginTop: 10,
-        backgroundColor: 'rebeccapurple',
-        width: '100%',
-    },
-    tagButton: {
-        borderRadius: 8,
-        padding: 8,
-        marginVertical: 5,
-        backgroundColor: globalStyles.gray2,
-        width: '100%',
-        alignItems: 'center',
-    },
-    selectedTagButton: {
-        backgroundColor: globalStyles.blue2,
-    },
-});
 
 export default SearchBar;

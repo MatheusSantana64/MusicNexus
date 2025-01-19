@@ -1,9 +1,10 @@
 import React, { useRef, useCallback, useEffect } from 'react';
-import { TouchableWithoutFeedback, StyleSheet, View, TextInput, Button, Dimensions, TouchableOpacity, KeyboardAvoidingView } from 'react-native';
+import { TouchableWithoutFeedback, View, TextInput, Button, TouchableOpacity, KeyboardAvoidingView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Modal from 'react-native-modal';
 import { submitForm } from '../database/databaseOperations';
 import { globalStyles } from '../styles/global';
+import { songFormModalStyles as styles } from '../styles/componentsStyles';
 
 const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, setSongs, refreshSongsList, fromDiscover, onSongAdded }) => {
     const [title, setTitle] = React.useState('');
@@ -159,44 +160,5 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, se
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    absoluteContainer: {
-        backgroundColor: '#090909',
-        position: 'absolute',
-        right: 0,
-        bottom: 0,
-    },
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'flex-start', // Align to the top
-        marginTop: 20,
-        alignItems: 'center',
-    },
-    formContainer: {
-        backgroundColor: globalStyles.modalBackgroundColor,
-        borderRadius: 8,
-        padding: 16,
-        width: Dimensions.get('window').width * 0.8,
-    },
-    input: {
-        backgroundColor: globalStyles.gray3,
-        borderRadius: 8,
-        color: 'white',
-        height: 48,
-        paddingHorizontal: 16,
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: globalStyles.gray2,
-        textAlignVertical: 'center',
-    },
-    buttonContainer: {
-        borderRadius: 5,
-        overflow: 'hidden',
-    },
-    marginTop: {
-        marginTop: 5,
-    },
-});
 
 export default SongFormModal;

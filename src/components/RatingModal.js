@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, TouchableOpacity, Text, ScrollView, Alert, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, ScrollView, Alert } from 'react-native';
 import { Rating } from 'react-native-ratings';
 import Modal from 'react-native-modal';
 import Checkbox from 'expo-checkbox';
-import Icon from 'react-native-vector-icons/Feather';
+import { ratingModalStyles as styles } from '../styles/componentsStyles';
 
 import { insertTag, addTag, getTags, getTagsFromSongTags, getTagById, removeTag, deleteTag } from '../database/databaseOperations';
 import ColorPickerComponent from './ColorPicker';
@@ -197,77 +197,5 @@ const RatingModal = ({
         </Modal>
     );
 };
-
-const styles = StyleSheet.create({
-    modalStyle: {
-        margin: 0,
-        width: '100%',
-        alignItems: 'center',
-    },
-    modalContainer: {
-        backgroundColor: globalStyles.modalBackgroundColor,
-        borderRadius: 10,
-        padding: 16,
-        paddingVertical: 0,
-        width: '95%',
-        maxHeight: '100%',
-    },
-    submitButton: {
-        backgroundColor: globalStyles.defaultButtonColor,
-        borderRadius: 8,
-        padding: 10,
-        marginTop: 20,
-        marginBottom: 10,
-        justifyContent: 'center',
-    },
-    submitText: {
-        color: 'white',
-        textAlign: 'center',
-    },
-    tagsContent: {
-        backgroundColor: globalStyles.modalBackgroundColor,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 4,
-        maxHeight: '70%',
-        marginVertical: 20,
-        width: '100%',
-    },
-    title: {
-        fontSize: 20,
-        marginBottom: 12,
-        color: 'white',
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
-    subtitle: {
-        fontSize: 20,
-        marginBottom: 0,
-        color: 'white',
-    },
-    checkboxStyle: {
-        borderRadius: 5,
-        marginTop: 10,
-    },
-    tagButton: {
-        color: 'white',
-        marginHorizontal: 10,
-        marginTop: 10,
-        padding: 5,
-        borderRadius: 20,
-        justifyContent: 'center',
-        flex: 1,
-    },
-    tagText: {
-        color: 'white',
-        textAlign: 'center',
-    },
-    tagContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-    },
-});
 
 export default RatingModal;

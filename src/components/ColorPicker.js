@@ -1,7 +1,8 @@
 import React, { useCallback } from 'react';
-import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import Modal from 'react-native-modal';
 import ColorPicker from 'react-native-wheel-color-picker';
+import { colorPickerStyles as styles } from '../styles/componentsStyles';
 
 const ColorPickerComponent = ({ isVisible, toggleModal, selectedColor, setSelectedColor }) => {
 
@@ -48,35 +49,5 @@ const ColorPickerComponent = ({ isVisible, toggleModal, selectedColor, setSelect
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    modalContent: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    colorPicker: {
-        width: '90%',
-        alignSelf: 'center',
-        marginBottom: 50,
-        marginTop: 150,
-    },
-    saveButton: {
-        marginTop: 20,
-        padding: 10,
-        width: '50%',
-        alignSelf: 'center',
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: 'grey',
-    },
-    saveButtonText: {
-        color: 'white',
-        textAlign: 'center',
-    },
-});
 
 export default ColorPickerComponent;

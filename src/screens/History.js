@@ -4,7 +4,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { fetchGlobalRatingHistory } from '../database/databaseOperations';
 import { FlatList } from 'react-native';
-import { globalStyles } from '../styles/global';
+import { historyScreenStyles as styles } from '../styles/screenStyles';
 
 const OFFSET_SIZE = 50;
 
@@ -98,77 +98,5 @@ const History = () => {
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        paddingTop: 20,
-        paddingHorizontal: 20,
-        backgroundColor: 'black',
-        height: '100%',
-    },
-    pageTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        color: 'white',
-        textAlign: 'center',
-    },
-    cardContainer: {
-        flexDirection: 'row',
-        backgroundColor: globalStyles.defaultBackgroundColor,
-        borderRadius: 8,
-        paddingRight: 10,
-        marginBottom: 5,
-        width: '100%',
-        height: 'auto',
-    },
-    coverImage: {
-        width: globalStyles.coverSize,
-        height: globalStyles.coverSize,
-        alignSelf: 'center',
-        marginRight: 0,
-        borderRadius: 5,
-    },
-    songInfoContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-        marginLeft: 10,
-    },
-    songInfoColumn: {
-        flexDirection: 'column',
-    },
-    songTitle: {
-        fontSize: 14,
-        color: 'white',
-    },
-    songInfo: {
-        color: 'white',
-        fontSize: 10,
-        flexWrap: 'wrap',
-    },
-    ratingAndEditContainer: {
-        flexDirection: 'column',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        marginHorizontal: 5,
-        marginBottom: 5,
-    },
-    ratingText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    previousRating: {
-        color: 'lightcoral',
-    },
-    currentRating: {
-        color: 'lightgreen',
-    },
-    updateTime: {
-        fontSize: 12,
-        color: 'white',
-    },
-});
 
 export default History;

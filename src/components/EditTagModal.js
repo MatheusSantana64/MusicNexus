@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { updateTag } from '../database/databaseOperations';
 import Modal from 'react-native-modal';
 import ColorPickerComponent from './ColorPicker';
 import { globalStyles } from '../styles/global';
+import { editTagModalStyles as styles } from '../styles/componentsStyles';
 
 const EditTagModal = ({ isEditModalVisible, setIsEditModalVisible, tagToEdit, updateTagList }) => {
     const [newTagName, setNewTagName] = useState('');
@@ -35,43 +36,6 @@ const EditTagModal = ({ isEditModalVisible, setIsEditModalVisible, tagToEdit, up
             Alert.alert('Error', 'Please enter a valid tag name and color.');
         }
     }, [newTagName, newTagColor, tagToEdit, updateTagList, setIsEditModalVisible]);
-
-    const styles = useMemo(() => StyleSheet.create({
-        modalContent: {
-            backgroundColor: globalStyles.modalBackgroundColor,
-            padding: 22,
-            justifyContent: 'center',
-            alignItems: 'center',
-            borderRadius: 4,
-        },
-        title: {
-            fontSize: 20,
-            marginBottom: 12,
-            color: 'white',
-        },
-        inputText: {
-            color: 'white',
-            height: 40,
-            borderColor: 'gray',
-            borderWidth: 1,
-            borderRadius: 5,
-            width: '80%',
-            marginBottom: 10,
-            paddingLeft: 10,
-        },
-        button: {
-            padding: 10,
-            borderRadius: 5,
-            alignSelf: 'center',
-            marginBottom: 10,
-        },
-        saveButton: {
-            backgroundColor: 'darkgreen',
-        },
-        saveButtonText: {
-            color: 'white',
-        },
-    }), []);
 
     return (
         <View>

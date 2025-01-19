@@ -108,9 +108,6 @@ export const initDatabase = () => {
         }).catch(error => {
             console.log("Error creating song tags table: ", error);
         });
-
-        // Initialize positions for existing tags
-        initializeTagPositions();
     }, (error) => {
         console.log("Error initializing database: ", error);
     }, () => {
@@ -118,12 +115,4 @@ export const initDatabase = () => {
     });
 };
 
-const initializeTagPositions = async () => {
-    const result = await executeSql('SELECT id FROM tags ORDER BY id');
-    const tags = result.rows._array;
-    for (let i = 0; i < tags.length; i++) {
-        await executeSql('UPDATE tags SET position = ? WHERE id = ?', [i, tags[i].id]);
-    }
-};
-
-export { db, executeSql, initializeTagPositions };
+export { db, executeSql };

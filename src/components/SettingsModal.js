@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, Button, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, Button, Alert, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Modal from 'react-native-modal';
 import { Picker } from '@react-native-picker/picker';
@@ -8,6 +8,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useKeepAwake, activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { globalStyles } from '../styles/global';
+import { settingsModalStyles as styles } from '../styles/componentsStyles';
 import { 
     fetchAllDataAsJson, 
     insertAllDataIntoDatabase, 
@@ -351,49 +352,3 @@ const ModalComponent = ({ isVisible, onRequestClose, children }) => (
         </View>
     </Modal>
 );
-
-const styles = StyleSheet.create({
-    centeredView: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    modalContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        margin: 0,
-        width: '100%',
-        marginTop: '20%',
-    },
-    modalView: {
-        width: '90%',
-        backgroundColor: globalStyles.modalBackgroundColor,
-        borderRadius: 20,
-        paddingVertical: 35,
-        paddingHorizontal: 20,
-        alignItems: "center",
-    },
-    modalText: {
-        textAlign: "center",
-        color: 'white',
-        fontSize: 16,
-    },
-    pickerStyles: {
-        color: 'white',
-        width: 300,
-        backgroundColor: globalStyles.modalBackgroundColor,
-        fontSize: 16,
-    },
-    buttonRow: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    button: {
-        marginHorizontal: 4,
-        width: '50%',
-    }
-});

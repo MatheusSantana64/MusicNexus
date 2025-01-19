@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Alert } from 'react-native';
 import { globalStyles } from '../styles/global';
+import { discoverSongCardStyles as styles } from '../styles/componentsStyles';
 import SongFormModal from './SongFormModal';
 import { songExistsInDatabase } from '../database/databaseOperations';
 
@@ -103,76 +104,5 @@ const DiscoverSongCard = ({ item }) => {
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    songItem: {
-        flexDirection: 'row',
-        backgroundColor: globalStyles.defaultBackgroundColor,
-        borderRadius: 8,
-        padding: 4,
-        marginBottom: 6,
-        alignItems: 'center',
-    },
-    coverImage: {
-        width: 60,
-        height: 60,
-        borderRadius: 5,
-        marginRight: 10,
-    },
-    coverPlaceholder: {
-        width: 60,
-        height: 60,
-        borderRadius: 5,
-        marginRight: 10,
-        backgroundColor: globalStyles.gray2,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    noCoverPlaceholder: {
-        backgroundColor: globalStyles.red2,
-    },
-    noCoverText: {
-        color: 'white',
-        fontSize: 12,
-        textAlign: 'center',
-    },
-    songInfo: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    songTitle: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    songArtist: {
-        color: 'lightgrey',
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-    songAlbum: {
-        color: 'lightgrey',
-        fontSize: 10,
-    },
-    songTrackNumber: {
-        color: 'grey',
-        fontSize: 9,
-    },
-    songReleaseDate: {
-        color: 'grey',
-        fontSize: 10,
-    },
-    addButton: {
-        marginRight: 10,
-        borderRadius: 8,
-        padding: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    addButtonText: {
-        color: 'white',
-        fontSize: 14,
-    },
-});
 
 export default DiscoverSongCard;

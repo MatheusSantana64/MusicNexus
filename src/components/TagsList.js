@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, TextInput } from 'react-native';
-import { deleteTag, insertTag, getTags, moveTagUp, moveTagDown } from '../database/databaseOperations';
+import { View, Text, TouchableOpacity, Alert, ScrollView, TextInput } from 'react-native';
+import { deleteTag, insertTag, moveTagUp, moveTagDown } from '../database/databaseOperations';
 import EditTagModal from './EditTagModal';
 import ColorPickerComponent from './ColorPicker';
 import Icon from 'react-native-vector-icons/Feather';
-import { globalStyles } from '../styles/global';
+import { tagsListStyles as styles } from '../styles/componentsStyles';
 
 const TagsList = ({ tags, refreshTags }) => {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -130,84 +130,5 @@ const TagsList = ({ tags, refreshTags }) => {
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  tagContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 5,
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  tagButton: {
-    padding: 4,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
-    marginLeft: 'auto',
-  },
-  tagText: {
-    color: 'white',
-    fontSize: 16,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    marginLeft: 'auto',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  moveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: globalStyles.blue3,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 15,
-    marginLeft: 5,
-  },
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: globalStyles.red3,
-    padding: 5,
-    paddingHorizontal: 5,
-    borderRadius: 15,
-    marginRight: 5,
-  },
-  buttonText: {
-    color: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  createTagContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    marginTop: 10,
-  },
-  input: {
-    flex: 1,
-    color: 'white',
-    borderColor: 'gray',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    marginRight: 10,
-  },
-  colorButton: {
-    padding: 8,
-    borderRadius: 5,
-    marginRight: 10,
-  },
-  createButton: {
-    backgroundColor: globalStyles.green2,
-    padding: 8,
-    borderRadius: 5,
-  },
-});
 
 export default TagsList;

@@ -6,6 +6,7 @@ import SongList from '../components/SongList';
 import SongFormModal from '../components/SongFormModal';
 import { fetchSongs } from '../database/databaseOperations';
 import { globalStyles } from '../styles/global';
+import { musicScreenStyles as styles } from '../styles/screenStyles';
 
 const OFFSET_SIZE = 100;
 
@@ -106,33 +107,3 @@ export function Music() {
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    buttonContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        position: 'absolute',
-        top: 16,
-        right: 16,
-        zIndex: 1,
-    },
-    refreshButton: {
-        marginRight: 10,
-        backgroundColor: globalStyles.blue1,
-        paddingHorizontal: 6,
-        borderRadius: 5,
-        height: 40,
-        width: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    floatingButton: {
-        backgroundColor: globalStyles.green1,
-        paddingHorizontal: 6,
-        borderRadius: 5,
-        height: 40,
-        width: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-});

@@ -1,9 +1,8 @@
-// src/screens/Tags.js
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View } from 'react-native';
 import { getTags } from '../database/databaseOperations';
 import TagsList from '../components/TagsList';
-import { globalStyles } from '../styles/global';
+import { tagsScreenStyles as styles } from '../styles/screenStyles';
 
 export function Tags() {
     const [tags, setTags] = useState([]);
@@ -29,18 +28,5 @@ export function Tags() {
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    screen: {
-        flex: 1,
-        backgroundColor: globalStyles.defaultBackgroundColor,
-        paddingTop: 4,
-        paddingHorizontal: 5,
-    },
-    title: {
-        fontSize: 24,
-        color: 'white',
-    },
-});
 
 export default Tags;

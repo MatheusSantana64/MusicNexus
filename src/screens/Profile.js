@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
 import SettingsModal from '../components/SettingsModal';
 import { useKeepAwake } from 'expo-keep-awake';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { globalStyles } from '../styles/global';
+import { profileScreenStyles as styles } from '../styles/screenStyles';
 import { 
     getTotalSongs,
     getTotalArtists,
@@ -148,50 +149,3 @@ export function Profile() {
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    stats: {
-        width: '100%',
-        flex: 1,
-        borderBottomWidth: 1,
-        borderBottomColor: globalStyles.gray2,
-    },
-    title: {
-        color: 'white',
-        fontSize: 24,
-        marginBottom: 12,
-        textAlign: 'left',
-    },
-    statsSubTitle: {
-        color: 'white',
-        fontSize: 20,
-        marginTop: 4,
-        marginBottom: 2,
-        textAlign: 'left',
-        fontWeight: 'bold',
-    },
-    statsText: {
-        color: 'white',
-        fontSize: 16,
-        marginBottom: 4,
-        textAlign: 'left',
-        fontWeight: 'bold',
-    },
-    notesContainer: {
-        paddingHorizontal: 10,
-        alignItems: 'flex-start',
-        justifyContent: 'flex-end',
-        backgroundColor: globalStyles.defaultBackgroundColor,
-        paddingBottom: 10,
-        maxHeight: '50%',
-    },
-    notesInput: {
-        //backgroundColor: globalStyles.modalBackgroundColor,
-        borderRadius: 5,
-        color: 'white',
-        fontSize: 16,
-        maxHeight: '80%',
-        width: '100%',
-        textAlignVertical: 'bottom',
-    },
-});

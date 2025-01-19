@@ -1,4 +1,3 @@
-// src/screens/Home.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -7,7 +6,7 @@ import { fetchSongs } from '../database/databaseOperations';
 import SongList from '../components/SongList';
 import OrderButtons from '../components/OrderButtons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { globalStyles } from '../styles/global';
+import { homeScreenStyles as styles } from '../styles/screenStyles';
 
 export function Home() {
     const [state, setState] = useState({
@@ -98,29 +97,5 @@ const Section = ({ title, songs, setSongs, order, orderKey, orderDirection, dire
         <SongList songs={songs} setSongs={setSongs} />
     </View>
 );
-
-const styles = StyleSheet.create({
-    title: {
-        fontSize: 24,
-        color: 'white',
-    },
-    titleContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginVertical: 12,
-    },
-    screen: {
-        flex: 1,
-        backgroundColor: globalStyles.defaultBackgroundColor,
-        paddingTop: 4,
-        paddingHorizontal: 5,
-    },
-    sectionContainer: {
-        flex: 1,
-        borderBottomWidth: 1,
-        borderBottomColor: globalStyles.gray2,
-    },
-});
 
 export default Home;

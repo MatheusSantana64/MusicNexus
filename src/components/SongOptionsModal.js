@@ -4,6 +4,7 @@ import Modal from 'react-native-modal';
 import { deleteCover, deleteSong, getSongRatingHistory } from '../database/databaseOperations';
 import SongFormModal from './SongFormModal';
 import { globalStyles } from '../styles/global';
+import { songOptionsModalStyles as styles } from '../styles/componentsStyles';
 
 const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, songs, setSongs, refreshSongsList }) => {
     const [modalsVisibility, setModalsVisibility] = useState({
@@ -149,84 +150,5 @@ const SongOptionsModal = ({ isSongOptionsVisible, closeModal, selectedSong, song
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    fullScreenModal: {
-        margin: 0,
-        justifyContent: 'center',
-    },
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    optionsContainer: {
-        backgroundColor: globalStyles.modalBackgroundColor,
-        borderRadius: 8,
-        padding: 16,
-        width: '90%',
-    },
-    optionsTitle: {
-        color: 'white',
-        fontSize: 20,
-        marginBottom: 2,
-    },
-    optionButton: {
-        backgroundColor: globalStyles.blue2,
-        borderRadius: 8,
-        padding: 10,
-        marginBottom: 16,
-    },
-    optionButtonSmall: {
-        backgroundColor: globalStyles.green2,
-        borderRadius: 8,
-        padding: 5,
-        width: '48%',
-        justifyContent: 'center',
-    },
-    optionText: {
-        color: 'white',
-        textAlign: 'center',
-    },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '100%',
-    },
-    centeredView: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        marginTop: 22,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    modalView: {
-        margin: 40,
-        width: '80%',
-        backgroundColor: globalStyles.modalBackgroundColor,
-        borderRadius: 20,
-        padding: 35,
-        alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 2
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5
-    },
-    modalText: {
-        marginBottom: 10,
-        textAlign: "center",
-        color: 'white',
-        fontSize: 16,
-        borderColor: 'grey',
-        borderWidth: 1,
-        borderRadius: 8,
-        padding: 5
-    },
-});
 
 export default SongOptionsModal;

@@ -1,10 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, Text, FlatList, Alert } from 'react-native';
 import SearchBarAdv from '../components/SearchBarAdv';
 import DiscoverSongCard from '../components/DiscoverSongCard';
-import { insertSongIntoDatabase } from '../database/databaseOperations';
-import { globalStyles } from '../styles/global';
 import { fetchAlbumCoverByMbid, searchRecordings } from '../api/MusicBrainzAPI';
+import { discoverScreenStyles as styles } from '../styles/screenStyles';
 
 const Discover = () => {
     const [searchParams, setSearchParams] = useState({ songTitle: '', artist: '', album: '', year: '' });
@@ -81,28 +80,6 @@ const Discover = () => {
         }
     }, [searchParams]);
 
-    const handleAddSong = useCallback(async (song) => {
-        try {
-            const artistName = song['artist-credit'][0].name;
-            const albumTitle = song.releases[0].title;
-            const coverPath = await fetchAlbumCoverByMbid(song.releases, artistName, albumTitle);
-            const songData = {
-                id: null,
-                title: song.title,
-                artist: artistName,
-                album: albumTitle,
-                release: song.releases[0].date || '1900-01-01',
-                rating: 0,
-                cover_path: coverPath !== 'NO_COVER_FOUND' ? coverPath : null,
-            };
-            await insertSongIntoDatabase(songData);
-            Alert.alert('Success', 'Song added to your library.');
-        } catch (error) {
-            console.error('Error adding song:', error);
-            Alert.alert('Error', 'Failed to add song to your library.');
-        }
-    }, []);
-
     const keyExtractor = useCallback((item) => item.id, []);
 
     return (
@@ -116,32 +93,12 @@ const Discover = () => {
                 <FlatList
                     data={searchResults}
                     keyExtractor={keyExtractor}
-                    renderItem={({ item }) => <DiscoverSongCard item={item}/>}
+                    renderItem={({ item }) => <DiscoverSongCard item={item}/> }
                     contentContainerStyle={styles.listContainer}
                 />
             )}
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: globalStyles.defaultBackgroundColor,
-    },
-    listContainer: {
-        paddingBottom: 10,
-    },
-    loadingText: {
-        color: 'white',
-        textAlign: 'center',
-        marginTop: 20,
-    },
-    noResultsText: {
-        color: 'white',
-        textAlign: 'center',
-        marginTop: 20,
-    },
-});
 
 export default Discover;

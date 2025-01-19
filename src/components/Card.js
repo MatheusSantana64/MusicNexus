@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { globalStyles } from '../styles/global';
+import { cardStyles as styles } from '../styles/componentsStyles';
 import Icon from 'react-native-vector-icons/Feather';
 import { addToQueue } from '../api/MusicBrainzAPI';
 import { getImageFromCache, downloadImage, generateCacheKey } from '../utils/cacheManager';
@@ -203,87 +204,5 @@ const Card = ({ cardSong, songs, setSongs, refreshSongsList }) => {
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    cardContainer: {
-        flexDirection: 'row',
-        borderRadius: 8,
-        paddingRight: 5,
-        marginBottom: 5,
-        width: '100%',
-        height: 'auto',
-    },
-    image: {
-        width: globalStyles.coverSize,
-        height: globalStyles.coverSize,
-        borderRadius: 5,
-        marginRight: 10,
-        marginLeft: 10,
-        marginVertical: 5,
-        alignSelf: 'center',
-    },
-    songInfoContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        width: '100%',
-        maxWidth: '58%',
-    },
-    songInfoTextContainer: {
-        flex: 1,
-        marginRight: 10,
-    },
-    songInfoText: {
-        color: 'white',
-        fontSize: 10,
-        flexWrap: 'wrap',
-        width: '100%',
-        fontFamily: globalStyles.defaultFont,
-    },
-    songTitle: {
-        color: 'white',
-        fontSize: 13,
-        flexWrap: 'wrap',
-        fontWeight: 'bold',
-        fontFamily: globalStyles.defaultFont,
-    },
-    ratingAndEditContainer: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    ratingContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'start',
-    },
-    ratingText: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: 'bold',
-        flexWrap: 'wrap',
-        width: '60%',
-        textAlign: 'center',
-        fontFamily: globalStyles.defaultFont,
-    },
-    tagsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginTop: 2,
-        marginBottom: 2,
-    },
-    tagItem: {
-        borderRadius: 20,
-        paddingHorizontal: 5,
-        paddingVertical: 1,
-        marginRight: 3,
-        marginBottom: 3,
-    },
-    tagText: {
-        color: 'white',
-        textAlign: 'center',
-        fontSize: 10,
-        fontFamily: globalStyles.defaultFont,
-    },
-});
 
 export default React.memo(Card);

@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import { orderButtonsStyles as styles } from '../styles/componentsStyles';
 
 const OrderButtons = ({ order, setOrder, orderDirection, setOrderDirection, setMusicOrder = () => {}, setMusicOrderDirection = () => {} }) => {
     const toggleOrder = useCallback(() => {
@@ -43,18 +44,5 @@ const OrderButtons = ({ order, setOrder, orderDirection, setOrderDirection, setM
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    orderButtonsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    orderButton: {
-        marginLeft: 16,
-    },
-    orderDirectionButton: {
-        marginLeft: 10,
-    },
-});
 
 export default OrderButtons;
