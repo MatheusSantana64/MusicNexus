@@ -3,9 +3,14 @@ import { cleanAlbumName } from '../api/MusicBrainzAPI';
 
 const { cacheDirectory } = FileSystem;
 
+const normalizeString = (str) => {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+};
+
 const generateCacheKey = (artist, album) => {
-  const cleanedAlbum = cleanAlbumName(album);
-  const key = `${artist.trim().toLowerCase()}${cleanedAlbum.trim().toLowerCase()}`;
+  const cleanedArtist = normalizeString(artist.trim().toLowerCase());
+  const cleanedAlbum = normalizeString(cleanAlbumName(album).trim().toLowerCase());
+  const key = `${cleanedArtist}${cleanedAlbum}`;
   return key.replace(/[^a-zA-Z0-9]/g, '');
 };
 
@@ -20,7 +25,6 @@ const downloadImage = async (url, filename) => {
 
   try {
     const { uri: localUri } = await FileSystem.downloadAsync(webpUrl, uri);
-    console.log(`Downloaded image: ${filename}`);
     return localUri;
   } catch (error) {
     console.error(`Failed to download image: ${filename}`, error);
@@ -43,7 +47,6 @@ const deleteImageFromCache = async (filename) => {
   const uri = `${cacheDirectory}${filename}`;
   try {
     await FileSystem.deleteAsync(uri, { idempotent: true });
-    console.log(`Deleted image: ${filename}`);
   } catch (error) {
     console.error(`Failed to delete image: ${filename}`, error);
   }
@@ -56,7 +59,6 @@ const deleteAllFilesFromCache = async () => {
 
     const files = await FileSystem.readDirectoryAsync(cacheDirectory);
     await Promise.all(files.map(file => FileSystem.deleteAsync(`${cacheDirectory}${file}`, { idempotent: true })));
-    console.log('Cache directory cleared.');
   } catch (error) {
     console.error('Failed to clear cache directory.', error);
   }
