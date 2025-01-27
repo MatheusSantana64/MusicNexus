@@ -81,7 +81,7 @@ export const initDatabase = () => {
             console.log("Error creating tags table: ", error);
         });
 
-        // Alter tags table to add position column if it doesn't exist
+        // Alter tags table to add position column if it doesn't exist (for older versions of the app)
         executeSql(`
             ALTER TABLE tags ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
         `).then(result => {

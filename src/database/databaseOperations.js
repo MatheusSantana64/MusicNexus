@@ -188,8 +188,9 @@ export const coverPathToNull = async () => {
 
 // Function to update the cover_path of a song in the database
 export const updateSongCoverPath = async (songId, coverPath) => {
+    console.log('databaseOperations.js:191 (', songId, '-', coverPath, ') updateSongCoverPath');
     await executeSql('UPDATE songs SET cover_path = ? WHERE id = ?', [coverPath, songId]);
-    console.log(`Cover path updated for song with ID: ${songId}`);
+    console.log('databaseOperations.js:191 (', songId, '-', coverPath, ') cover path updated');
 };
 
 // Function to insert a rating history record
