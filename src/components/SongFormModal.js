@@ -24,7 +24,7 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, se
                 setTitle(selectedSong.title);
                 setArtist(selectedSong.artist);
                 setAlbum(selectedSong.album);
-                setRelease(selectedSong.release);
+                setRelease(selectedSong.release !== 'Unknown Release Date' ? selectedSong.release : new Date().toISOString().split('T')[0]);
                 setEditMode(!!selectedSong.id);
             } else {
                 clearForm();
@@ -38,7 +38,7 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, se
         title: title.trim() || "Unknown Title",
         artist: artist.trim() || "Unknown Artist",
         album: album.trim() || "Unknown Album",
-        release: release || "1900-01-01",
+        release: release || new Date().toISOString().split('T')[0],
         rating: editMode ? selectedSong.rating : 0,
         cover_path: null
     }), [editMode, selectedSong, title, artist, album, release]);
@@ -127,7 +127,7 @@ const SongFormModal = ({ isFormModalVisible, closeModal, selectedSong, songs, se
                                         </TouchableOpacity>
                                         {datePickerVisible && (
                                             <DateTimePicker
-                                                value={new Date(release + 'T00:00:00')}
+                                                value={new Date(release !== 'Unknown Release Date' ? release + 'T00:00:00' : new Date())}
                                                 mode="date"
                                                 display="default"
                                                 onChange={(event, selectedDate) => {
