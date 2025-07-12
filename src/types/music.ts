@@ -77,8 +77,8 @@ export interface SavedMusic {
   source: 'deezer' | 'spotify' | 'tidal';
 }
 
-// Tipos para os modos de pesquisa - apenas 2 opções agora
-export type SearchMode = 'album' | 'default';
+// Tipos para os modos de pesquisa
+export type SearchMode = 'album' | 'quick';
 
 export interface SearchOptions {
   mode: SearchMode;

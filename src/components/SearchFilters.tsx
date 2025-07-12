@@ -14,14 +14,14 @@ interface SearchFiltersProps {
 }
 
 export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps) {
-  const searchModes: SearchMode[] = ['album', 'default'];
+  const searchModes: SearchMode[] = ['album', 'quick'];
 
   const getModeIcon = (mode: SearchMode): string => {
     switch (mode) {
       case 'album':
         return '💿';
-      case 'default':
-        return '🔍';
+      case 'quick':
+        return '⚡';
       default:
         return '💿';
     }
@@ -31,7 +31,7 @@ export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps)
     switch (mode) {
       case 'album':
         return 'Álbuns completos';
-      case 'default':
+      case 'quick':
         return 'Busca rápida';
       default:
         return 'Álbuns completos';
@@ -63,6 +63,14 @@ export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps)
           </TouchableOpacity>
         ))}
       </View>
+      
+      {/* Descrição do modo ativo */}
+      <Text style={styles.modeDescription}>
+        {currentMode === 'album' 
+          ? '📅 Mostra álbuns completos ordenados por data de lançamento (mais recentes primeiro)'
+          : '⚡ Busca tradicional do Deezer por relevância e popularidade'
+        }
+      </Text>
     </View>
   );
 }

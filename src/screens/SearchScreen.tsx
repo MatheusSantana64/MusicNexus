@@ -107,7 +107,7 @@ export default function SearchScreen() {
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
           <Text style={styles.loadingText}>
-            {searchMode === 'album' ? 'Buscando álbuns...' : 'Pesquisando...'}
+            {searchMode === 'album' ? 'Buscando álbuns...' : 'Pesquisa rápida...'}
           </Text>
         </View>
       );
@@ -124,6 +124,12 @@ export default function SearchScreen() {
     if (searchQuery.length === 0) {
       return (
         <View style={styles.centerContainer}>
+          <Text style={styles.emptyText}>
+            Digite o nome de uma música, artista ou álbum para pesquisar
+          </Text>
+          <Text style={styles.hintText}>
+            💡 Use os filtros acima para escolher o tipo de pesquisa
+          </Text>
         </View>
       );
     }
@@ -133,6 +139,9 @@ export default function SearchScreen() {
         <View style={styles.centerContainer}>
           <Text style={styles.emptyText}>
             Nenhum resultado encontrado para "{searchQuery}"
+          </Text>
+          <Text style={styles.hintText}>
+            Tente mudar o modo de pesquisa ou usar termos diferentes
           </Text>
         </View>
       );

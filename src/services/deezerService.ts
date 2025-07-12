@@ -15,8 +15,8 @@ export class DeezerService {
     switch (mode) {
       case 'album':
         return this.searchTracksByAlbum(options);
-      case 'default':
-        return this.searchTracksDefault(options);
+      case 'quick':
+        return this.searchTracksQuick(options);
       default:
         return this.searchTracksByAlbum(options);
     }
@@ -141,9 +141,9 @@ export class DeezerService {
   }
 
   /**
-   * Modo 2: Pesquisa padrão do Deezer (sem modificações)
+   * Modo 2: Pesquisa rápida do Deezer (sem modificações)
    */
-  private static async searchTracksDefault(options: SearchOptions): Promise<DeezerTrack[]> {
+  private static async searchTracksQuick(options: SearchOptions): Promise<DeezerTrack[]> {
     try {
       if (!options.query || options.query.trim().length === 0) {
         return [];
@@ -161,10 +161,10 @@ export class DeezerService {
       const data: DeezerSearchResponse = await response.json();
       const tracks = data.data || [];
 
-      console.log(`[DEFAULT MODE] Found ${tracks.length} tracks (original Deezer order)`);
+      console.log(`[QUICK MODE] Found ${tracks.length} tracks (original Deezer order)`);
       return tracks;
     } catch (error) {
-      console.error('Error searching tracks default:', error);
+      console.error('Error searching tracks quick:', error);
       throw new Error('Falha ao pesquisar músicas. Verifique sua conexão com a internet.');
     }
   }
@@ -315,8 +315,8 @@ export class DeezerService {
     switch (mode) {
       case 'album':
         return 'Por álbum completo';
-      case 'default':
-        return 'Padrão do Deezer';
+      case 'quick':
+        return 'Busca rápida';
       default:
         return 'Por álbum completo';
     }
