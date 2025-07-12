@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, persistentLocalCache } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 // Firebase configuration object usando as variáveis de ambiente do Expo
@@ -29,14 +29,18 @@ for (const envVar of requiredEnvVars) {
   }
 }
 
-// Initializes Firebase app
+// Initialize Firebase app
 const app = initializeApp(firebaseConfig);
 
-// Initializes Firestore with local persistence enabled
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache()
-});
+// Initialize Firestore
+const db = getFirestore(app);
 
-// Exports the services that will be used
-export { db };
-export const auth = getAuth(app);
+// Initialize Auth
+const auth = getAuth(app);
+
+// Log Firebase initialization
+console.log('Firebase initialized successfully');
+console.log('Project ID:', firebaseConfig.projectId);
+
+// Export the services that will be used
+export { db, auth };
