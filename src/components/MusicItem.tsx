@@ -145,63 +145,52 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
         defaultSource={require('../../assets/icon.png')}
       />
       
-      <View style={styles.musicInfo}>
-        <View style={styles.titleRow}>
-          {data.trackPosition && (
-            <Text style={styles.trackNumber}>{data.trackPosition}. </Text>
-          )}
-          <Text style={styles.title} numberOfLines={2}>
-            {data.title}
-          </Text>
-        </View>
-        
-        <Text style={styles.artist} numberOfLines={1}>
-          {data.artist}
-        </Text>
-        
-        <View style={styles.albumRow}>
-          <Text style={styles.album} numberOfLines={1}>
-            {data.album}
-          </Text>
-        </View>
-        
-        {data.releaseDate && (
-          <Text style={styles.releaseDate}>
-            {formatReleaseDate(data.releaseDate)}
-          </Text>
-        )}
-      </View>
-      
-      <View style={styles.rightInfo}>
-        {/* SEMPRE mostrar rating se existir */}
-        {data.rating !== null && (
-          <View style={[
-            styles.ratingContainer,
-            { backgroundColor: getRatingColor(data.rating) + '20' }
-          ]}>
-            <Text style={[
-              styles.rating,
-              { color: getRatingColor(data.rating) }
-            ]}>
-              {getRatingText(data.rating)}
+      <View style={styles.contentContainer}>
+        <View style={styles.musicInfo}>
+          <View style={styles.titleRow}>
+            {data.trackPosition && (
+              <Text style={styles.trackNumber}>{data.trackPosition}. </Text>
+            )}
+            <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+              {data.title}
+            </Text>
+            <Text style={styles.duration}>
+              ({formatDuration(data.duration)})
             </Text>
           </View>
-        )}
-        
-        {isLoading ? (
-          <ActivityIndicator size="small" color="#007AFF" />
-        ) : (
-          <Text style={styles.duration}>
-            {formatDuration(data.duration)}
+          
+          <Text style={styles.artist} numberOfLines={1} ellipsizeMode="tail">
+            {data.artist} - <Text style={styles.album}>{data.album}</Text>
           </Text>
-        )}
+          
+          {data.releaseDate && (
+            <Text style={styles.releaseDate}>
+              {formatReleaseDate(data.releaseDate)}
+            </Text>
+          )}
+          
+          {data.savedAt && (
+            <Text style={styles.savedDate} numberOfLines={1} ellipsizeMode="tail">
+              Added {formatSavedDate(data.savedAt)}
+            </Text>
+          )}
+        </View>
         
-        {/* SEMPRE mostrar data de salvamento se existir */}
-        {data.savedAt && (
-          <Text style={styles.savedDate}>
-            Added {formatSavedDate(data.savedAt)}
-          </Text>
-        )}
+        <View style={styles.ratingSection}>
+          {data.rating !== null && (
+            <View style={[
+              styles.ratingContainer,
+              { backgroundColor: getRatingColor(data.rating) + '20' }
+            ]}>
+              <Text style={[
+                styles.rating,
+                { color: getRatingColor(data.rating) }
+              ]}>
+                {getRatingText(data.rating)}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );

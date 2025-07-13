@@ -1,103 +1,107 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '../theme';
 
+const MARGIN_BOTTOM = 3;
+
 export const musicItemStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    padding: theme.spacing.lg,
+    padding: 12,
     backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
     alignItems: 'center',
   },
+
   albumCover: {
     width: 64,
     height: 64,
     borderRadius: theme.borderRadius.md,
     backgroundColor: theme.colors.background,
   },
-  musicInfo: {
+
+  contentContainer: {
     flex: 1,
-    marginLeft: theme.spacing.md,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    marginLeft: 8,
+    alignItems: 'center',
   },
+  musicInfo: {
+    flex: 0.8,
+    justifyContent: 'center',
+    paddingRight: 8,
+  },
+
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.xs,
+    marginBottom: MARGIN_BOTTOM,
   },
   trackNumber: {
-    fontSize: theme.typography.sizes.body,
-    fontWeight: theme.typography.weights.medium,
-    color: theme.colors.primary,
+    fontSize: 10,
+    fontWeight: theme.weights.normal,
+    color: theme.colors.textMuted,
   },
   title: {
-    fontSize: theme.typography.sizes.medium,
-    fontWeight: theme.typography.weights.semibold,
+    fontSize: theme.sizes.body,
+    fontWeight: theme.weights.semibold,
     color: theme.colors.textPrimary,
-    flex: 1,
-  },
-  artist: {
-    fontSize: theme.typography.sizes.body,
-    color: theme.colors.textSecondary,
-    marginBottom: 2,
-  },
-  albumRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.spacing.xs,
-  },
-  album: {
-    fontSize: theme.typography.sizes.small,
-    color: theme.colors.textMuted,
-    flex: 1,
-  },
-  year: {
-    fontSize: theme.typography.sizes.small,
-    color: theme.colors.primary,
-    fontWeight: theme.typography.weights.medium,
-    marginLeft: theme.spacing.xs,
-  },
-  releaseDate: {
-    fontSize: 11,
-    color: theme.colors.success,
-    marginBottom: 2,
-    fontWeight: theme.typography.weights.medium,
-  },
-  rightInfo: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    minWidth: 60,
-  },
-  ratingContainer: {
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.xs,
-    minWidth: 50,
-    alignItems: 'center',
-  },
-  rating: {
-    fontSize: theme.typography.sizes.small,
-    fontWeight: theme.typography.weights.bold,
+    lineHeight: 16,
+    flexShrink: 1,
   },
   duration: {
-    fontSize: theme.typography.sizes.small,
+    fontSize: theme.sizes.small,
     color: theme.colors.textMuted,
-    marginBottom: 2,
+    lineHeight: 12,
+    marginLeft: 4,
+    fontWeight: theme.weights.normal,
   },
-  savedDate: {
+
+  artist: {
     fontSize: 11,
+    color: theme.colors.textPrimary,
+    fontWeight: theme.weights.medium,
+    marginBottom: MARGIN_BOTTOM,
+    lineHeight: 14,
+  },
+  album: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+    fontWeight: theme.weights.normal,
+    flex: 1,
+    lineHeight: 13,
+  },
+  releaseDate: {
+    fontSize: theme.sizes.small,
+    color: theme.colors.textPrimary,
+    marginBottom: MARGIN_BOTTOM,
+    fontWeight: theme.weights.normal,
+    lineHeight: 11,
+  },
+
+  savedDate: {
+    fontSize: theme.sizes.xsmall,
     color: theme.colors.textMuted,
     fontStyle: 'italic',
+    lineHeight: 11,
   },
-  source: {
-    fontSize: 10,
-    color: theme.colors.textSecondary,
-    fontWeight: theme.typography.weights.medium,
+
+  ratingSection: {
+    flex: 0.2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  savedIndicator: {
-    fontSize: 14,
-    marginLeft: theme.spacing.xs,
+  ratingContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.sm,
+    minWidth: 35,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rating: {
+    fontSize: theme.sizes.small,
+    fontWeight: 'bold',
+    lineHeight: 12,
   },
 });
