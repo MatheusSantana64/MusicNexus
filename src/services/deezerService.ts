@@ -59,7 +59,7 @@ export class DeezerService {
   }
 
   /**
-   * Modo 2: Pesquisa rápida do Deezer (sem modificações)
+   * Modo 2: Pesquisa rápida do Deezer (com enriquecimento de dados)
    */
   private static async searchTracksQuick(options: SearchOptions): Promise<DeezerTrack[]> {
     try {
@@ -73,9 +73,13 @@ export class DeezerService {
       }
 
       const data: DeezerSearchResponse = await response.json();
-      const tracks = data.data || [];
+      let tracks = data.data || [];
 
       console.log(`[QUICK MODE] Found ${tracks.length} tracks`);
+      
+      // Enriquecer tracks com dados completos do álbum
+      tracks = await this.enrichTracksWithAlbumData(tracks);
+      
       return tracks;
     } catch (error) {
       console.error('Error searching tracks quick:', error);
@@ -215,6 +219,56 @@ export class DeezerService {
         return album;
       })
     );
+  }
+
+  // Enriquece tracks individuais com dados do álbum
+  private static async enrichTracksWithAlbumData(tracks: DeezerTrack[]): Promise<DeezerTrack[]> {
+    const albumIds = new Set<string>();
+    const albumDataMap = new Map<string, any>();
+
+    // Coletar IDs únicos dos álbuns
+    tracks.forEach(track => {
+      if (track.album?.id) {
+        albumIds.add(track.album.id);
+      }
+    });
+
+    // Buscar dados completos dos álbuns
+    await Promise.all(
+      Array.from(albumIds).map(async (albumId) => {
+        try {
+          // Verificar cache primeiro
+          if (albumCache.has(albumId)) {
+            albumDataMap.set(albumId, albumCache.get(albumId));
+            return;
+          }
+
+          const albumResponse = await fetch(`${DEEZER_API_URL}/album/${albumId}`);
+          if (albumResponse.ok) {
+            const albumData = await albumResponse.json();
+            albumCache.set(albumId, albumData);
+            albumDataMap.set(albumId, albumData);
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch album data for ${albumId}:`, error);
+        }
+      })
+    );
+
+    // Enriquecer tracks com dados completos do álbum
+    return tracks.map(track => {
+      const albumData = albumDataMap.get(track.album?.id);
+      if (albumData) {
+        return {
+          ...track,
+          album: {
+            ...track.album,
+            release_date: albumData.release_date || track.album.release_date,
+          }
+        };
+      }
+      return track;
+    });
   }
 
   // === PUBLIC UTILITIES ===
