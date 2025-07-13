@@ -80,6 +80,9 @@ export class DeezerService {
       // Enriquecer tracks com dados completos do álbum
       tracks = await this.enrichTracksWithAlbumData(tracks);
       
+      // Sort tracks like album search does
+      tracks = this.sortTracksByAlbumOrder(tracks);
+      
       return tracks;
     } catch (error) {
       console.error('Error searching tracks quick:', error);
@@ -225,6 +228,7 @@ export class DeezerService {
   private static async enrichTracksWithAlbumData(tracks: DeezerTrack[]): Promise<DeezerTrack[]> {
     const albumIds = new Set<string>();
     const albumDataMap = new Map<string, any>();
+    const albumTracksMap = new Map<string, DeezerTrack[]>();
 
     // Coletar IDs únicos dos álbuns
     tracks.forEach(track => {
@@ -233,21 +237,25 @@ export class DeezerService {
       }
     });
 
-    // Buscar dados completos dos álbuns
+    // Buscar dados completos dos álbuns E suas tracks
     await Promise.all(
       Array.from(albumIds).map(async (albumId) => {
         try {
-          // Verificar cache primeiro
-          if (albumCache.has(albumId)) {
-            albumDataMap.set(albumId, albumCache.get(albumId));
-            return;
-          }
-
+          // Buscar dados do álbum
           const albumResponse = await fetch(`${DEEZER_API_URL}/album/${albumId}`);
           if (albumResponse.ok) {
             const albumData = await albumResponse.json();
             albumCache.set(albumId, albumData);
             albumDataMap.set(albumId, albumData);
+          }
+
+          // Sempre buscar tracks separadamente para garantir que temos track_position
+          const albumTracksResponse = await fetch(`${DEEZER_API_URL}/album/${albumId}/tracks`);
+          if (albumTracksResponse.ok) {
+            const albumTracksData = await albumTracksResponse.json();
+            albumTracksMap.set(albumId, albumTracksData.data || []);
+          } else {
+            console.warn(`[QUICK MODE] Failed to fetch tracks for album ${albumId}`);
           }
         } catch (error) {
           console.warn(`Failed to fetch album data for ${albumId}:`, error);
@@ -255,20 +263,37 @@ export class DeezerService {
       })
     );
 
-    // Enriquecer tracks com dados completos do álbum
-    return tracks.map(track => {
+    // Enriquecer tracks com dados completos do álbum E posição da track
+    const enrichedTracks = tracks.map(track => {
       const albumData = albumDataMap.get(track.album?.id);
-      if (albumData) {
-        return {
-          ...track,
-          album: {
-            ...track.album,
-            release_date: albumData.release_date || track.album.release_date,
-          }
-        };
+      const albumTracks = albumTracksMap.get(track.album?.id);
+      
+      // Encontrar a track correspondente no álbum para obter track_position e disk_number
+      let trackPosition = track.track_position;
+      let diskNumber = track.disk_number;
+      
+      if (albumTracks) {
+        const matchingTrack = albumTracks.find((albumTrack: any) => albumTrack.id === track.id);
+        if (matchingTrack) {
+          trackPosition = matchingTrack.track_position;
+          diskNumber = matchingTrack.disk_number;
+        }
       }
-      return track;
+      
+      const enrichedTrack: DeezerTrack = {
+        ...track,
+        track_position: trackPosition,
+        disk_number: diskNumber,
+        album: {
+          ...track.album,
+          release_date: albumData?.release_date || track.album.release_date,
+        }
+      };
+
+      return enrichedTrack;
     });
+
+    return enrichedTracks;
   }
 
   // === PUBLIC UTILITIES ===
@@ -285,7 +310,7 @@ export class DeezerService {
    * Obtém a posição da track no álbum
    */
   static getTrackPosition(track: DeezerTrack): string | null {
-    if (!track.track_position) return null;
+    if (!track.track_position && track.track_position !== 0) return null;
     
     const position = track.track_position.toString();
     return track.disk_number && track.disk_number > 1 

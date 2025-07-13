@@ -71,7 +71,7 @@ export async function saveMusic(
       duration: track.duration,
       rating,
       releaseDate: DeezerService.getTrackReleaseDate(track) || DEFAULT_RELEASE_DATE,
-      trackPosition: track.track_position || 0,
+      trackPosition: track.track_position || 0, // Make sure this saves 0 instead of undefined
       diskNumber: track.disk_number || 1,
       savedAt: new Date(),
       source,
