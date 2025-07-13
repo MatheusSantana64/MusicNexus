@@ -12,6 +12,7 @@ export const searchStyles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: theme.spacing.md,
   },
   searchInput: {
     ...theme.styles.input,
@@ -19,9 +20,6 @@ export const searchStyles = StyleSheet.create({
   },
   placeholderText: {
     color: theme.colors.placeholder,
-  },
-  searchLoading: {
-    marginLeft: theme.spacing.md,
   },
   centerContainer: {
     ...theme.styles.centerContainer,

@@ -2,57 +2,28 @@ import { StyleSheet } from 'react-native';
 import { theme } from '../theme';
 
 export const searchFiltersStyles = StyleSheet.create({
-  container: {
-    padding: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  label: {
-    fontSize: theme.typography.sizes.body,
-    fontWeight: theme.typography.weights.semibold,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.sm,
-  },
-  filtersRow: {
+  iconButtonsContainer: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
-  filterButton: {
-    flex: 1,
-    flexDirection: 'row',
+  iconButton: {
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
     borderColor: theme.colors.divider,
   },
-  filterButtonActive: {
+  iconButtonActive: {
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
   },
-  filterIcon: {
-    fontSize: 18,
-    marginRight: theme.spacing.sm,
+  iconButtonText: {
+    fontSize: 16,
   },
-  filterText: {
-    fontSize: theme.typography.sizes.small,
-    fontWeight: theme.typography.weights.semibold,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-  },
-  filterTextActive: {
-    color: theme.colors.surface,
-  },
-  modeDescription: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
-    textAlign: 'center',
-    marginTop: theme.spacing.sm,
-    lineHeight: 16,
-    fontStyle: 'italic',
+  iconButtonTextActive: {
+    // Ícones não mudam de cor, apenas o fundo
   },
 });

@@ -207,18 +207,14 @@ export default function SearchScreen() {
       {loading && (
         <ActivityIndicator 
           size="small" 
-          color="#007AFF" 
-          style={styles.searchLoading}
+          color="#007AFF"
         />
       )}
+      <SearchFilters 
+        currentMode={searchMode}
+        onModeChange={handleModeChange}
+      />
     </View>
-  );
-
-  const renderFilters = () => (
-    <SearchFilters 
-      currentMode={searchMode}
-      onModeChange={handleModeChange}
-    />
   );
 
   const renderTrackList = () => (
@@ -228,7 +224,7 @@ export default function SearchScreen() {
       renderItem={renderTrackItem}
       ListEmptyComponent={renderEmptyState}
       showsVerticalScrollIndicator={false}
-      removeClippedSubviews={true}
+      removeClippedSubviews
       maxToRenderPerBatch={10}
       windowSize={10}
     />
@@ -238,7 +234,6 @@ export default function SearchScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {renderSearchBar()}
-      {renderFilters()}
       {renderTrackList()}
     </SafeAreaView>
   );
