@@ -6,6 +6,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import SearchScreen from './src/screens/SearchScreen';
 import LibraryScreen from './src/screens/LibraryScreen';
+import { LibraryContext } from './src/hooks/useGlobalLibrary';
+import { useLibrary } from './src/hooks/useLibrary';
 
 const Tab = createBottomTabNavigator();
 
@@ -64,12 +66,22 @@ function TabNavigator() {
   );
 }
 
+function AppContent() {
+  const libraryData = useLibrary();
+  
+  return (
+    <LibraryContext.Provider value={libraryData}>
+      <TabNavigator />
+    </LibraryContext.Provider>
+  );
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <TabNavigator />
-        <StatusBar style="dark" />
+        <AppContent />
+        <StatusBar style="light" />
       </NavigationContainer>
     </SafeAreaProvider>
   );
@@ -77,9 +89,9 @@ export default function App() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#fff',
+    backgroundColor: '#111111', // Dark tab bar
     borderTopWidth: 1,
-    borderTopColor: '#e9ecef',
+    borderTopColor: '#333333', // Dark border
     paddingTop: 5,
   },
 });

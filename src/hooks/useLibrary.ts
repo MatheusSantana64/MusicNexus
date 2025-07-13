@@ -11,6 +11,8 @@ interface UseLibraryResult {
   updateRating: (firebaseId: string, rating: number) => Promise<boolean>;
   deleteMusic: (firebaseId: string) => Promise<boolean>;
   refresh: () => void;
+  getSavedMusicById: (trackId: string) => SavedMusic | null;
+  isMusicSaved: (trackId: string) => boolean;
 }
 
 export function useLibrary(): UseLibraryResult {
@@ -71,6 +73,16 @@ export function useLibrary(): UseLibraryResult {
     loadMusic();
   }, [loadMusic]);
 
+  // Nova função para buscar música salva por ID
+  const getSavedMusicById = useCallback((trackId: string): SavedMusic | null => {
+    return savedMusic.find(music => music.id === trackId) || null;
+  }, [savedMusic]);
+
+  // Nova função para verificar se uma música está salva
+  const isMusicSaved = useCallback((trackId: string): boolean => {
+    return savedMusic.some(music => music.id === trackId);
+  }, [savedMusic]);
+
   useEffect(() => {
     loadMusic();
   }, [loadMusic]);
@@ -84,5 +96,7 @@ export function useLibrary(): UseLibraryResult {
     updateRating,
     deleteMusic: deleteMusicItem,
     refresh,
+    getSavedMusicById, // ← Nova função
+    isMusicSaved, // ← Nova função
   };
 }

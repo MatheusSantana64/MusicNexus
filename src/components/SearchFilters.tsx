@@ -3,10 +3,9 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
 } from 'react-native';
 import { SearchMode } from '../types/music';
-import { DeezerService } from '../services/deezerService';
+import { searchFiltersStyles as styles } from '../styles/components/SearchFilters.styles';
 
 interface SearchFiltersProps {
   currentMode: SearchMode;
@@ -30,11 +29,11 @@ export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps)
   const getModeDescription = (mode: SearchMode): string => {
     switch (mode) {
       case 'album':
-        return 'Álbuns completos';
+        return 'Albums';
       case 'quick':
-        return 'Busca rápida';
+        return 'Quick Search';
       default:
-        return 'Álbuns completos';
+        return 'Albums';
     }
   };
 
@@ -74,59 +73,3 @@ export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps)
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#495057',
-    marginBottom: 8,
-  },
-  filtersRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  filterButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#dee2e6',
-  },
-  filterButtonActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  filterIcon: {
-    fontSize: 18,
-    marginRight: 8,
-  },
-  filterText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#495057',
-    textAlign: 'center',
-  },
-  filterTextActive: {
-    color: '#fff',
-  },
-  modeDescription: {
-    fontSize: 12,
-    color: '#6c757d',
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 16,
-    fontStyle: 'italic',
-  },
-});
