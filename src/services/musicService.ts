@@ -96,6 +96,16 @@ export async function updateMusicRating(firebaseId: string, rating: number): Pro
   }
 }
 
+export async function deleteMusic(firebaseId: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, 'savedMusic', firebaseId));
+    console.log('Music deleted successfully');
+  } catch (error) {
+    console.error('Error deleting music:', error);
+    throw error;
+  }
+}
+
 /**
  * Função helper para extrair a data de lançamento de uma track
  */

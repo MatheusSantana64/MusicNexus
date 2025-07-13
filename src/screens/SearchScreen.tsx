@@ -5,10 +5,10 @@ import {
   TextInput,
   FlatList,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeezerTrack, SearchMode } from '../types/music';
 import { useSearch } from '../hooks/useSearch';
 import { TrackItem } from '../components/TrackItem';
@@ -151,7 +151,7 @@ export default function SearchScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
