@@ -1,12 +1,63 @@
-import { collection, addDoc, getDocs, updateDoc, doc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  updateDoc, 
+  doc, 
+  deleteDoc, 
+  query, 
+  orderBy,
+  QueryConstraint 
+} from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 import { SavedMusic, DeezerTrack } from '../types/music';
 import { DeezerService } from './deezerService';
 
-export async function saveMusic(track: DeezerTrack, rating: number = 0): Promise<void> {
+// === CONSTANTS ===
+const COLLECTION_NAME = 'savedMusic';
+const DEFAULT_RELEASE_DATE = '1900-01-01';
+
+// === TYPES ===
+export type SortMode = 'savedAt' | 'release';
+
+interface SaveMusicOptions {
+  rating?: number;
+  source?: SavedMusic['source'];
+}
+
+// === VALIDATION ===
+function validateRating(rating: number): void {
+  if (rating < 0 || rating > 10 || !Number.isInteger(rating)) {
+    throw new Error('Rating must be an integer between 0 and 10');
+  }
+}
+
+function validateFirebaseId(firebaseId: string): void {
+  if (!firebaseId?.trim()) {
+    throw new Error('Firebase ID is required');
+  }
+}
+
+function validateTrack(track: DeezerTrack): void {
+  if (!track?.id || !track?.title || !track?.artist?.name) {
+    throw new Error('Invalid track data');
+  }
+}
+
+// === CORE FUNCTIONS ===
+
+/**
+ * Salva uma música no Firestore com validações
+ */
+export async function saveMusic(
+  track: DeezerTrack, 
+  options: SaveMusicOptions = {}
+): Promise<string> {
+  const { rating = 0, source = 'deezer' } = options;
+  
   try {
-    // Obter a data de lançamento
-    const releaseDate = getTrackReleaseDate(track) || '1900-01-01'; // Fallback para músicas sem data
+    validateTrack(track);
+    validateRating(rating);
 
     const musicData: Omit<SavedMusic, 'firebaseId'> = {
       id: track.id,
@@ -19,41 +70,34 @@ export async function saveMusic(track: DeezerTrack, rating: number = 0): Promise
       preview: track.preview,
       duration: track.duration,
       rating,
-      releaseDate,
+      releaseDate: DeezerService.getTrackReleaseDate(track) || DEFAULT_RELEASE_DATE,
       trackPosition: track.track_position || 0,
       diskNumber: track.disk_number || 1,
       savedAt: new Date(),
-      source: 'deezer',
+      source,
     };
 
-    const docRef = await addDoc(collection(db, 'savedMusic'), musicData);
-    console.log('Song saved with ID:', docRef.id);
+    const docRef = await addDoc(collection(db, COLLECTION_NAME), musicData);
+    return docRef.id;
   } catch (error) {
     console.error('Error saving song:', error);
-    throw error;
+    throw new Error(`Failed to save music: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
-export async function getSavedMusic(): Promise<SavedMusic[]> {
+/**
+ * Função unificada para buscar músicas com ordenação configurável
+ */
+export async function getSavedMusic(sortMode: SortMode = 'savedAt'): Promise<SavedMusic[]> {
   try {
-    const q = query(collection(db, 'savedMusic'), orderBy('savedAt', 'desc'));
-    const querySnapshot = await getDocs(q);
+    const constraints: QueryConstraint[] = [];
     
-    return querySnapshot.docs.map(doc => ({
-      ...doc.data() as Omit<SavedMusic, 'firebaseId'>,
-      firebaseId: doc.id,
-      savedAt: doc.data().savedAt.toDate(),
-    }));
-  } catch (error) {
-    console.error('Error getting saved music:', error);
-    return [];
-  }
-}
-
-export async function getSavedMusicSortedByRelease(): Promise<SavedMusic[]> {
-  try {
-    // Buscar todas as músicas e ordenar hierarquicamente no cliente
-    const q = query(collection(db, 'savedMusic'));
+    // Adicionar ordenação no servidor quando possível
+    if (sortMode === 'savedAt') {
+      constraints.push(orderBy('savedAt', 'desc'));
+    }
+    
+    const q = query(collection(db, COLLECTION_NAME), ...constraints);
     const querySnapshot = await getDocs(q);
     
     const musics = querySnapshot.docs.map(doc => ({
@@ -62,63 +106,81 @@ export async function getSavedMusicSortedByRelease(): Promise<SavedMusic[]> {
       savedAt: doc.data().savedAt.toDate(),
     }));
 
-    // Ordenação hierárquica: data > álbum > disco > posição
-    return musics.sort((a, b) => {
-      // 1. Primeiro por data de lançamento (mais recentes primeiro)
-      const dateA = new Date(a.releaseDate).getTime();
-      const dateB = new Date(b.releaseDate).getTime();
-      if (dateA !== dateB) return dateB - dateA;
-      
-      // 2. Depois por álbum (alfabético)
-      const albumComparison = a.album.localeCompare(b.album);
-      if (albumComparison !== 0) return albumComparison;
-      
-      // 3. Depois por número do disco
-      if (a.diskNumber !== b.diskNumber) return a.diskNumber - b.diskNumber;
-      
-      // 4. Por último por posição da faixa
-      return a.trackPosition - b.trackPosition;
-    });
+    return sortMode === 'release' ? sortMusicByRelease(musics) : musics;
   } catch (error) {
-    console.error('Error getting saved music sorted by release:', error);
-    return [];
-  }
-}
-
-export async function updateMusicRating(firebaseId: string, rating: number): Promise<void> {
-  try {
-    const musicRef = doc(db, 'savedMusic', firebaseId);
-    await updateDoc(musicRef, { rating });
-    console.log('Rating updated successfully');
-  } catch (error) {
-    console.error('Error updating rating:', error);
-    throw error;
-  }
-}
-
-export async function deleteMusic(firebaseId: string): Promise<void> {
-  try {
-    await deleteDoc(doc(db, 'savedMusic', firebaseId));
-    console.log('Music deleted successfully');
-  } catch (error) {
-    console.error('Error deleting music:', error);
-    throw error;
+    console.error('Error getting saved music:', error);
+    throw new Error('Failed to load saved music from database');
   }
 }
 
 /**
- * Função helper para extrair a data de lançamento de uma track
+ * Atualiza a avaliação de uma música
  */
-function getTrackReleaseDate(track: DeezerTrack): string | null {
-  // Primeiro tenta a data do álbum
-  if (track.album?.release_date) {
-    return track.album.release_date;
+export async function updateMusicRating(firebaseId: string, rating: number): Promise<void> {
+  try {
+    validateFirebaseId(firebaseId);
+    validateRating(rating);
+
+    await updateDoc(doc(db, COLLECTION_NAME, firebaseId), { rating });
+  } catch (error) {
+    console.error('Error updating rating:', error);
+    throw new Error(`Failed to update rating: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-  
-  // Depois tenta a data da própria track
-  if (track.release_date) {
-    return track.release_date;
+}
+
+/**
+ * Remove uma música da biblioteca
+ */
+export async function deleteMusic(firebaseId: string): Promise<void> {
+  try {
+    validateFirebaseId(firebaseId);
+    await deleteDoc(doc(db, COLLECTION_NAME, firebaseId));
+  } catch (error) {
+    console.error('Error deleting music:', error);
+    throw new Error(`Failed to delete music: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+// === UTILITY FUNCTIONS ===
+export async function isMusicSaved(trackId: string): Promise<boolean> {
+  const music = await getSavedMusicById(trackId);
+  return music !== null;
+}
+
+export async function getSavedMusicById(trackId: string): Promise<SavedMusic | null> {
+  try {
+    if (!trackId?.trim()) return null;
+    
+    const musics = await getSavedMusic();
+    return musics.find(music => music.id === trackId) || null;
+  } catch (error) {
+    console.error('Error getting saved music by ID:', error);
+    return null;
+  }
+}
+
+// === HELPERS ===
+function sortMusicByRelease(musics: SavedMusic[]): SavedMusic[] {
+  return musics.sort((a, b) => {
+    const dateComparison = new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime();
+    if (dateComparison !== 0) return dateComparison;
+    
+    const albumComparison = a.album.localeCompare(b.album);
+    if (albumComparison !== 0) return albumComparison;
+    
+    if (a.diskNumber !== b.diskNumber) return a.diskNumber - b.diskNumber;
+    
+    return a.trackPosition - b.trackPosition;
+  });
+}
+
+// === BATCH OPERATIONS ===
+export async function saveMusicBatch(tracks: DeezerTrack[], rating: number = 0): Promise<string[]> {
+  const results = await Promise.allSettled(
+    tracks.map(track => saveMusic(track, { rating }))
+  );
   
-  return null;
+  return results
+    .filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled')
+    .map(result => result.value);
 }

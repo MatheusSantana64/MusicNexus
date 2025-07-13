@@ -97,7 +97,7 @@ export default function SearchScreen() {
     setSavingTrackId(track.id);
     
     try {
-      await saveMusic(track, rating);
+      await saveMusic(track, { rating });
       const message = rating === 0 
         ? `Música "${track.title}" salva sem nota!`
         : `Música "${track.title}" salva com nota ${rating}!`;
