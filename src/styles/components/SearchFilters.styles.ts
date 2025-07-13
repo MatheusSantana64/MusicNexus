@@ -4,7 +4,7 @@ import { theme } from '../theme';
 export const searchFiltersStyles = StyleSheet.create({
   iconButtonsContainer: {
     flexDirection: 'row',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   iconButton: {
     width: 36,

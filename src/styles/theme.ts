@@ -13,7 +13,7 @@ export const theme = {
     textPrimary: '#FFFFFF', // White text
     textSecondary: '#CCCCCC', // Light gray for secondary text
     textMuted: '#888888', // Muted gray for less important text
-    placeholder: '#bababaff', // Placeholder text color
+    placeholder: '#CCCCCC', // Placeholder text color
     success: '#32D74B', // Brighter green for dark mode
     error: '#FF453A', // Brighter red for dark mode
     warning: '#FF9F0A', // Brighter orange for dark mode
@@ -22,32 +22,19 @@ export const theme = {
   // =============================================================================
   // 🔤 TIPOGRAFIA
   // =============================================================================
-  typography: {
-    sizes: {
-      small: 12,
-      body: 14,
-      medium: 16,
-      large: 18,
-      title: 20,
-    },
-    weights: {
-      normal: '400' as const,
-      medium: '500' as const,
-      semibold: '600' as const,
-      bold: '700' as const,
-    },
+  sizes: {
+    xsmall: 10,
+    small: 12,
+    body: 14,
+    medium: 16,
+    large: 18,
+    title: 20,
   },
-  
-  // =============================================================================
-  // 📐 ESPAÇAMENTOS
-  // =============================================================================
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 24,
-    xxl: 32,
+  weights: {
+    normal: '400' as const,
+    medium: '500' as const,
+    semibold: '600' as const,
+    bold: '700' as const,
   },
   
   // =============================================================================
