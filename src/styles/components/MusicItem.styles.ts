@@ -6,10 +6,9 @@ const MARGIN_BOTTOM = 3;
 export const musicItemStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    padding: 12,
+    padding: 6,
     backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
     alignItems: 'center',
   },
 

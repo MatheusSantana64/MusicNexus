@@ -160,7 +160,7 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
           </View>
           
           <Text style={styles.artist} numberOfLines={1} ellipsizeMode="tail">
-            {data.artist} - <Text style={styles.album}>{data.album}</Text>
+            {data.artist}<Text style={styles.album}> - {data.album}</Text>
           </Text>
           
           {data.releaseDate && (
