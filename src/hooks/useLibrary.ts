@@ -25,6 +25,7 @@ export function useLibrary(): UseLibraryResult {
     try {
       setError(null);
       const music = await getSavedMusic();
+      console.log('🔄 Library loaded:', music.length, 'songs');
       setSavedMusic(music);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar biblioteca';
@@ -40,33 +41,31 @@ export function useLibrary(): UseLibraryResult {
     try {
       await updateMusicRating(firebaseId, rating);
       
-      // Atualizar localmente
-      setSavedMusic(prev => prev.map(music => 
-        music.firebaseId === firebaseId 
-          ? { ...music, rating }
-          : music
-      ));
+      // Refresh from database to ensure consistency
+      await loadMusic();
       
       return true;
     } catch (error) {
       console.error('Error updating rating:', error);
       return false;
     }
-  }, []);
+  }, [loadMusic]);
 
   const deleteMusicItem = useCallback(async (firebaseId: string): Promise<boolean> => {
     try {
+      console.log('🗑️ Deleting music with Firebase ID:', firebaseId);
       await deleteMusic(firebaseId);
       
-      // Remover localmente
-      setSavedMusic(prev => prev.filter(music => music.firebaseId !== firebaseId));
+      console.log('✅ Music deleted from Firebase, refreshing library...');
+      // Refresh from database to ensure consistency
+      await loadMusic();
       
       return true;
     } catch (error) {
       console.error('Error deleting music:', error);
       return false;
     }
-  }, []);
+  }, [loadMusic]);
 
   const refresh = useCallback(() => {
     setRefreshing(true);
