@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,14 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeezerTrack, SearchMode } from '../types/music';
 import { useSearch } from '../hooks/useSearch';
 import { MusicItem } from '../components/MusicItem';
 import { SearchFilters } from '../components/SearchFilters';
-import { saveMusic } from '../services/musicService';
+import { saveMusic, saveMusicBatch } from '../services/musicService';
 import { useGlobalLibrary } from '../hooks/useGlobalLibrary';
 import { searchStyles as styles } from '../styles/screens/SearchScreen.styles';
 
@@ -24,8 +25,59 @@ export default function SearchScreen() {
   // === STATE & HOOKS ===
   const [searchQuery, setSearchQuery] = useState('');
   const [savingTrackId, setSavingTrackId] = useState<string | null>(null);
+  const [savingAlbumId, setSavingAlbumId] = useState<string | null>(null);
   const { tracks, loading, error, searchMode, searchTracks, setSearchMode } = useSearch();
-  const { isMusicSaved, getSavedMusicById } = useGlobalLibrary();
+  const { isMusicSaved, getSavedMusicById, loadMusic } = useGlobalLibrary();
+
+  // === COMPUTED VALUES ===
+  const albumGroups = useMemo(() => {
+    if (searchMode !== 'album' || tracks.length === 0) return [];
+
+    const groups = tracks.reduce((acc, track) => {
+      const albumId = track.album.id;
+      if (!acc[albumId]) {
+        acc[albumId] = {
+          album: track.album,
+          artist: track.artist,
+          tracks: [],
+          // Preserve the release date for sorting
+          releaseDate: track.album.release_date,
+        };
+      }
+      acc[albumId].tracks.push(track);
+      return acc;
+    }, {} as Record<string, { album: any; artist: any; tracks: DeezerTrack[]; releaseDate: string }>);
+
+    // Convert to array and sort by release date (newest first), then process
+    return Object.entries(groups)
+      .map(([albumId, group]) => ({
+        albumId,
+        ...group,
+      }))
+      .sort((a, b) => {
+        // Sort by release date (newest first)
+        if (a.releaseDate && b.releaseDate) {
+          const dateA = new Date(a.releaseDate).getTime();
+          const dateB = new Date(b.releaseDate).getTime();
+          if (dateB !== dateA) return dateB - dateA; // Newest first
+        }
+        
+        // Fallback to album title if dates are equal or missing
+        return a.album.title.localeCompare(b.album.title);
+      })
+      .map(group => ({
+        ...group,
+        tracks: group.tracks.sort((a, b) => {
+          const diskA = a.disk_number || 1;
+          const diskB = b.disk_number || 1;
+          if (diskA !== diskB) return diskA - diskB;
+          
+          const trackA = a.track_position || 999;
+          const trackB = b.track_position || 999;
+          return trackA - trackB;
+        }),
+      }));
+  }, [tracks, searchMode]);
 
   // === HANDLERS - SEARCH ===
   const handleSearch = useCallback(async (text: string) => {
@@ -40,6 +92,97 @@ export default function SearchScreen() {
       await searchTracks(searchQuery, mode);
     }
   }, [setSearchMode, searchTracks, searchQuery]);
+
+  // === HANDLERS - ALBUM ACTIONS ===
+  const handleSaveAlbum = useCallback((albumGroup: typeof albumGroups[0]) => {
+    const { albumId, album, artist, tracks: albumTracks } = albumGroup;
+    
+    // Check how many tracks are already saved
+    const savedTracks = albumTracks.filter(track => isMusicSaved(track.id));
+    const unsavedTracks = albumTracks.filter(track => !isMusicSaved(track.id));
+    
+    let message = `Salvar ${albumTracks.length} faixas do álbum "${album.title}" de ${artist.name}?`;
+    
+    if (savedTracks.length > 0) {
+      message += `\n\n⚠️ ${savedTracks.length} faixa(s) já estão salvas e serão ignoradas.`;
+    }
+    
+    if (unsavedTracks.length === 0) {
+      Alert.alert(
+        'Álbum já salvo',
+        `Todas as faixas de "${album.title}" já estão na sua biblioteca.`,
+        [{ text: 'OK', style: 'default' }]
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Salvar Álbum Completo',
+      message,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Salvar sem nota', onPress: () => saveAlbumTracks(albumGroup, 0) },
+        { text: 'Avaliar e salvar', onPress: () => showAlbumRatingDialog(albumGroup) },
+      ]
+    );
+  }, [isMusicSaved]);
+
+  const saveAlbumTracks = useCallback(async (albumGroup: typeof albumGroups[0], rating: number) => {
+    const { albumId, tracks: albumTracks } = albumGroup;
+    setSavingAlbumId(albumId);
+    
+    try {
+      // Filter out already saved tracks
+      const unsavedTracks = albumTracks.filter(track => !isMusicSaved(track.id));
+      
+      if (unsavedTracks.length === 0) {
+        showAlert('Aviso', 'Todas as faixas já estão salvas na biblioteca.');
+        return;
+      }
+
+      const savedIds = await saveMusicBatch(unsavedTracks, rating);
+      
+      // Refresh the library data to update the UI
+      await loadMusic();
+      
+      const message = rating === 0 
+        ? `${savedIds.length} faixas salvas sem nota!`
+        : `${savedIds.length} faixas salvas com nota ${rating}!`;
+      
+      showAlert('Sucesso!', message);
+    } catch (error) {
+      showAlert('Erro', 'Não foi possível salvar todas as faixas. Tente novamente.');
+      console.error('Error saving album tracks:', error);
+    } finally {
+      setSavingAlbumId(null);
+    }
+  }, [isMusicSaved, loadMusic]);
+
+  const showAlbumRatingDialog = useCallback((albumGroup: typeof albumGroups[0]) => {
+    Alert.prompt(
+      'Avaliar Álbum',
+      `Digite uma nota de ${RATING_RANGE.MIN} a ${RATING_RANGE.MAX} para todas as faixas de "${albumGroup.album.title}"`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Salvar',
+          onPress: (rating) => {
+            const numRating = parseInt(rating || '0');
+            
+            if (numRating < RATING_RANGE.MIN || numRating > RATING_RANGE.MAX) {
+              showAlert('Erro', `Por favor, digite uma nota entre ${RATING_RANGE.MIN} e ${RATING_RANGE.MAX}`);
+              return;
+            }
+
+            saveAlbumTracks(albumGroup, numRating);
+          },
+        },
+      ],
+      'plain-text',
+      '',
+      'numeric'
+    );
+  }, [saveAlbumTracks]);
 
   // === HANDLERS - TRACK ACTIONS ===
   const showAlert = useCallback((title: string, message: string) => {
@@ -98,6 +241,10 @@ export default function SearchScreen() {
     
     try {
       await saveMusic(track, { rating });
+      
+      // Refresh the library data to update the UI
+      await loadMusic();
+      
       const message = rating === 0 
         ? `Música "${track.title}" salva sem nota!`
         : `Música "${track.title}" salva com nota ${rating}!`;
@@ -109,7 +256,7 @@ export default function SearchScreen() {
     } finally {
       setSavingTrackId(null);
     }
-  }, [showAlert]);
+  }, [showAlert, loadMusic]);
 
   const showRatingDialog = useCallback((track: DeezerTrack) => {
     Alert.prompt(
@@ -147,6 +294,42 @@ export default function SearchScreen() {
   ), [handleTrackPress, savingTrackId]);
 
   const keyExtractor = useCallback((item: DeezerTrack) => item.id, []);
+
+  const renderAlbumHeader = useCallback((albumGroup: typeof albumGroups[0]) => {
+    const { albumId, album, artist, tracks: albumTracks } = albumGroup;
+    const isLoading = savingAlbumId === albumId;
+    const savedCount = albumTracks.filter(track => isMusicSaved(track.id)).length;
+    const totalCount = albumTracks.length;
+    
+    return (
+      <View style={styles.albumHeader}>
+        <View style={styles.albumInfo}>
+          <Text style={styles.albumTitle} numberOfLines={1}>
+            💿 {album.title}
+          </Text>
+          <Text style={styles.albumArtist} numberOfLines={1}>
+            {artist.name} • {totalCount} faixas
+            {savedCount > 0 && (
+              <Text style={styles.savedCount}> • {savedCount} salvas</Text>
+            )}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.saveAlbumButton, isLoading && styles.saveAlbumButtonLoading]}
+          onPress={() => !isLoading && handleSaveAlbum(albumGroup)}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.saveAlbumButtonText}>
+              {savedCount === totalCount ? 'Salvo' : 'Salvar Álbum'}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  }, [handleSaveAlbum, savingAlbumId, isMusicSaved]);
 
   const renderEmptyState = useCallback(() => {
     const states = {
@@ -217,18 +400,46 @@ export default function SearchScreen() {
     </View>
   );
 
-  const renderTrackList = () => (
-    <FlatList
-      data={tracks}
-      keyExtractor={keyExtractor}
-      renderItem={renderTrackItem}
-      ListEmptyComponent={renderEmptyState}
-      showsVerticalScrollIndicator={false}
-      removeClippedSubviews
-      maxToRenderPerBatch={10}
-      windowSize={10}
-    />
-  );
+  const renderTrackList = () => {
+    // Create a flat list with album headers interspersed
+    const flatData: Array<{ type: 'album' | 'track'; data: any }> = [];
+    
+    if (searchMode === 'album' && albumGroups.length > 0) {
+      // Group by album with headers
+      albumGroups.forEach(albumGroup => {
+        flatData.push({ type: 'album', data: albumGroup });
+        albumGroup.tracks.forEach(track => {
+          flatData.push({ type: 'track', data: track });
+        });
+      });
+    } else {
+      // Simple track list for quick mode or when no album groups
+      tracks.forEach(track => {
+        flatData.push({ type: 'track', data: track });
+      });
+    }
+
+    return (
+      <FlatList
+        data={flatData}
+        keyExtractor={(item, index) => 
+          item.type === 'album' 
+            ? `album-${item.data.albumId}` 
+            : `track-${item.data.id}`
+        }
+        renderItem={({ item }) => 
+          item.type === 'album' 
+            ? renderAlbumHeader(item.data)
+            : renderTrackItem({ item: item.data })
+        }
+        ListEmptyComponent={renderEmptyState}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={10}
+      />
+    );
+  };
 
   // === MAIN RENDER ===
   return (
