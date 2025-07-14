@@ -3,6 +3,7 @@
 import { Alert } from 'react-native';
 import { DeezerTrack, SavedMusic } from '../types/music';
 import { MusicStoreService } from './musicStoreService';
+import { ErrorHandlingService } from './errorHandlingService';
 
 export class TrackOperationsService {
   private static readonly RATING_RANGE = { MIN: 1, MAX: 10 } as const;
@@ -13,7 +14,16 @@ export class TrackOperationsService {
 
   static async saveTrack(track: DeezerTrack, rating: number): Promise<void> {
     try {
-      // ✨ Use smart service instead of direct saveMusic
+      // Validate input
+      if (!track?.id || !track?.title) {
+        const error = ErrorHandlingService.handleValidationError(
+          'Invalid track data provided',
+          'TrackOperationsService.saveTrack'
+        );
+        ErrorHandlingService.handleError(error);
+        return;
+      }
+
       await MusicStoreService.saveTrack(track, rating);
       
       const message = rating === 0 
@@ -21,9 +31,12 @@ export class TrackOperationsService {
         : `Música "${track.title}" salva com nota ${rating}!`;
       
       this.showAlert('Sucesso!', message);
-    } catch (error) {
-      this.showAlert('Erro', 'Não foi possível salvar a música. Tente novamente.');
-      console.error('Error saving music:', error);
+    } catch (originalError) {
+      const error = ErrorHandlingService.handleNetworkError(
+        originalError as Error,
+        'TrackOperationsService.saveTrack'
+      );
+      ErrorHandlingService.handleError(error);
       throw error;
     }
   }
@@ -37,14 +50,26 @@ export class TrackOperationsService {
         {
           text: 'Salvar',
           onPress: (rating) => {
-            const numRating = parseInt(rating || '0');
-            
-            if (numRating < this.RATING_RANGE.MIN || numRating > this.RATING_RANGE.MAX) {
-              this.showAlert('Erro', `Por favor, digite uma nota entre ${this.RATING_RANGE.MIN} e ${this.RATING_RANGE.MAX}`);
-              return;
-            }
+            try {
+              const numRating = parseInt(rating || '0');
+              
+              if (numRating < this.RATING_RANGE.MIN || numRating > this.RATING_RANGE.MAX) {
+                const error = ErrorHandlingService.handleValidationError(
+                  `Rating must be between ${this.RATING_RANGE.MIN} and ${this.RATING_RANGE.MAX}`,
+                  'TrackOperationsService.showRatingDialog'
+                );
+                this.showAlert('Erro', error.userMessage);
+                return;
+              }
 
-            onSave(numRating);
+              onSave(numRating);
+            } catch (originalError) {
+              const error = ErrorHandlingService.handleUnknownError(
+                originalError,
+                'TrackOperationsService.showRatingDialog'
+              );
+              ErrorHandlingService.handleError(error);
+            }
           },
         },
       ],
@@ -60,40 +85,36 @@ export class TrackOperationsService {
     onSaveWithoutRating: () => void,
     onSaveWithRating: () => void
   ): void {
-    const releaseYear = track.album?.release_date ? 
-      new Date(track.album.release_date).getFullYear() : 'Ano desconhecido';
+    try {
+      const releaseYear = track.album?.release_date ? 
+        new Date(track.album.release_date).getFullYear() : 'Ano desconhecido';
 
-    if (savedMusicData) {
-      Alert.alert(
-        '⚠️ Música já salva',
-        `"${track.title}" já está na sua biblioteca com nota ${savedMusicData.rating === 0 ? 'sem nota' : savedMusicData.rating}.\n\nDeseja salvar novamente?`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Salvar novamente', style: 'default', onPress: onSaveWithoutRating },
-        ]
+      if (savedMusicData) {
+        Alert.alert(
+          '⚠️ Música já salva',
+          `"${track.title}" já está na sua biblioteca com nota ${savedMusicData.rating === 0 ? 'sem nota' : savedMusicData.rating}.\n\nDeseja salvar novamente?`,
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Salvar novamente', style: 'default', onPress: onSaveWithoutRating },
+          ]
+        );
+      } else {
+        Alert.alert(
+          track.title,
+          `Artista: ${track.artist.name}\nÁlbum: ${track.album.title}\nAno: ${releaseYear}`,
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Salvar sem nota', onPress: onSaveWithoutRating },
+            { text: 'Avaliar e salvar', onPress: onSaveWithRating },
+          ]
+        );
+      }
+    } catch (originalError) {
+      const error = ErrorHandlingService.handleUnknownError(
+        originalError,
+        'TrackOperationsService.showTrackDialog'
       );
-    } else {
-      Alert.alert(
-        track.title,
-        `Artista: ${track.artist.name}\nÁlbum: ${track.album.title}\nAno: ${releaseYear}`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Salvar sem nota', onPress: onSaveWithoutRating },
-          { text: 'Avaliar e salvar', onPress: onSaveWithRating },
-        ]
-      );
+      ErrorHandlingService.handleError(error);
     }
-  }
-
-  static showSaveOptionsDialog(track: DeezerTrack, onSaveWithoutRating: () => void, onSaveWithRating: () => void): void {
-    Alert.alert(
-      'Salvar novamente',
-      `Como deseja salvar "${track.title}" novamente?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Salvar sem nota', onPress: onSaveWithoutRating },
-        { text: 'Avaliar e salvar', onPress: onSaveWithRating },
-      ]
-    );
   }
 }
