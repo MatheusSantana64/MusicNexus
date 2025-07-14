@@ -101,7 +101,7 @@ export const musicItemStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   rating: {
-    fontSize: theme.sizes.small,
+    fontSize: theme.sizes.medium,
     fontWeight: 'bold',
     lineHeight: 12,
   },

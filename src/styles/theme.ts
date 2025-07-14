@@ -17,6 +17,13 @@ export const theme = {
     error: '#FF453A', // Brighter red for dark mode
     warning: '#FF9F0A', // Brighter orange for dark mode
     gold: '#FFD700', // Gold color for stars
+    ratings: {
+      lowest: '#d83a32ff', // Red for lowest rating (0.5-2.5 stars)
+      low: '#ec9317ff', // Orange for low rating (3-5 stars)
+      medium: '#e1c038ff', // Yellow for medium rating (5.5-7.5 stars)
+      high: '#32ba49ff', // Green for high rating (8-9.5 stars)
+      highest: '#32aed0ff', // Blue for highest rating (10 stars)
+    },
   },
   
   // 🔤 TYPOGRAPHY

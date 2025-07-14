@@ -14,6 +14,7 @@ import { DeezerService } from '../services/deezer/deezerService';
 import { formatReleaseDate } from '../utils/dateUtils';
 import { useMusicStore } from '../store/musicStore';
 import { musicItemStyles as styles } from '../styles/components/MusicItem.styles';
+import { getRatingColor, getRatingText } from '../utils/ratingUtils';
 
 // Use generic types for better type safety
 interface MusicItemProps<T extends DeezerTrack | SavedMusic> {
@@ -123,19 +124,6 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
     });
   };
 
-  const getRatingColor = (rating: number): string => {
-    if (rating === 0) return '#6c757d';
-    if (rating <= 3) return '#dc3545';
-    if (rating <= 6) return '#fd7e14';
-    if (rating <= 8) return '#20c997';
-    return '#28a745';
-  };
-
-  const getRatingText = (rating: number): string => {
-    if (rating === 0) return 'N/A';
-    return rating.toString();
-  };
-
   const handleLongPress = () => {
     if (onLongPress) {
       onLongPress(music);
@@ -195,21 +183,15 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
           )}
         </View>
         
-        <View style={styles.ratingSection}>
-          {data.rating !== null && (
-            <View style={[
-              styles.ratingContainer,
-              { backgroundColor: getRatingColor(data.rating) + '20' }
-            ]}>
-              <Text style={[
-                styles.rating,
-                { color: getRatingColor(data.rating) }
-              ]}>
-                {getRatingText(data.rating)}
+        {isSavedMusic(music) && (
+          <View style={styles.ratingSection}>
+            <View style={[styles.ratingContainer, { backgroundColor: getRatingColor(music.rating) + '20' }]}>
+              <Text style={[styles.rating, { color: getRatingColor(music.rating) }]}>
+                {getRatingText(music.rating)}
               </Text>
             </View>
-          )}
-        </View>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
