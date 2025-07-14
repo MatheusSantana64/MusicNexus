@@ -1,3 +1,5 @@
+// App.tsx
+// Main application entry point
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
