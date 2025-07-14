@@ -12,8 +12,9 @@ interface PendingRequest<T> {
 }
 
 export class CacheService {
-  private static readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
-  private static readonly MAX_CACHE_SIZE = 500;
+  private static readonly DEFAULT_TTL = 10 * 60 * 1000; // Increase to 10 minutes
+  private static readonly TRACK_TTL = 30 * 60 * 1000; // 30 minutes for track data
+  private static readonly MAX_CACHE_SIZE = 1000; // Increase cache size
   private static readonly CLEANUP_INTERVAL = 10 * 60 * 1000; // 10 minutes
   
   private static albumCache = new Map<string, CacheEntry<any>>();

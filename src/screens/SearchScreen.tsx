@@ -1,6 +1,6 @@
 // src/screens/SearchScreen.tsx
 // Screen for searching music online (Deezer API)
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeezerTrack, SearchMode } from '../types/music';
@@ -64,7 +64,8 @@ export default function SearchScreen() {
     );
   }, [handleAlbumSave, isAlbumSaving, isMusicSaved]);
 
-  const renderTrackList = useCallback(() => {
+  // Memoize the flat data for performance
+  const memoizedFlatData = useMemo(() => {
     const flatData: Array<{ type: 'album' | 'track'; data: any }> = [];
     
     if (searchMode === 'album' && albumGroups.length > 0) {
@@ -79,35 +80,27 @@ export default function SearchScreen() {
         flatData.push({ type: 'track', data: track });
       });
     }
+    
+    return flatData;
+  }, [searchMode, albumGroups, tracks]);
 
-    return (
-      <FlashList
-        data={flatData}
-        keyExtractor={(item, index) => 
-          item.type === 'album' 
-            ? `album-${item.data.albumId}` 
-            : `track-${item.data.id}`
-        }
-        renderItem={({ item }) => 
-          item.type === 'album' 
-            ? renderAlbumHeader(item.data)
-            : renderTrackItem({ item: item.data })
-        }
-        ListEmptyComponent={() => (
-          <SearchEmptyState
-            loading={loading}
-            error={error}
-            searchQuery={searchQuery}
-            tracksLength={tracks.length}
-            searchMode={searchMode}
-          />
-        )}
-        estimatedItemSize={80}
-        showsVerticalScrollIndicator={false}
-        removeClippedSubviews
-      />
-    );
-  }, [searchMode, albumGroups, tracks, renderAlbumHeader, renderTrackItem, loading, error, searchQuery]);
+  const renderItem = useCallback(({ item }: { item: { type: 'album' | 'track'; data: any } }) => {
+    if (item.type === 'album') {
+      return renderAlbumHeader(item.data);
+    } else {
+      return renderTrackItem({ item: item.data });
+    }
+  }, [renderAlbumHeader, renderTrackItem]);
+
+  const getItemType = useCallback((item: { type: 'album' | 'track'; data: any }) => {
+    return item.type;
+  }, []);
+
+  const keyExtractor = useCallback((item: { type: 'album' | 'track'; data: any }, index: number) => {
+    return item.type === 'album' 
+      ? `album-${item.data.albumId}` 
+      : `track-${item.data.id}`;
+  }, []);
 
   return (
     <ErrorBoundary>
@@ -119,7 +112,23 @@ export default function SearchScreen() {
           searchMode={searchMode}
           onModeChange={handleModeChange}
         />
-        {renderTrackList()}
+        <FlashList
+          data={memoizedFlatData}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          getItemType={getItemType}
+          estimatedItemSize={80}
+          ListEmptyComponent={() => (
+            <SearchEmptyState
+              loading={loading}
+              error={error}
+              searchQuery={searchQuery}
+              tracksLength={tracks.length}
+              searchMode={searchMode}
+            />
+          )}
+          showsVerticalScrollIndicator={false}
+        />
       </SafeAreaView>
     </ErrorBoundary>
   );

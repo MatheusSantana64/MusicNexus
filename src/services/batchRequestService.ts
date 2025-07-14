@@ -22,6 +22,12 @@ export class BatchRequestService {
     maxConcurrent: 3,
   };
 
+  private static readonly PRIORITY_OPTIONS = {
+    maxBatchSize: 5, // Smaller batches for faster response
+    delayMs: 50,     // Faster processing
+    maxConcurrent: 5, // More concurrent requests
+  };
+
   private static albumQueue: QueuedRequest<any>[] = [];
   private static albumBatchTimeout: NodeJS.Timeout | null = null;
   private static activeRequests = 0;
@@ -48,6 +54,11 @@ export class BatchRequestService {
         }, config.delayMs);
       }
     });
+  }
+
+  // 🚀 NEW: Priority request method
+  static async requestAlbumPriority(albumId: string): Promise<any> {
+    return this.requestAlbum(albumId, this.PRIORITY_OPTIONS);
   }
 
   private static async processAlbumQueue(options: BatchRequestOptions): Promise<void> {

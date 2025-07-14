@@ -1,5 +1,5 @@
 // src/screens/LibraryScreen.tsx
-// Simplified screen for managing saved music
+// Screen for displaying music library
 import React, { useCallback } from 'react';
 import { Alert, RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';

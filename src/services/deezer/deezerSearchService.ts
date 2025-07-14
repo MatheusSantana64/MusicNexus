@@ -18,8 +18,8 @@ export class DeezerSearchService {
 
       console.log(`📀 Found ${albums.length} albums`);
 
-      // Step 2: Get tracks with optimized batching (much fewer API calls)
-      const allTracks = await DeezerDataEnricher.fetchTracksFromAlbumsOptimized(albums);
+      // Step 2: Get tracks with batching (much fewer API calls)
+      const allTracks = await DeezerDataEnricher.fetchTracksFromAlbums(albums);
       const sortedTracks = DeezerSortingUtils.sortTracksByAlbumOrder(allTracks);
 
       const endTime = Date.now();
@@ -47,8 +47,8 @@ export class DeezerSearchService {
       let tracks = validatedResponse.data || [];
       console.log(`🎵 Found ${tracks.length} tracks`);
       
-      // Step 3: Enrich tracks with optimized album data fetching
-      tracks = await DeezerDataEnricher.enrichTracksWithAlbumDataOptimized(tracks);
+      // Step 3: Enrich tracks with album data fetching
+      tracks = await DeezerDataEnricher.enrichTracksWithAlbumData(tracks);
       tracks = DeezerSortingUtils.sortTracksByAlbumOrder(tracks);
       
       const endTime = Date.now();

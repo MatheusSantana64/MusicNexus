@@ -7,7 +7,6 @@ import { DeezerService } from '../services/deezer/deezerService';
 // Search configuration
 const SEARCH_CONFIG = {
   DEBOUNCE_DELAY: 800, // Debounce delay in milliseconds
-  MIN_QUERY_LENGTH: 3, // Minimum query length for search
 } as const;
 
 interface UseSearchResult {
@@ -105,14 +104,6 @@ export function useSearch(): UseSearchResult {
       setError(null);
       setLoading(false);
       currentSearchRef.current = '';
-      return;
-    }
-
-    // If query is too short, do not search
-    if (query.trim().length < SEARCH_CONFIG.MIN_QUERY_LENGTH) {
-      setTracks([]);
-      setError(null);
-      setLoading(false);
       return;
     }
 

@@ -1,4 +1,5 @@
 // src/services/deezer/deezerDataEnricher.ts
+// Fetch and enrich Deezer data with batch requests and caching
 import { DeezerTrack, DeezerAlbum, SearchOptions } from '../../types/music';
 import { DeezerApiClient } from './deezerApiClient';
 import { DeezerSortingUtils } from './deezerSortingUtils';
@@ -11,16 +12,16 @@ export class DeezerDataEnricher {
     const validatedResponse = await DeezerApiClient.searchAlbumsRaw(options.query.trim(), options.limit || 25);
     let albums = validatedResponse.data || [];
 
-    // Enrich and sort albums with optimized batching
-    albums = await this.enrichAlbumsWithReleaseDataOptimized(albums);
+    // Enrich and sort albums with batching
+    albums = await this.enrichAlbumsWithReleaseData(albums);
     return DeezerSortingUtils.sortAlbumsByReleaseDate(albums);
   }
 
-  // 🚀 OPTIMIZED: Fetch tracks using batch requests and smart caching
-  static async fetchTracksFromAlbumsOptimized(albums: DeezerAlbum[]): Promise<DeezerTrack[]> {
+  // Fetch tracks using batch requests and smart caching
+  static async fetchTracksFromAlbums(albums: DeezerAlbum[]): Promise<DeezerTrack[]> {
     const allTracks: DeezerTrack[] = [];
     
-    console.log(`📦 Starting optimized track fetching for ${albums.length} albums`);
+    console.log(`📦 Starting track fetching for ${albums.length} albums`);
     
     // Process albums in smaller batches to avoid overwhelming the API
     const albumBatches = this.chunkArray(albums, 5);
@@ -49,8 +50,8 @@ export class DeezerDataEnricher {
     return allTracks;
   }
 
-  // 🚀 OPTIMIZED: Use batch requests for album data enrichment
-  static async enrichAlbumsWithReleaseDataOptimized(albums: DeezerAlbum[]): Promise<DeezerAlbum[]> {
+  // Use batch requests for album data enrichment
+  static async enrichAlbumsWithReleaseData(albums: DeezerAlbum[]): Promise<DeezerAlbum[]> {
     const albumsToEnrich = albums.filter(album => !album.release_date);
     const albumsWithData = albums.filter(album => album.release_date);
     
@@ -78,110 +79,35 @@ export class DeezerDataEnricher {
     return [...albumsWithData, ...enrichedAlbums];
   }
 
-  // 🚀 OPTIMIZED: Smart album data enrichment with aggressive caching
-  static async enrichTracksWithAlbumDataOptimized(tracks: DeezerTrack[]): Promise<DeezerTrack[]> {
-    const albumIds = new Set<string>();
-    const albumDataMap = new Map<string, any>();
-    const albumTracksMap = new Map<string, DeezerTrack[]>();
+  // Enrich tracks with album position data
+  static async enrichTracksWithAlbumData(tracks: DeezerTrack[]): Promise<DeezerTrack[]> {
+    console.log(`📦 Enriching ${tracks.length} tracks with position data`);
 
-    // Collect unique album IDs
-    tracks.forEach(track => {
-      if (track.album?.id) {
-        albumIds.add(track.album.id);
-      }
-    });
-
-    const uniqueAlbumIds = Array.from(albumIds);
-    console.log(`📦 Enriching ${tracks.length} tracks from ${uniqueAlbumIds.length} unique albums`);
-
-    // Check cache first for album data
-    const cachedAlbums = CacheService.getAlbumsBatch(uniqueAlbumIds);
-    const uncachedAlbumIds = uniqueAlbumIds.filter(id => !cachedAlbums.has(id));
-    
-    console.log(`✅ Found ${cachedAlbums.size} albums in cache, need to fetch ${uncachedAlbumIds.length}`);
-
-    // Add cached album data to maps
-    for (const [albumId, albumData] of cachedAlbums) {
-      albumDataMap.set(albumId, albumData);
-    }
-
-    // Fetch uncached album data using batch requests
-    if (uncachedAlbumIds.length > 0) {
-      const albumDataPromises = uncachedAlbumIds.map(async (albumId) => {
+    const enrichedTracks = await Promise.all(
+      tracks.map(async (track) => {
         try {
-          const albumData = await BatchRequestService.requestAlbum(albumId);
-          albumDataMap.set(albumId, albumData);
-          // Cache the album data for future use
-          CacheService.setAlbum(albumId, albumData);
-        } catch (error) {
-          console.warn(`Failed to fetch album data for ${albumId}:`, error);
-        }
-      });
-
-      await Promise.allSettled(albumDataPromises);
-      console.log(`✅ Fetched ${uncachedAlbumIds.length} album data from API`);
-    }
-
-    // 🔧 ALWAYS fetch album tracks to get complete track data (track_position, disk_number)
-    // This is crucial for Quick Search tracks that often lack this data
-    const albumTracksPromises = uniqueAlbumIds.map(async (albumId) => {
-      try {
-        // Check if we already have tracks for this album cached
-        const cacheKey = `album-tracks-${albumId}`;
-        const cachedTracks = CacheService.get(CacheService.trackCache, cacheKey);
-        
-        if (cachedTracks) {
-          albumTracksMap.set(albumId, cachedTracks);
-          return;
-        }
-
-        // Fetch album tracks to get complete track information
-        const albumTracks = await DeezerApiClient.getAlbumTracks(albumId);
-        albumTracksMap.set(albumId, albumTracks);
-        
-        // Cache the album tracks for future use (shorter TTL since track data changes less frequently)
-        CacheService.set(CacheService.trackCache, cacheKey, albumTracks, 10 * 60 * 1000); // 10 minutes
-      } catch (error) {
-        console.warn(`Failed to fetch album tracks for ${albumId}:`, error);
-      }
-    });
-
-    await Promise.allSettled(albumTracksPromises);
-    console.log(`✅ Fetched tracks data for ${uniqueAlbumIds.length} albums`);
-
-    // Enrich tracks with complete album data and track position
-    const enrichedTracks = tracks.map(track => {
-      const albumData = albumDataMap.get(track.album?.id);
-      const albumTracks = albumTracksMap.get(track.album?.id);
-      
-      // Find the corresponding track in the album to get complete track info
-      let trackPosition = track.track_position;
-      let diskNumber = track.disk_number;
-      
-      if (albumTracks) {
-        const matchingTrack = albumTracks.find((albumTrack: any) => albumTrack.id === track.id);
-        if (matchingTrack) {
-          // 🔧 Always use album track data for position info (this fixes Quick Search)
-          trackPosition = matchingTrack.track_position;
-          diskNumber = matchingTrack.disk_number;
+          // Get album tracks to ensure we have track_position and disk_number
+          const albumTracks = await DeezerApiClient.getAlbumTracks(track.album.id);
+          const matchingTrack = albumTracks.find((albumTrack: any) => albumTrack.id === track.id);
           
-          console.log(`🔧 Enhanced track "${track.title}" with position: ${trackPosition}, disk: ${diskNumber}`);
-        }
-      }
-      
-      const enrichedTrack: DeezerTrack = {
-        ...track,
-        track_position: trackPosition,
-        disk_number: diskNumber,
-        album: {
-          ...track.album,
-          release_date: albumData?.release_date || track.album.release_date,
-        }
-      };
+          if (matchingTrack) {
+            // Use album track data for position info (this fixes Quick Search)
+            return {
+              ...track,
+              track_position: matchingTrack.track_position,
+              disk_number: matchingTrack.disk_number,
+            };
+          }
 
-      return enrichedTrack;
-    });
-
+          return track;
+        } catch (error) {
+          console.warn(`Failed to enrich track ${track.id}:`, error);
+          return track;
+        }
+      })
+    );
+    
+    console.log(`✅ Enhanced ${enrichedTracks.length} tracks`);
     return enrichedTracks;
   }
 
@@ -202,7 +128,27 @@ export class DeezerDataEnricher {
     };
   }
 
-  // === UTILITY METHODS ===
+  // 🚀 OPTIMIZE: Pre-warm cache for common searches
+  static preWarmCache(albumIds: string[]): void {
+    // Pre-fetch popular albums in background without blocking the main thread
+    setTimeout(async () => {
+      for (const albumId of albumIds.slice(0, 5)) {
+        try {
+          const cacheKey = `album-tracks-${albumId}`;
+          if (!CacheService.get(CacheService.trackCache, cacheKey)) {
+            // Pre-fetch in the background without blocking
+            const albumTracks = await DeezerApiClient.getAlbumTracks(albumId);
+            CacheService.set(CacheService.trackCache, cacheKey, albumTracks, 30 * 60 * 1000); // 30 minutes
+          }
+        } catch (error) {
+          // Ignore pre-warm errors - this is background optimization
+          console.debug('Pre-warm cache failed for album:', albumId);
+        }
+      }
+    }, 100);
+  }
+
+  // Fix the chunk method with proper typing
   private static chunkArray<T>(array: T[], size: number): T[][] {
     const chunks: T[][] = [];
     for (let i = 0; i < array.length; i += size) {
