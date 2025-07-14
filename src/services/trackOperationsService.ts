@@ -26,11 +26,8 @@ export class TrackOperationsService {
 
       await MusicStoreService.saveTrack(track, rating);
       
-      const message = rating === 0 
-        ? `Música "${track.title}" salva sem nota!`
-        : `Música "${track.title}" salva com nota ${rating}!`;
-      
-      this.showAlert('Sucesso!', message);
+      // ✅ REMOVED: Success alert - user can see the track is saved by UI changes
+      console.log(`✅ Track saved successfully: ${track.title} (rating: ${rating})`);
     } catch (originalError) {
       const error = ErrorHandlingService.handleNetworkError(
         originalError as Error,

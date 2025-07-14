@@ -104,10 +104,13 @@ export default function LibraryScreen() {
             }
 
             const success = await updateRating(music.firebaseId!, numRating);
-            showAlert(
-              success ? 'Sucesso' : 'Erro',
-              success ? 'Avaliação atualizada!' : 'Não foi possível atualizar a avaliação'
-            );
+            
+            // ✅ REMOVIDO: Alerta de sucesso - o usuário pode ver a alteração da avaliação na UI
+            if (!success) {
+              showAlert('Erro', 'Não foi possível atualizar a avaliação');
+            } else {
+              console.log(`✅ Avaliação atualizada com sucesso: ${music.title} -> ${numRating}`);
+            }
           }
         },
       ],
@@ -129,10 +132,12 @@ export default function LibraryScreen() {
           onPress: async () => {
             const success = await deleteMusic(music.firebaseId!);
             
-            showAlert(
-              success ? 'Sucesso' : 'Erro',
-              success ? 'Música removida da biblioteca' : 'Não foi possível remover a música'
-            );
+            // ✅ REMOVIDO: Alerta de sucesso - o usuário pode ver a música desaparecer da lista
+            if (!success) {
+              showAlert('Erro', 'Não foi possível remover a música');
+            } else {
+              console.log(`✅ Música removida com sucesso: ${music.title}`);
+            }
           },
         },
       ]

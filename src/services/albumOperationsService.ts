@@ -33,11 +33,8 @@ export class AlbumOperationsService {
       // ✨ Use smart service instead of direct saveMusicBatch
       const savedIds = await MusicStoreService.saveTracksBatch(unsavedTracks, rating);
       
-      const message = rating === 0 
-        ? `${savedIds.length} faixas salvas sem nota!`
-        : `${savedIds.length} faixas salvas com nota ${rating}!`;
-      
-      this.showAlert('Sucesso!', message);
+      // ✅ REMOVED: Success alert - user can see tracks are saved by UI changes
+      console.log(`✅ Album tracks saved successfully: ${savedIds.length} tracks (rating: ${rating})`);
       return savedIds;
     } catch (error) {
       this.showAlert('Erro', 'Não foi possível salvar todas as faixas. Tente novamente.');
