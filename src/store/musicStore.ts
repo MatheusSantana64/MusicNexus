@@ -3,31 +3,53 @@
 import { create } from 'zustand';
 import { SavedMusic } from '../types/music';
 import { getSavedMusic, updateMusicRating, deleteMusic } from '../services/musicService';
-import { useOperationsStore } from './operationsStore';
+
+interface OperationState {
+  savingTracks: Set<string>;
+  savingAlbums: Set<string>;
+  updatingRatings: Set<string>;
+  deletingMusic: Set<string>;
+}
 
 interface MusicState {
-  // State
+  // Core state
   savedMusic: SavedMusic[];
   loading: boolean;
   error: string | null;
   refreshing: boolean;
   lastUpdated: number;
   
-  // Actions
+  // Operations state - consolidated here
+  operations: OperationState;
+  
+  // Core actions
   loadMusic: () => Promise<void>;
   addMusic: (music: SavedMusic) => void;
+  addMusicBatch: (musics: SavedMusic[]) => void;
   updateRating: (firebaseId: string, rating: number) => Promise<boolean>;
   deleteMusic: (firebaseId: string) => Promise<boolean>;
   refresh: () => void;
   clearError: () => void;
   
-  // Batch operations
-  addMusicBatch: (musics: SavedMusic[]) => void;
+  // Operation actions - consolidated here
+  startTrackSave: (trackId: string) => void;
+  finishTrackSave: (trackId: string) => void;
+  startAlbumSave: (albumId: string) => void;
+  finishAlbumSave: (albumId: string) => void;
+  startRatingUpdate: (firebaseId: string) => void;
+  finishRatingUpdate: (firebaseId: string) => void;
+  startMusicDelete: (firebaseId: string) => void;
+  finishMusicDelete: (firebaseId: string) => void;
   
   // Computed/Helper functions
   getSavedMusicById: (trackId: string) => SavedMusic | null;
   isMusicSaved: (trackId: string) => boolean;
   getMusicCount: () => number;
+  isTrackSaving: (trackId: string) => boolean;
+  isAlbumSaving: (albumId: string) => boolean;
+  isRatingUpdating: (firebaseId: string) => boolean;
+  isMusicDeleting: (firebaseId: string) => boolean;
+  isAnyOperationInProgress: () => boolean;
 }
 
 export const useMusicStore = create<MusicState>((set, get) => ({
@@ -37,8 +59,14 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   error: null,
   refreshing: false,
   lastUpdated: 0,
+  operations: {
+    savingTracks: new Set(),
+    savingAlbums: new Set(),
+    updatingRatings: new Set(),
+    deletingMusic: new Set(),
+  },
 
-  // Actions
+  // Core actions
   loadMusic: async () => {
     const state = get();
     
@@ -76,7 +104,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
         savedMusic: [...savedMusic, music],
         lastUpdated: Date.now()
       });
-      console.log('➕ Music added to local store:', music.title);
+      console.log('➕ Music added to store:', music.title);
     }
   },
 
@@ -90,24 +118,22 @@ export const useMusicStore = create<MusicState>((set, get) => ({
         savedMusic: [...savedMusic, ...newMusics],
         lastUpdated: Date.now()
       });
-      console.log('➕ Batch added to local store:', newMusics.length, 'songs');
+      console.log('➕ Batch added to store:', newMusics.length, 'songs');
     }
   },
 
   updateRating: async (firebaseId: string, rating: number): Promise<boolean> => {
-    const operations = useOperationsStore.getState();
+    const { operations, isRatingUpdating } = get();
     
-    // ✨ Check if already updating
-    if (operations.isRatingUpdating(firebaseId)) {
+    if (isRatingUpdating(firebaseId)) {
       console.warn('⚠️ Rating update already in progress for:', firebaseId);
       return false;
     }
 
     try {
-      // ✨ Start operation tracking
-      operations.startRatingUpdate(firebaseId);
+      get().startRatingUpdate(firebaseId);
 
-      // 1. Optimistically update local state FIRST
+      // 1. Optimistic update
       const { savedMusic } = get();
       const updatedMusic = savedMusic.map(music => 
         music.firebaseId === firebaseId 
@@ -120,39 +146,34 @@ export const useMusicStore = create<MusicState>((set, get) => ({
         lastUpdated: Date.now()
       });
       
-      // 2. Then update database
+      // 2. Update database
       await updateMusicRating(firebaseId, rating);
       
-      console.log('⭐ Rating updated locally and in database');
+      console.log('⭐ Rating updated successfully');
       return true;
     } catch (error) {
       console.error('Error updating rating:', error);
       
-      // 3. Rollback on error by reloading from database
+      // 3. Rollback on error
       await get().loadMusic();
       return false;
     } finally {
-      // ✨ Always finish operation tracking
-      operations.finishRatingUpdate(firebaseId);
+      get().finishRatingUpdate(firebaseId);
     }
   },
 
   deleteMusic: async (firebaseId: string): Promise<boolean> => {
-    const operations = useOperationsStore.getState();
+    const { isMusicDeleting } = get();
     
-    // ✨ Check if already deleting
-    if (operations.isMusicDeleting(firebaseId)) {
+    if (isMusicDeleting(firebaseId)) {
       console.warn('⚠️ Delete operation already in progress for:', firebaseId);
       return false;
     }
 
     try {
-      // ✨ Start operation tracking
-      operations.startMusicDelete(firebaseId);
+      get().startMusicDelete(firebaseId);
 
-      console.log('🗑️ Deleting music with Firebase ID:', firebaseId);
-      
-      // 1. Optimistically remove from local state FIRST
+      // 1. Optimistic removal
       const { savedMusic } = get();
       const filteredMusic = savedMusic.filter(music => music.firebaseId !== firebaseId);
       set({ 
@@ -160,20 +181,19 @@ export const useMusicStore = create<MusicState>((set, get) => ({
         lastUpdated: Date.now()
       });
       
-      // 2. Then delete from database
+      // 2. Delete from database
       await deleteMusic(firebaseId);
       
-      console.log('✅ Music deleted locally and from database');
+      console.log('✅ Music deleted successfully');
       return true;
     } catch (error) {
       console.error('Error deleting music:', error);
       
-      // 3. Rollback on error by reloading from database
+      // 3. Rollback on error
       await get().loadMusic();
       return false;
     } finally {
-      // ✨ Always finish operation tracking
-      operations.finishMusicDelete(firebaseId);
+      get().finishMusicDelete(firebaseId);
     }
   },
 
@@ -186,7 +206,120 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     set({ error: null });
   },
 
-  // Computed/Helper functions
+  // Operation actions
+  startTrackSave: (trackId: string) => {
+    const { operations } = get();
+    if (!operations.savingTracks.has(trackId)) {
+      set({ 
+        operations: {
+          ...operations,
+          savingTracks: new Set(operations.savingTracks).add(trackId)
+        }
+      });
+      console.log('🎵 Started saving track:', trackId);
+    }
+  },
+
+  finishTrackSave: (trackId: string) => {
+    const { operations } = get();
+    if (operations.savingTracks.has(trackId)) {
+      const newSet = new Set(operations.savingTracks);
+      newSet.delete(trackId);
+      set({ 
+        operations: {
+          ...operations,
+          savingTracks: newSet
+        }
+      });
+      console.log('✅ Finished saving track:', trackId);
+    }
+  },
+
+  startAlbumSave: (albumId: string) => {
+    const { operations } = get();
+    if (!operations.savingAlbums.has(albumId)) {
+      set({ 
+        operations: {
+          ...operations,
+          savingAlbums: new Set(operations.savingAlbums).add(albumId)
+        }
+      });
+      console.log('💿 Started saving album:', albumId);
+    }
+  },
+
+  finishAlbumSave: (albumId: string) => {
+    const { operations } = get();
+    if (operations.savingAlbums.has(albumId)) {
+      const newSet = new Set(operations.savingAlbums);
+      newSet.delete(albumId);
+      set({ 
+        operations: {
+          ...operations,
+          savingAlbums: newSet
+        }
+      });
+      console.log('✅ Finished saving album:', albumId);
+    }
+  },
+
+  startRatingUpdate: (firebaseId: string) => {
+    const { operations } = get();
+    if (!operations.updatingRatings.has(firebaseId)) {
+      set({ 
+        operations: {
+          ...operations,
+          updatingRatings: new Set(operations.updatingRatings).add(firebaseId)
+        }
+      });
+      console.log('⭐ Started updating rating:', firebaseId);
+    }
+  },
+
+  finishRatingUpdate: (firebaseId: string) => {
+    const { operations } = get();
+    if (operations.updatingRatings.has(firebaseId)) {
+      const newSet = new Set(operations.updatingRatings);
+      newSet.delete(firebaseId);
+      set({ 
+        operations: {
+          ...operations,
+          updatingRatings: newSet
+        }
+      });
+      console.log('✅ Finished updating rating:', firebaseId);
+    }
+  },
+
+  startMusicDelete: (firebaseId: string) => {
+    const { operations } = get();
+    if (!operations.deletingMusic.has(firebaseId)) {
+      set({ 
+        operations: {
+          ...operations,
+          deletingMusic: new Set(operations.deletingMusic).add(firebaseId)
+        }
+      });
+      console.log('🗑️ Started deleting music:', firebaseId);
+    }
+  },
+
+  finishMusicDelete: (firebaseId: string) => {
+    const { operations } = get();
+    if (operations.deletingMusic.has(firebaseId)) {
+      const newSet = new Set(operations.deletingMusic);
+      newSet.delete(firebaseId);
+      set({ 
+        operations: {
+          ...operations,
+          deletingMusic: newSet
+        }
+      });
+      console.log('✅ Finished deleting music:', firebaseId);
+    }
+  },
+
+  // Helper functions
   getSavedMusicById: (trackId: string): SavedMusic | null => {
     const { savedMusic } = get();
     return savedMusic.find(music => music.id === trackId) || null;
@@ -200,6 +333,34 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   getMusicCount: (): number => {
     const { savedMusic } = get();
     return savedMusic.length;
+  },
+
+  isTrackSaving: (trackId: string): boolean => {
+    const { operations } = get();
+    return operations.savingTracks.has(trackId);
+  },
+
+  isAlbumSaving: (albumId: string): boolean => {
+    const { operations } = get();
+    return operations.savingAlbums.has(albumId);
+  },
+
+  isRatingUpdating: (firebaseId: string): boolean => {
+    const { operations } = get();
+    return operations.updatingRatings.has(firebaseId);
+  },
+
+  isMusicDeleting: (firebaseId: string): boolean => {
+    const { operations } = get();
+    return operations.deletingMusic.has(firebaseId);
+  },
+
+  isAnyOperationInProgress: (): boolean => {
+    const { operations } = get();
+    return operations.savingTracks.size > 0 || 
+           operations.savingAlbums.size > 0 || 
+           operations.updatingRatings.size > 0 || 
+           operations.deletingMusic.size > 0;
   },
 }));
 

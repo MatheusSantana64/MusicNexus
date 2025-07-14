@@ -4,12 +4,9 @@ import { useCallback } from 'react';
 import { DeezerTrack } from '../types/music';
 import { AlbumOperationsService, AlbumGroup } from '../services/albumOperationsService';
 import { useMusicStore } from '../store/musicStore';
-import { useOperationsStore } from '../store/operationsStore';
 
 export function useAlbumSaver() {
-  // ✨ Use global operations store instead of local state
-  const { isMusicSaved } = useMusicStore();
-  const { isAlbumSaving } = useOperationsStore();
+  const { isMusicSaved, isAlbumSaving } = useMusicStore();
 
   const saveAlbum = useCallback(async (albumGroup: AlbumGroup, rating: number = 0) => {
     try {

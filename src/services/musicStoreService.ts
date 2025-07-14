@@ -1,9 +1,8 @@
-// src/services/musicService.ts
+// src/services/musicStoreService.ts
 // Music service for saving, updating, and deleting music
 import { DeezerTrack, SavedMusic } from '../types/music';
 import { saveMusic, saveMusicBatch } from './musicService';
 import { useMusicStore } from '../store/musicStore';
-import { useOperationsStore } from '../store/operationsStore';
 import { DeezerService } from './deezerService';
 
 // Smart service that handles music operations with automatic store updates
@@ -11,17 +10,15 @@ export class MusicStoreService {
   
   // Saves a track and automatically updates the store
   static async saveTrack(track: DeezerTrack, rating: number = 0): Promise<string> {
-    const operations = useOperationsStore.getState();
+    const store = useMusicStore.getState();
     
-    // ✨ Check if already saving
-    if (operations.isTrackSaving(track.id)) {
+    if (store.isTrackSaving(track.id)) {
       console.warn('⚠️ Track save already in progress for:', track.id);
       throw new Error('Esta música já está sendo salva. Aguarde...');
     }
 
     try {
-      // ✨ Start operation tracking
-      operations.startTrackSave(track.id);
+      store.startTrackSave(track.id);
 
       // 1. Save to database first
       const firebaseId = await saveMusic(track, { rating });
@@ -45,26 +42,25 @@ export class MusicStoreService {
         firebaseId,
       };
       
-      // 3. Automatically update store
-      useMusicStore.getState().addMusic(savedMusic);
+      // 3. Update store
+      store.addMusic(savedMusic);
       
       return firebaseId;
     } catch (error) {
       console.error('Error in saveTrack:', error);
       throw error;
     } finally {
-      // ✨ Always finish operation tracking
-      operations.finishTrackSave(track.id);
+      store.finishTrackSave(track.id);
     }
   }
 
   // Saves multiple tracks and automatically updates the store
   static async saveTracksBatch(tracks: DeezerTrack[], rating: number = 0): Promise<string[]> {
-    const operations = useOperationsStore.getState();
+    const store = useMusicStore.getState();
     
-    // ✨ Filter out tracks already being saved
+    // Filter out tracks already being saved
     const tracksToSave = tracks.filter(track => {
-      if (operations.isTrackSaving(track.id)) {
+      if (store.isTrackSaving(track.id)) {
         console.warn('⚠️ Skipping track already being saved:', track.id);
         return false;
       }
@@ -76,8 +72,8 @@ export class MusicStoreService {
       return [];
     }
 
-    // ✨ Start operation tracking for all tracks
-    tracksToSave.forEach(track => operations.startTrackSave(track.id));
+    // Start operation tracking for all tracks
+    tracksToSave.forEach(track => store.startTrackSave(track.id));
 
     try {
       // 1. Save to database first
@@ -100,18 +96,17 @@ export class MusicStoreService {
         diskNumber: track.disk_number || 1,
         savedAt: new Date(),
         firebaseId: firebaseIds[index],
-      })).filter((_, index) => firebaseIds[index]); // Only include successfully saved tracks
+      })).filter((_, index) => firebaseIds[index]);
       
-      // 3. Automatically update store
-      useMusicStore.getState().addMusicBatch(savedMusics);
+      // 3. Update store
+      store.addMusicBatch(savedMusics);
       
       return firebaseIds;
     } catch (error) {
       console.error('Error in saveTracksBatch:', error);
       throw error;
     } finally {
-      // ✨ Always finish operation tracking for all tracks
-      tracksToSave.forEach(track => operations.finishTrackSave(track.id));
+      tracksToSave.forEach(track => store.finishTrackSave(track.id));
     }
   }
 }

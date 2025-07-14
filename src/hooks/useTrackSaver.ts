@@ -4,12 +4,9 @@ import { useCallback } from 'react';
 import { DeezerTrack } from '../types/music';
 import { TrackOperationsService } from '../services/trackOperationsService';
 import { useMusicStore } from '../store/musicStore';
-import { useOperationsStore } from '../store/operationsStore';
 
 export function useTrackSaver() {
-  // ✨ Use global operations store instead of local state
-  const { getSavedMusicById } = useMusicStore();
-  const { isTrackSaving } = useOperationsStore();
+  const { getSavedMusicById, isTrackSaving } = useMusicStore();
 
   const saveTrack = useCallback(async (track: DeezerTrack, rating: number = 0) => {
     try {
@@ -39,7 +36,7 @@ export function useTrackSaver() {
   }, [getSavedMusicById, saveTrack]);
 
   return {
-    isSaving: isTrackSaving, // ✨ Direct reference to store method
+    isSaving: isTrackSaving,
     handleTrackPress,
   };
 }

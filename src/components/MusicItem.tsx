@@ -13,7 +13,6 @@ import { DeezerTrack, SavedMusic } from '../types/music';
 import { DeezerService } from '../services/deezerService';
 import { formatReleaseDate } from '../utils/dateUtils';
 import { useMusicStore } from '../store/musicStore';
-import { useOperationsStore } from '../store/operationsStore';
 import { musicItemStyles as styles } from '../styles/components/MusicItem.styles';
 
 // Use generic types for better type safety
@@ -30,17 +29,17 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
   onLongPress,
   isLoading = false,
 }: MusicItemProps<T>) {
-  const { getSavedMusicById } = useMusicStore();
+  const { 
+    getSavedMusicById, 
+    isTrackSaving, 
+    isRatingUpdating, 
+    isMusicDeleting 
+  } = useMusicStore();
   
-  // ✨ Add global operation awareness
-  const { isTrackSaving, isRatingUpdating, isMusicDeleting } = useOperationsStore();
-  
-  // Type guard to check if it's SavedMusic
   const isSavedMusic = (item: DeezerTrack | SavedMusic): item is SavedMusic => {
     return 'rating' in item && 'savedAt' in item;
   };
 
-  // ✨ Calculate if any operation is in progress for this item
   const isOperationInProgress = () => {
     if (isLoading) return true;
     
@@ -58,12 +57,10 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
     return false;
   };
 
-  // Extract common data regardless of type
   const getCommonData = () => {
     const savedMusicData = getSavedMusicById(music.id);
     
     if (isSavedMusic(music)) {
-      // Se é SavedMusic, usar dados salvos
       return {
         id: music.id,
         title: music.title,
@@ -78,7 +75,6 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
         isSaved: true,
       };
     } else {
-      // Se é DeezerTrack, verificar se já está salva e usar dados salvos se existir
       if (savedMusicData) {
         return {
           id: music.id,
@@ -89,8 +85,8 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
           duration: music.duration,
           releaseDate: DeezerService.getTrackReleaseDate(music),
           trackPosition: DeezerService.getTrackPosition(music),
-          rating: savedMusicData.rating, // ← Usar nota salva
-          savedAt: savedMusicData.savedAt, // ← Usar data salva
+          rating: savedMusicData.rating,
+          savedAt: savedMusicData.savedAt,
           isSaved: true,
         };
       } else {
@@ -103,8 +99,8 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
           duration: music.duration,
           releaseDate: DeezerService.getTrackReleaseDate(music),
           trackPosition: DeezerService.getTrackPosition(music),
-          rating: null, // ← Sem nota
-          savedAt: null, // ← Não salva
+          rating: null,
+          savedAt: null,
           isSaved: false,
         };
       }
@@ -144,7 +140,6 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
     if (onLongPress) {
       onLongPress(music);
     } else {
-      // Default long press behavior
       Alert.alert(
         data.title,
         `Artista: ${data.artist}\nÁlbum: ${data.album}\nRelease: ${data.releaseDate ? formatReleaseDate(data.releaseDate) : 'N/A'}${data.isSaved ? `\nSalva em: ${data.savedAt ? formatSavedDate(data.savedAt) : 'N/A'}` : '\nNão salva na biblioteca'}`,
@@ -157,11 +152,11 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
 
   return (
     <TouchableOpacity
-      style={[styles.container, isOperationInProgress() && { opacity: 0.6 }]} // ✨ Updated
-      onPress={() => !isOperationInProgress() && onPress(music)} // ✨ Updated
+      style={[styles.container, isOperationInProgress() && { opacity: 0.6 }]}
+      onPress={() => !isOperationInProgress() && onPress(music)}
       onLongPress={handleLongPress}
-      activeOpacity={isOperationInProgress() ? 1 : 0.7} // ✨ Updated
-      disabled={isOperationInProgress()} // ✨ Updated
+      activeOpacity={isOperationInProgress() ? 1 : 0.7}
+      disabled={isOperationInProgress()}
     >
       <Image
         source={{ uri: data.coverUrl }}
