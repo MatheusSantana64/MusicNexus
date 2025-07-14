@@ -1,7 +1,7 @@
 // src/components/ErrorBoundary.tsx
 // ErrorBoundary component to catch errors
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { theme } from '../styles/theme';
 
 interface ErrorBoundaryState {
@@ -76,7 +76,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 }
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -131,4 +131,4 @@ const styles = {
     color: theme.colors.textSecondary,
     fontFamily: 'monospace',
   },
-};
+});
