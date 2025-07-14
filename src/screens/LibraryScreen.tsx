@@ -1,7 +1,8 @@
 // src/screens/LibraryScreen.tsx
 // Simplified screen for managing saved music
 import React, { useCallback } from 'react';
-import { FlatList, Alert, RefreshControl } from 'react-native';
+import { Alert, RefreshControl } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SavedMusic } from '../types/music';
 import { MusicItem } from '../components/MusicItem';
@@ -63,10 +64,11 @@ export default function LibraryScreen() {
       )}
       
       {shouldShowList ? (
-        <FlatList
+        <FlashList
           data={processedMusic}
           keyExtractor={(item) => item.firebaseId!}
           renderItem={renderItem}
+          estimatedItemSize={80}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -76,8 +78,6 @@ export default function LibraryScreen() {
             />
           }
           removeClippedSubviews
-          maxToRenderPerBatch={10}
-          windowSize={10}
         />
       ) : (
         <LibraryEmptyState

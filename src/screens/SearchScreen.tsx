@@ -1,7 +1,8 @@
 // src/screens/SearchScreen.tsx
 // Screen for searching music online (Deezer API)
 import React, { useState, useCallback } from 'react';
-import { View, FlatList } from 'react-native';
+import { View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeezerTrack, SearchMode } from '../types/music';
 import { useSearch } from '../hooks/useSearch';
@@ -81,7 +82,7 @@ export default function SearchScreen() {
     }
 
     return (
-      <FlatList
+      <FlashList
         data={flatData}
         keyExtractor={(item, index) => 
           item.type === 'album' 
@@ -102,10 +103,9 @@ export default function SearchScreen() {
             searchMode={searchMode}
           />
         )}
+        estimatedItemSize={80}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews
-        maxToRenderPerBatch={10}
-        windowSize={10}
       />
     );
   }, [searchMode, albumGroups, tracks, renderAlbumHeader, renderTrackItem, loading, error, searchQuery]);
