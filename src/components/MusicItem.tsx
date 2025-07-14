@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { DeezerTrack, SavedMusic } from '../types/music';
-import { DeezerService } from '../services/deezerService';
+import { DeezerService } from '../services/deezer/deezerService';
 import { formatReleaseDate } from '../utils/dateUtils';
 import { useMusicStore } from '../store/musicStore';
 import { musicItemStyles as styles } from '../styles/components/MusicItem.styles';

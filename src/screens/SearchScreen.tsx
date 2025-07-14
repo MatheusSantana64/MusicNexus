@@ -1,7 +1,6 @@
 // src/screens/SearchScreen.tsx
 // Screen for searching music online (Deezer API)
 import React, { useState, useCallback } from 'react';
-import { View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeezerTrack, SearchMode } from '../types/music';

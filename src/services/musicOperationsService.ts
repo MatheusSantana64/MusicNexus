@@ -4,7 +4,7 @@ import { Alert } from 'react-native';
 import { DeezerTrack, SavedMusic } from '../types/music';
 import { saveMusic, saveMusicBatch } from './musicService';
 import { useMusicStore } from '../store/musicStore';
-import { DeezerService } from './deezerService';
+import { DeezerService } from './deezer/deezerService';
 
 export interface AlbumGroup {
   albumId: string;

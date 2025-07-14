@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 import { SavedMusic, DeezerTrack } from '../types/music';
-import { DeezerService } from './deezerService';
+import { DeezerService } from './deezer/deezerService';
 import { 
   validateSavedMusicInput,
   safeParseFirebaseMusicDocument,

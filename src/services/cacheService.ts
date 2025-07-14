@@ -17,7 +17,7 @@ export class CacheService {
   private static readonly CLEANUP_INTERVAL = 10 * 60 * 1000; // 10 minutes
   
   private static albumCache = new Map<string, CacheEntry<any>>();
-  private static trackCache = new Map<string, CacheEntry<any>>();
+  public static trackCache = new Map<string, CacheEntry<any>>(); // 🔧 Make this public
   private static pendingRequests = new Map<string, PendingRequest<any>>();
   
   private static lastCleanup = Date.now();
