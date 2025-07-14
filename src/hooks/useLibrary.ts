@@ -77,13 +77,15 @@ export function useLibrary() {
   const handleRatingSave = useCallback(async (rating: number) => {
     if (!selectedMusic) return;
     
+    // Close modal immediately
+    setRatingModalVisible(false);
+    setSelectedMusic(null);
+    
+    // Update rating in background
     const success = await updateRating(selectedMusic.firebaseId!, rating);
     if (!success) {
       Alert.alert('Error', 'Could not update the rating');
     }
-    
-    setRatingModalVisible(false);
-    setSelectedMusic(null);
   }, [selectedMusic, updateRating]);
 
   // HANDLE RATING CANCEL

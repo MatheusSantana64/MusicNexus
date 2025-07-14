@@ -29,6 +29,13 @@ export function StarRatingModal({
 }: StarRatingModalProps) {
   const [rating, setRating] = useState(initialRating);
 
+  // Update rating when initialRating changes or modal becomes visible
+  React.useEffect(() => {
+    if (visible) {
+      setRating(initialRating);
+    }
+  }, [visible, initialRating]);
+
   const handleSave = () => {
     onSave(rating);
     setRating(0); // Reset for next use
@@ -54,19 +61,21 @@ export function StarRatingModal({
           </Text>
           
           <View style={styles.ratingContainer}>
+            <Text style={styles.ratingText}>
+            <>
+                <Text style={styles.ratingValue}>{rating.toFixed(1)}/10</Text>
+            </>
+            </Text>
             <StarRating
               rating={rating}
               onChange={setRating}
               maxStars={10}
               starSize={32}
-              color="#FFD700"
+              color={theme.colors.gold}
               emptyColor="#333333"
               enableHalfStar={true}
               starStyle={styles.star}
             />
-            <Text style={styles.ratingText}>
-              {rating === 0 ? 'No rating' : `${rating}/10`}
-            </Text>
           </View>
 
           <View style={styles.buttonContainer}>
@@ -121,13 +130,15 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   star: {
-    marginHorizontal: 2,
+    marginHorizontal: 0,
   },
   ratingText: {
-    fontSize: theme.sizes.medium,
-    color: theme.colors.textPrimary,
-    marginTop: 12,
+    marginBottom: 12,
     fontWeight: theme.weights.medium,
+  },
+  ratingValue: {
+    fontSize: theme.sizes.title,
+    color: theme.colors.gold,
   },
   buttonContainer: {
     flexDirection: 'row',

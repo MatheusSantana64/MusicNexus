@@ -100,9 +100,9 @@ export default function LibraryScreen() {
       {/* STAR RATING MODAL */}
       <StarRatingModal
         visible={ratingModalVisible}
-        title="Update Rating"
-        itemName={selectedMusic ? `${selectedMusic.title} - ${selectedMusic.artist}` : ''}
-        initialRating={selectedMusic?.rating || 0}
+        title={selectedMusic ? `${selectedMusic.title}` : ''}
+        itemName={selectedMusic ? `${selectedMusic.artist}\n${selectedMusic.album}` : ''}
+        initialRating={selectedMusic?.rating ?? 0}
         onSave={handleRatingSave}
         onCancel={handleRatingCancel}
       />

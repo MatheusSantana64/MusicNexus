@@ -16,6 +16,7 @@ export const theme = {
     success: '#32D74B', // Brighter green for dark mode
     error: '#FF453A', // Brighter red for dark mode
     warning: '#FF9F0A', // Brighter orange for dark mode
+    gold: '#FFD700', // Gold color for stars
   },
   
   // 🔤 TYPOGRAPHY
