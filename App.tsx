@@ -6,8 +6,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import SearchScreen from './src/screens/SearchScreen';
 import LibraryScreen from './src/screens/LibraryScreen';
-import { LibraryContext } from './src/hooks/useGlobalLibrary';
-import { useLibrary } from './src/hooks/useLibrary';
 
 const Tab = createBottomTabNavigator();
 
@@ -39,8 +37,7 @@ function TabNavigator() {
             height: 60 + (insets.bottom > 0 ? insets.bottom : 0),
           }
         ],
-        headerShown: false, // This removes the header from all screens
-        // Custom tab bar button to disable press animations
+        headerShown: false,
         tabBarButton: ({ children, onPress, ...props }) => (
           <TouchableOpacity onPress={onPress} activeOpacity={1} style={props.style}>
             {children}
@@ -66,21 +63,11 @@ function TabNavigator() {
   );
 }
 
-function AppContent() {
-  const libraryData = useLibrary();
-  
-  return (
-    <LibraryContext.Provider value={libraryData}>
-      <TabNavigator />
-    </LibraryContext.Provider>
-  );
-}
-
 export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <AppContent />
+        <TabNavigator />
         <StatusBar style="light" />
       </NavigationContainer>
     </SafeAreaProvider>
@@ -89,9 +76,9 @@ export default function App() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#111111', // Dark tab bar
+    backgroundColor: '#111111',
     borderTopWidth: 1,
-    borderTopColor: '#333333', // Dark border
+    borderTopColor: '#333333',
     paddingTop: 5,
   },
 });

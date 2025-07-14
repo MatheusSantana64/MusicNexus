@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react';
 import { DeezerTrack } from '../types/music';
 import { TrackOperationsService } from '../services/trackOperationsService';
-import { useGlobalLibrary } from './useGlobalLibrary';
+import { useMusicStore } from '../store/musicStore';
 
 export function useTrackSaver() {
   const [savingTrackIds, setSavingTrackIds] = useState<Set<string>>(new Set());
-  const { isMusicSaved, getSavedMusicById, loadMusic } = useGlobalLibrary();
+  
+  // Use store instead of context
+  const { getSavedMusicById, loadMusic } = useMusicStore();
 
   const isSaving = useCallback((trackId: string): boolean => {
     return savingTrackIds.has(trackId);
@@ -19,7 +21,7 @@ export function useTrackSaver() {
     
     try {
       await TrackOperationsService.saveTrack(track, rating);
-      await loadMusic(); // Refresh library
+      await loadMusic(); // Refresh store
     } finally {
       // Clear loading state
       setSavingTrackIds(prev => {

@@ -15,7 +15,7 @@ import { useTrackSaver } from '../hooks/useTrackSaver';
 import { MusicItem } from '../components/MusicItem';
 import { SearchFilters } from '../components/SearchFilters';
 import { SearchEmptyState } from '../components/SearchEmptyState';
-import { useGlobalLibrary } from '../hooks/useGlobalLibrary';
+import { useMusicStore } from '../store/musicStore';
 import { searchStyles as styles } from '../styles/screens/SearchScreen.styles';
 
 // === CONSTANTS ===
@@ -25,7 +25,7 @@ export default function SearchScreen() {
   // === STATE & HOOKS ===
   const [searchQuery, setSearchQuery] = useState('');
   const { tracks, loading, error, searchMode, searchTracks, setSearchMode } = useSearch();
-  const { isMusicSaved } = useGlobalLibrary();
+  const { isMusicSaved } = useMusicStore();
 
   // === SIMPLE HOOKS WITH INTERNAL STATE ===
   const { isSaving: isAlbumSaving, handleSaveAlbum } = useAlbumSaver();

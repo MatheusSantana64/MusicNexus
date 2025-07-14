@@ -12,8 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SavedMusic } from '../types/music';
 import { MusicItem } from '../components/MusicItem';
-import { useLibrary } from '../hooks/useLibrary';
-import { useGlobalLibrary } from '../hooks/useGlobalLibrary';
+import { useMusicStore } from '../store/musicStore';
 import { libraryStyles as styles } from '../styles/screens/LibraryScreen.styles';
 
 type SortMode = 'recent' | 'rating' | 'release' | 'alphabetical' | 'album' | 'artist';
@@ -66,19 +65,20 @@ const sortMusic = (music: SavedMusic[], mode: SortMode) => {
 };
 
 export default function LibraryScreen() {
-  // === STATE & HOOKS ===
+  // === STATE & STORE ===
   const [sortMode, setSortMode] = useState<SortMode>('recent');
   const [searchQuery, setSearchQuery] = useState('');
-  const { 
-    savedMusic, 
-    loading, 
-    error, 
-    refreshing, 
-    updateRating, 
-    deleteMusic, 
-    refresh 
-  } = useLibrary();
-  const globalLibrary = useGlobalLibrary();
+  
+  // Use Zustand store instead of hooks
+  const {
+    savedMusic,
+    loading,
+    error,
+    refreshing,
+    updateRating,
+    deleteMusic,
+    refresh,
+  } = useMusicStore();
 
   // === HANDLERS ===
   const showAlert = useCallback((title: string, message: string) => {
@@ -127,10 +127,6 @@ export default function LibraryScreen() {
           onPress: async () => {
             const success = await deleteMusic(music.firebaseId!);
             
-            if (success) {
-              await globalLibrary.loadMusic();
-            }
-            
             showAlert(
               success ? 'Sucesso' : 'Erro',
               success ? 'Música removida da biblioteca' : 'Não foi possível remover a música'
@@ -139,7 +135,7 @@ export default function LibraryScreen() {
         },
       ]
     );
-  }, [deleteMusic, showAlert, globalLibrary.loadMusic]);
+  }, [deleteMusic, showAlert]);
 
   // === COMPUTED VALUES ===
   const processedMusic = useMemo(() => {

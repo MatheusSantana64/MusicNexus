@@ -10,7 +10,7 @@ import {
 import { DeezerTrack, SavedMusic } from '../types/music';
 import { DeezerService } from '../services/deezerService';
 import { formatReleaseDate } from '../utils/dateUtils';
-import { useGlobalLibrary } from '../hooks/useGlobalLibrary';
+import { useMusicStore } from '../store/musicStore';
 import { musicItemStyles as styles } from '../styles/components/MusicItem.styles';
 
 // Use generic types for better type safety
@@ -27,7 +27,7 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
   onLongPress,
   isLoading = false,
 }: MusicItemProps<T>) {
-  const { getSavedMusicById, isMusicSaved } = useGlobalLibrary();
+  const { getSavedMusicById } = useMusicStore();
 
   // Type guard to check if it's SavedMusic
   const isSavedMusic = (item: DeezerTrack | SavedMusic): item is SavedMusic => {
