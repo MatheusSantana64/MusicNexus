@@ -7,12 +7,14 @@ import { DeezerTrack, SearchMode } from '../types/music';
 import { useSearch } from '../hooks/useSearch';
 import { useMusicOperations } from '../hooks/useMusicOperations';
 import { useAlbumGrouping } from '../hooks/useAlbumGrouping';
+import { useModal } from '../hooks/useModal';
 import { MusicItem } from '../components/MusicItem';
 import { SearchBar } from '../components/SearchBar';
 import { AlbumHeader, AlbumGroup } from '../components/AlbumHeader';
 import { SearchEmptyState } from '../components/SearchEmptyState';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StarRatingModal } from '../components/StarRatingModal';
+import { OptionsModal } from '../components/OptionsModal';
 import { searchStyles as styles } from '../styles/screens/SearchScreen.styles';
 
 const MIN_SEARCH_LENGTH = 3;
@@ -35,6 +37,9 @@ export default function SearchScreen() {
     handleRatingCancel,
   } = useMusicOperations();
   
+  // Info modal for MusicItem fallback
+  const { showModal: showInfoModal, modalProps: infoModalProps } = useModal();
+  
   const albumGroups = useAlbumGrouping(tracks, searchMode);
 
   const handleSearch = useCallback(async (text: string) => {
@@ -49,13 +54,28 @@ export default function SearchScreen() {
     }
   }, [setSearchMode, searchTracks, searchQuery]);
 
+  const handleShowInfoModal = useCallback((title: string, message: string) => {
+    showInfoModal({
+      title,
+      message,
+      actions: [
+        {
+          text: 'Close',
+          style: 'cancel',
+          onPress: () => {},
+        },
+      ],
+    });
+  }, [showInfoModal]);
+
   const renderTrackItem = useCallback(({ item }: { item: DeezerTrack }) => (
     <MusicItem 
       music={item} 
       onPress={handleTrackPress}
       isLoading={isTrackSaving(item.id)}
+      showInfoModal={handleShowInfoModal}
     />
-  ), [handleTrackPress, isTrackSaving]);
+  ), [handleTrackPress, isTrackSaving, handleShowInfoModal]);
 
   const renderAlbumHeader = useCallback((albumGroup: AlbumGroup) => {
     const { albumId, tracks: albumTracks } = albumGroup;
@@ -137,6 +157,9 @@ export default function SearchScreen() {
           )}
           showsVerticalScrollIndicator={false}
         />
+
+        {/* INFO MODAL - for MusicItem info display */}
+        <OptionsModal {...infoModalProps} />
 
         {/* STAR RATING MODAL FOR SEARCH SCREEN */}
         <StarRatingModal

@@ -1,10 +1,10 @@
 // src/hooks/useLibrary.ts
 // Hook for managing library operations and logic
 import React, { useState, useCallback, useMemo } from 'react';
-import { Alert } from 'react-native';
 import { SavedMusic } from '../types/music';
 import { useMusicStore } from '../store/musicStore';
 import { SORT_OPTIONS, SortMode } from '../components/LibraryHeader';
+import { useModal } from './useModal';
 
 export function useLibrary() {
   const [sortMode, setSortMode] = useState<SortMode>('release');
@@ -14,6 +14,9 @@ export function useLibrary() {
   // State for rating modal
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [selectedMusic, setSelectedMusic] = useState<SavedMusic | null>(null);
+
+  // Modal hook for confirmations
+  const { showModal, modalProps } = useModal();
 
   const {
     savedMusic,
@@ -62,25 +65,31 @@ export function useLibrary() {
       setSelectedMusic(music);
       setRatingModalVisible(true);
     } else if (action === 'delete') {
-      Alert.alert(
-        'Remove Music',
-        `Are you sure you want to remove "${music.title}" from your library?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
+      showModal({
+        title: 'Remove Music',
+        message: `Are you sure you want to remove "${music.title}" from your library?`,
+        actions: [
           {
             text: 'Remove',
             style: 'destructive',
             onPress: async () => {
               const success = await deleteMusic(music.firebaseId!);
               if (!success) {
-                Alert.alert('Error', 'Could not remove the music');
+                showModal({
+                  title: 'Error',
+                  message: 'Could not remove the music',
+                  actions: [
+                    { text: 'OK', style: 'default', onPress: () => {} }
+                  ],
+                });
               }
             },
           },
-        ]
-      );
+          { text: 'Cancel', style: 'cancel', onPress: () => {} },
+        ],
+      });
     }
-  }, [updateRating, deleteMusic]);
+  }, [updateRating, deleteMusic, showModal]);
 
   // HANDLE RATING SAVE
   const handleRatingSave = useCallback(async (rating: number) => {
@@ -93,9 +102,15 @@ export function useLibrary() {
     // Update rating in background
     const success = await updateRating(selectedMusic.firebaseId!, rating);
     if (!success) {
-      Alert.alert('Error', 'Could not update the rating');
+      showModal({
+        title: 'Error',
+        message: 'Could not update the rating',
+        actions: [
+          { text: 'OK', style: 'default', onPress: () => {} }
+        ],
+      });
     }
-  }, [selectedMusic, updateRating]);
+  }, [selectedMusic, updateRating, showModal]);
 
   // HANDLE RATING CANCEL
   const handleRatingCancel = useCallback(() => {
@@ -126,6 +141,9 @@ export function useLibrary() {
     // MODAL STATE TO RETURN
     ratingModalVisible,
     selectedMusic,
+    
+    // MODAL PROPS FOR OPTIONS/CONFIRMATIONS
+    modalProps,
     
     // Actions
     setSortMode: handleSortModeChange,

@@ -7,7 +7,6 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { DeezerTrack, SavedMusic } from '../types/music';
 import { DeezerService } from '../services/deezer/deezerService';
@@ -22,6 +21,7 @@ interface MusicItemProps<T extends DeezerTrack | SavedMusic> {
   onPress: (music: T) => void;
   onLongPress?: (music: T) => void;
   isLoading?: boolean;
+  showInfoModal?: (title: string, message: string) => void;
 }
 
 export function MusicItem<T extends DeezerTrack | SavedMusic>({ 
@@ -29,6 +29,7 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
   onPress, 
   onLongPress,
   isLoading = false,
+  showInfoModal,
 }: MusicItemProps<T>) {
   const { 
     getSavedMusicById, 
@@ -127,14 +128,10 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
   const handleLongPress = () => {
     if (onLongPress) {
       onLongPress(music);
-    } else {
-      Alert.alert(
-        data.title,
-        `Artist: ${data.artist}\nAlbum: ${data.album}\nRelease: ${data.releaseDate ? formatReleaseDate(data.releaseDate) : 'N/A'}${data.isSaved ? `\nSaved on: ${data.savedAt ? formatSavedDate(data.savedAt) : 'N/A'}` : '\nNot saved in library'}`,
-        [
-          { text: 'Close', style: 'cancel' },
-        ]
-      );
+    } else if (showInfoModal) {
+      // Use the modal instead of Alert
+      const message = `Artist: ${data.artist}\nAlbum: ${data.album}\nRelease: ${data.releaseDate ? formatReleaseDate(data.releaseDate) : 'N/A'}${data.isSaved ? `\nSaved on: ${data.savedAt ? formatSavedDate(data.savedAt) : 'N/A'}` : '\nNot saved in library'}`;
+      showInfoModal(data.title, message);
     }
   };
 

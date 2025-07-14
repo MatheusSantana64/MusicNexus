@@ -1,6 +1,5 @@
 // src/services/musicOperationsService.ts
 // Handles music operations like saving tracks and albums, showing dialogs, etc.
-import { Alert } from 'react-native';
 import { DeezerTrack, SavedMusic } from '../types/music';
 import { saveMusic, saveMusicBatch } from './musicService';
 import { useMusicStore } from '../store/musicStore';
@@ -12,6 +11,19 @@ export interface AlbumGroup {
   artist: any;
   tracks: DeezerTrack[];
   releaseDate: string;
+}
+
+// Modal action interface for consistency
+interface ShowModalFunction {
+  (options: {
+    title: string;
+    message: string;
+    actions: Array<{
+      text: string;
+      style?: 'default' | 'cancel' | 'destructive';
+      onPress: () => void;
+    }>;
+  }): void;
 }
 
 export class MusicOperationsService {
@@ -60,10 +72,19 @@ export class MusicOperationsService {
   static async saveAlbumTracks(
     albumGroup: AlbumGroup, 
     rating: number, 
-    unsavedTracks: DeezerTrack[]
+    unsavedTracks: DeezerTrack[],
+    showModal?: ShowModalFunction
   ): Promise<string[]> {
     if (unsavedTracks.length === 0) {
-      Alert.alert('Warning', 'All tracks are already saved in the library.');
+      if (showModal) {
+        showModal({
+          title: 'Warning',
+          message: 'All tracks are already saved in the library.',
+          actions: [
+            { text: 'OK', style: 'default', onPress: () => {} }
+          ]
+        });
+      }
       return [];
     }
 
@@ -96,7 +117,15 @@ export class MusicOperationsService {
       console.log(`✅ Album saved: ${firebaseIds.length} tracks`);
       return firebaseIds;
     } catch (error) {
-      Alert.alert('Error', 'Could not save all tracks. Please try again.');
+      if (showModal) {
+        showModal({
+          title: 'Error',
+          message: 'Could not save all tracks. Please try again.',
+          actions: [
+            { text: 'OK', style: 'default', onPress: () => {} }
+          ]
+        });
+      }
       console.error('Error saving album tracks:', error);
       throw error;
     } finally {
@@ -110,17 +139,18 @@ export class MusicOperationsService {
     track: DeezerTrack,
     savedMusicData: SavedMusic | null,
     onSaveWithoutRating: () => void,
-    onSaveWithRating: () => void
+    onSaveWithRating: () => void,
+    showModal: ShowModalFunction
   ): void {
     if (savedMusicData) {
-      Alert.alert(
-        '⚠️ Song already saved',
-        `"${track.title}" is already in your library with rating ${savedMusicData.rating === 0 ? 'no rating' : savedMusicData.rating}.\n\nDo you want to save it again?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
+      showModal({
+        title: '⚠️ Song already saved',
+        message: `"${track.title}" is already in your library with rating ${savedMusicData.rating === 0 ? 'no rating' : savedMusicData.rating}.\n\nDo you want to save it again?`,
+        actions: [
+          { text: 'Cancel', style: 'cancel', onPress: () => {} },
           { text: 'Save again', style: 'default', onPress: onSaveWithoutRating },
         ]
-      );
+      });
     } else {
       onSaveWithRating();
     }
@@ -131,14 +161,17 @@ export class MusicOperationsService {
     savedCount: number,
     unsavedCount: number,
     onSaveWithoutRating: () => void,
-    onSaveWithRating: () => void
+    onSaveWithRating: () => void,
+    showModal: ShowModalFunction
   ): void {
     if (unsavedCount === 0) {
-      Alert.alert(
-        'Album already saved',
-        `All tracks from "${albumGroup.album.title}" are already in your library.`,
-        [{ text: 'OK' }]
-      );
+      showModal({
+        title: 'Album already saved',
+        message: `All tracks from "${albumGroup.album.title}" are already in your library.`,
+        actions: [
+          { text: 'OK', style: 'default', onPress: () => {} }
+        ]
+      });
       return;
     }
 

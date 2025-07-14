@@ -5,6 +5,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { DeezerTrack } from '../types/music';
 import { useMusicStore } from '../store/musicStore';
 import { searchStyles as styles } from '../styles/screens/SearchScreen.styles';
+import { theme } from '../styles/theme';
 
 export interface AlbumGroup {
   albumId: string;
@@ -17,6 +18,7 @@ export interface AlbumGroup {
 interface AlbumHeaderProps {
   albumGroup: AlbumGroup;
   totalCount: number;
+  savedCount: number;
   isLoading: boolean;
   onSaveAlbum: (albumGroup: AlbumGroup) => void;
 }
@@ -48,7 +50,7 @@ export function AlbumHeader({
         </Text>
       </View>
       <TouchableOpacity
-        style={[styles.saveAlbumButton, isLoading && styles.saveAlbumButtonLoading]}
+        style={[styles.saveAlbumButton, isFullySaved ? { backgroundColor: 'limegreen' } : {}, isLoading && styles.saveAlbumButtonLoading]}
         onPress={() => !isLoading && onSaveAlbum(albumGroup)}
         disabled={isLoading}
       >

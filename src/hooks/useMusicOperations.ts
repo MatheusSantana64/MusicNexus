@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { DeezerTrack } from '../types/music';
 import { MusicOperationsService, AlbumGroup } from '../services/musicOperationsService';
 import { useMusicStore } from '../store/musicStore';
+import { useModal } from './useModal';
 
 export function useMusicOperations() {
   const { getSavedMusicById, isTrackSaving, isAlbumSaving, isMusicSaved } = useMusicStore();
@@ -13,6 +14,9 @@ export function useMusicOperations() {
   const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
   const [ratingType, setRatingType] = useState<'track' | 'album'>('track');
   const [selectedAlbum, setSelectedAlbum] = useState<AlbumGroup | null>(null);
+
+  // Modal hook for dialogs
+  const { showModal } = useModal();
 
   // Track operations
   const saveTrack = useCallback(async (track: DeezerTrack, rating: number = 0) => {
@@ -39,19 +43,20 @@ export function useMusicOperations() {
       track,
       savedMusicData,
       onSaveWithoutRating,
-      onSaveWithRating
+      onSaveWithRating,
+      showModal
     );
-  }, [getSavedMusicById, saveTrack]);
+  }, [getSavedMusicById, saveTrack, showModal]);
 
   // Album operations
   const saveAlbum = useCallback(async (albumGroup: AlbumGroup, rating: number = 0) => {
     try {
       const unsavedTracks = albumGroup.tracks.filter((track: DeezerTrack) => !isMusicSaved(track.id));
-      await MusicOperationsService.saveAlbumTracks(albumGroup, rating, unsavedTracks);
+      await MusicOperationsService.saveAlbumTracks(albumGroup, rating, unsavedTracks, showModal);
     } catch (error) {
       console.error('Error saving album:', error);
     }
-  }, [isMusicSaved]);
+  }, [isMusicSaved, showModal]);
 
   const handleAlbumSave = useCallback((albumGroup: AlbumGroup) => {
     const savedTracks = albumGroup.tracks.filter((track: DeezerTrack) => isMusicSaved(track.id));
@@ -69,9 +74,10 @@ export function useMusicOperations() {
       savedTracks.length,
       unsavedTracks.length,
       onSaveWithoutRating,
-      onSaveWithRating
+      onSaveWithRating,
+      showModal
     );
-  }, [isMusicSaved, saveAlbum]);
+  }, [isMusicSaved, saveAlbum, showModal]);
 
   // HANDLE RATING SAVE FOR SEARCH SCREEN
   const handleRatingSave = useCallback(async (rating: number) => {
