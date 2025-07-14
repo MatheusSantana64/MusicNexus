@@ -1,4 +1,5 @@
 // src/components/ErrorBoundary.tsx
+// ErrorBoundary component to catch errors
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { ErrorHandlingService } from '../services/errorHandlingService';

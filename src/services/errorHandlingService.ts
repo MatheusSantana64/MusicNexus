@@ -1,4 +1,5 @@
 // src/services/errorHandlingService.ts
+// This service provides a structured way to handle errors.
 import { Alert } from 'react-native';
 
 export type ErrorSeverity = 'low' | 'medium' | 'high';

@@ -1,4 +1,5 @@
 // src/hooks/useAlbumGrouping.ts
+// Groups tracks by album and sorts them by release date and title.
 import { useMemo } from 'react';
 import { DeezerTrack, SearchMode } from '../types/music';
 import { AlbumGroup } from '../components/AlbumHeader';
