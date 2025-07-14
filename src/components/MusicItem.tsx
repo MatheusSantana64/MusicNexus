@@ -183,11 +183,11 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
           )}
         </View>
         
-        {isSavedMusic(music) && (
+        {(isSavedMusic(music) || data.isSaved) && data.rating !== null && (
           <View style={styles.ratingSection}>
-            <View style={[styles.ratingContainer, { backgroundColor: getRatingColor(music.rating) + '20' }]}>
-              <Text style={[styles.rating, { color: getRatingColor(music.rating) }]}>
-                {getRatingText(music.rating)}
+            <View style={[styles.ratingContainer, { backgroundColor: getRatingColor(data.rating) + '20' }]}>
+              <Text style={[styles.rating, { color: getRatingColor(data.rating) }]}>
+                {getRatingText(data.rating)}
               </Text>
             </View>
           </View>

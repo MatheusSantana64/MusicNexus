@@ -3,6 +3,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { DeezerTrack } from '../types/music';
+import { useMusicStore } from '../store/musicStore';
 import { searchStyles as styles } from '../styles/screens/SearchScreen.styles';
 
 export interface AlbumGroup {
@@ -15,7 +16,6 @@ export interface AlbumGroup {
 
 interface AlbumHeaderProps {
   albumGroup: AlbumGroup;
-  savedCount: number;
   totalCount: number;
   isLoading: boolean;
   onSaveAlbum: (albumGroup: AlbumGroup) => void;
@@ -23,12 +23,15 @@ interface AlbumHeaderProps {
 
 export function AlbumHeader({ 
   albumGroup, 
-  savedCount, 
   totalCount, 
   isLoading, 
   onSaveAlbum 
 }: AlbumHeaderProps) {
   const { album, artist } = albumGroup;
+  const { isMusicSaved } = useMusicStore();
+  
+  // Calculate saved count dynamically from the store
+  const savedCount = albumGroup.tracks.filter(track => isMusicSaved(track.id)).length;
   const isFullySaved = savedCount === totalCount;
   
   return (

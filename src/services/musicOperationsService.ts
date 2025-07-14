@@ -112,9 +112,6 @@ export class MusicOperationsService {
     onSaveWithoutRating: () => void,
     onSaveWithRating: () => void
   ): void {
-    const releaseYear = track.album?.release_date ? 
-      new Date(track.album.release_date).getFullYear() : 'Unknown year';
-
     if (savedMusicData) {
       Alert.alert(
         '⚠️ Song already saved',
@@ -125,15 +122,7 @@ export class MusicOperationsService {
         ]
       );
     } else {
-      Alert.alert(
-        track.title,
-        `Artist: ${track.artist.name}\nAlbum: ${track.album.title}\nYear: ${releaseYear}`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Save without rating', onPress: onSaveWithoutRating },
-          { text: 'Rate and save', onPress: onSaveWithRating },
-        ]
-      );
+      onSaveWithRating();
     }
   }
 
@@ -153,20 +142,6 @@ export class MusicOperationsService {
       return;
     }
 
-    let message = `Save ${albumGroup.tracks.length} tracks from album "${albumGroup.album.title}" by ${albumGroup.artist.name}?`;
-    
-    if (savedCount > 0) {
-      message += `\n\n⚠️ ${savedCount} track(s) are already saved and will be ignored.`;
-    }
-
-    Alert.alert(
-      'Save Complete Album',
-      message,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Save without rating', onPress: onSaveWithoutRating },
-        { text: 'Rate and save', onPress: onSaveWithRating },
-      ]
-    );
+    onSaveWithoutRating();
   }
 }

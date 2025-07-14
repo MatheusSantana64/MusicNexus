@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import StarRating from 'react-native-star-rating-widget';
 import { theme } from '../styles/theme';
-import { getRatingColor } from '../utils/ratingUtils';
+import { getRatingColor, getRatingText } from '../utils/ratingUtils';
 
 interface StarRatingModalProps {
   visible: boolean;
@@ -64,7 +64,7 @@ export function StarRatingModal({
           <View style={styles.ratingContainer}>
             <Text style={styles.ratingText}>
               <Text style={[styles.ratingValue, { color: getRatingColor(rating) }]}>
-                {rating.toFixed(1)}/10
+                {rating === 0 ? getRatingText(rating) : `${getRatingText(rating)}/10`}
               </Text>
             </Text>
             <StarRating

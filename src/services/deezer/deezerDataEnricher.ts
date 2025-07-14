@@ -90,19 +90,37 @@ export class DeezerDataEnricher {
           const albumTracks = await DeezerApiClient.getAlbumTracks(track.album.id);
           const matchingTrack = albumTracks.find((albumTrack: any) => albumTrack.id === track.id);
           
+          // Also get full album data to ensure we have release_date
+          const albumData = await BatchRequestService.requestAlbum(track.album.id);
+          
           if (matchingTrack) {
             // Use album track data for position info (this fixes Quick Search)
             return {
               ...track,
               track_position: matchingTrack.track_position,
               disk_number: matchingTrack.disk_number,
+              release_date: albumData.release_date || matchingTrack.release_date || track.album.release_date,
+              album: {
+                ...track.album,
+                release_date: albumData.release_date || track.album.release_date
+              }
             };
           }
 
-          return track;
+          return {
+            ...track,
+            release_date: albumData.release_date || track.album.release_date || track.release_date,
+            album: {
+              ...track.album,
+              release_date: albumData.release_date || track.album.release_date
+            }
+          };
         } catch (error) {
           console.warn(`Failed to enrich track ${track.id}:`, error);
-          return track;
+          return {
+            ...track,
+            release_date: track.album.release_date || track.release_date,
+          };
         }
       })
     );
