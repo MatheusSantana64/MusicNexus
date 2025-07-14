@@ -1,9 +1,16 @@
 // src/services/deezerService.ts
-// Deezer service for searching tracks and albums
+// Deezer service for searching tracks and albums with Zod validation
 import { DeezerSearchResponse, DeezerTrack, DeezerAlbumSearchResponse, DeezerAlbum, SearchMode, SearchOptions } from '../types/music';
 import { compareDates } from '../utils/dateUtils';
 import { CacheService } from './cacheService';
 import { BatchRequestService } from './batchRequestService';
+import { 
+  validateDeezerSearchResponse, 
+  validateDeezerAlbumSearchResponse,
+  validateDeezerTrack,
+  safeParseDeezerTrack,
+  safeParseDeezerSearchResponse
+} from '../utils/validators';
 
 // === CONSTANTS & CONFIGURATION ===
 const DEEZER_API_URL = 'https://api.deezer.com';
@@ -37,9 +44,17 @@ export class DeezerService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const track = await response.json();
-      CacheService.setTrack(trackId, track);
-      return track;
+      const rawData = await response.json();
+      
+      // 🛡️ VALIDATE WITH ZOD
+      const validatedTrack = safeParseDeezerTrack(rawData);
+      if (!validatedTrack) {
+        console.error('Invalid track data received from API:', rawData);
+        return null;
+      }
+
+      CacheService.setTrack(trackId, validatedTrack);
+      return validatedTrack;
     } catch (error) {
       console.error('Error fetching track by ID:', error);
       return null;
@@ -89,9 +104,16 @@ export class DeezerService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data: DeezerSearchResponse = await response.json();
-      let tracks = data.data || [];
+      const rawData = await response.json();
 
+      // 🛡️ VALIDATE WITH ZOD
+      const validatedResponse = safeParseDeezerSearchResponse(rawData);
+      if (!validatedResponse) {
+        console.error('Invalid search response from API:', rawData);
+        return [];
+      }
+
+      let tracks = validatedResponse.data || [];
       console.log(`🎵 Found ${tracks.length} tracks`);
       
       // Step 3: Enrich tracks with optimized album data fetching
@@ -120,8 +142,11 @@ export class DeezerService {
       throw new Error(`HTTP error! status: ${albumResponse.status}`);
     }
 
-    const albumData: DeezerAlbumSearchResponse = await albumResponse.json();
-    let albums = albumData.data || [];
+    const rawData = await albumResponse.json();
+    
+    // 🛡️ VALIDATE WITH ZOD
+    const validatedResponse = validateDeezerAlbumSearchResponse(rawData);
+    let albums = validatedResponse.data || [];
 
     // Enrich and sort albums with optimized batching
     albums = await this.enrichAlbumsWithReleaseDataOptimized(albums);
@@ -143,11 +168,15 @@ export class DeezerService {
           const albumTracksResponse = await fetch(`${DEEZER_API_URL}/album/${album.id}/tracks`);
           
           if (albumTracksResponse.ok) {
-            const albumTracksData = await albumTracksResponse.json();
-            const enrichedTracks = (albumTracksData.data || []).map((track: any) => 
-              this.enrichTrackWithAlbumData(track, album)
-            );
-            return enrichedTracks;
+            const rawData = await albumTracksResponse.json();
+            
+            // 🛡️ VALIDATE EACH TRACK
+            const validTracks = (rawData.data || [])
+              .map((track: unknown) => safeParseDeezerTrack(track))
+              .filter((track: DeezerTrack | null): track is DeezerTrack => track !== null)
+              .map((track: DeezerTrack) => this.enrichTrackWithAlbumData(track, album));
+              
+            return validTracks;
           }
           return [];
         } catch (error) {
@@ -236,8 +265,14 @@ export class DeezerService {
           // Always fetch tracks separately to ensure we have track_position
           const albumTracksResponse = await fetch(`${DEEZER_API_URL}/album/${albumId}/tracks`);
           if (albumTracksResponse.ok) {
-            const albumTracksData = await albumTracksResponse.json();
-            albumTracksMap.set(albumId, albumTracksData.data || []);
+            const rawData = await albumTracksResponse.json();
+            
+            // 🛡️ VALIDATE TRACKS
+            const validTracks = (rawData.data || [])
+              .map((track: unknown) => safeParseDeezerTrack(track))
+              .filter((track: DeezerTrack | null): track is DeezerTrack => track !== null);
+              
+            albumTracksMap.set(albumId, validTracks);
           }
         } catch (error) {
           console.warn(`Failed to fetch album data for ${albumId}:`, error);

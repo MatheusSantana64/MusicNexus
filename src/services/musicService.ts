@@ -1,5 +1,5 @@
 // src/services/musicService.ts
-// Music service for saving, updating, and deleting music
+// Music service for saving, updating, and deleting music with validation
 import { 
   collection, 
   addDoc, 
@@ -14,6 +14,11 @@ import {
 import { db } from '../config/firebaseConfig';
 import { SavedMusic, DeezerTrack } from '../types/music';
 import { DeezerService } from './deezerService';
+import { 
+  validateSavedMusicInput,
+  safeParseFirebaseMusicDocument,
+  ValidatedSavedMusicInput 
+} from '../utils/validators';
 
 const COLLECTION_NAME = 'savedMusic';
 const DEFAULT_RELEASE_DATE = '1900-01-01';
@@ -55,7 +60,11 @@ export async function saveMusic(track: DeezerTrack, options: SaveMusicOptions = 
       savedAt: new Date(),
     };
 
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), musicData);
+    // 🛡️ VALIDATE WITH ZOD BEFORE SAVING
+    const validatedMusicData = validateSavedMusicInput(musicData);
+
+    const docRef = await addDoc(collection(db, COLLECTION_NAME), validatedMusicData);
+    console.log('✅ Music validated and saved to Firebase:', validatedMusicData.title);
     return docRef.id;
   } catch (error) {
     console.error('Error saving song:', error);
@@ -74,12 +83,26 @@ export async function getSavedMusic(sortMode: SortMode = 'savedAt'): Promise<Sav
     const q = query(collection(db, COLLECTION_NAME), ...constraints);
     const querySnapshot = await getDocs(q);
     
-    const musics = querySnapshot.docs.map(doc => ({
-      ...doc.data() as Omit<SavedMusic, 'firebaseId'>,
-      firebaseId: doc.id,
-      savedAt: doc.data().savedAt.toDate(),
-    }));
+    const musics = querySnapshot.docs
+      .map(doc => {
+        const rawData = {
+          ...doc.data(),
+          firebaseId: doc.id,
+          savedAt: doc.data().savedAt.toDate(),
+        };
 
+        // 🛡️ VALIDATE WITH ZOD
+        const validatedDoc = safeParseFirebaseMusicDocument(rawData);
+        if (!validatedDoc) {
+          console.warn(`Invalid Firebase document ${doc.id}, skipping:`, rawData);
+          return null;
+        }
+
+        return validatedDoc as SavedMusic;
+      })
+      .filter((music): music is SavedMusic => music !== null);
+
+    console.log(`✅ Loaded ${musics.length} validated music documents from Firebase`);
     return sortMode === 'release' ? sortMusicByRelease(musics) : musics;
   } catch (error) {
     console.error('Error getting saved music:', error);
@@ -98,6 +121,7 @@ export async function updateMusicRating(firebaseId: string, rating: number): Pro
 
   try {
     await updateDoc(doc(db, COLLECTION_NAME, firebaseId), { rating });
+    console.log(`✅ Rating updated for document ${firebaseId}: ${rating}`);
   } catch (error) {
     console.error('Error updating rating:', error);
     throw new Error(`Failed to update rating: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -111,6 +135,7 @@ export async function deleteMusic(firebaseId: string): Promise<void> {
 
   try {
     await deleteDoc(doc(db, COLLECTION_NAME, firebaseId));
+    console.log(`✅ Music deleted from Firebase: ${firebaseId}`);
   } catch (error) {
     console.error('Error deleting music:', error);
     throw new Error(`Failed to delete music: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -119,13 +144,20 @@ export async function deleteMusic(firebaseId: string): Promise<void> {
 
 // === BATCH OPERATIONS ===
 export async function saveMusicBatch(tracks: DeezerTrack[], rating: number = 0): Promise<string[]> {
+  console.log(`📦 Starting batch save of ${tracks.length} tracks with rating ${rating}`);
+  
   const results = await Promise.allSettled(
     tracks.map(track => saveMusic(track, { rating }))
   );
   
-  return results
+  const successful = results
     .filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled')
     .map(result => result.value);
+    
+  const failed = results.filter(result => result.status === 'rejected').length;
+  
+  console.log(`✅ Batch save completed: ${successful.length} successful, ${failed} failed`);
+  return successful;
 }
 
 // === HELPERS ===
