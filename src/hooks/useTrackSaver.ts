@@ -1,36 +1,22 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { DeezerTrack } from '../types/music';
 import { TrackOperationsService } from '../services/trackOperationsService';
 import { useMusicStore } from '../store/musicStore';
+import { useOperationsStore } from '../store/operationsStore';
 
 export function useTrackSaver() {
-  const [savingTrackIds, setSavingTrackIds] = useState<Set<string>>(new Set());
-  
-  // Use store instead of context
+  // ✨ Use global operations store instead of local state
   const { getSavedMusicById } = useMusicStore();
-
-  const isSaving = useCallback((trackId: string): boolean => {
-    return savingTrackIds.has(trackId);
-  }, [savingTrackIds]);
+  const { isTrackSaving } = useOperationsStore();
 
   const saveTrack = useCallback(async (track: DeezerTrack, rating: number = 0) => {
-    const trackId = track.id;
-    
-    // Set loading state
-    setSavingTrackIds(prev => new Set(prev).add(trackId));
-    
     try {
       await TrackOperationsService.saveTrack(track, rating);
-      // ✨ No need to call loadMusic() - store auto-updates!
-    } finally {
-      // Clear loading state
-      setSavingTrackIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(trackId);
-        return newSet;
-      });
+    } catch (error) {
+      // Error handling is already done in TrackOperationsService
+      console.error('Error in useTrackSaver:', error);
     }
-  }, []); // ✨ Removed loadMusic dependency
+  }, []);
 
   const handleTrackPress = useCallback((track: DeezerTrack) => {
     const savedMusicData = getSavedMusicById(track.id);
@@ -51,7 +37,7 @@ export function useTrackSaver() {
   }, [getSavedMusicById, saveTrack]);
 
   return {
-    isSaving,
+    isSaving: isTrackSaving, // ✨ Direct reference to store method
     handleTrackPress,
   };
 }

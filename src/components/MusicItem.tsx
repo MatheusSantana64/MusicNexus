@@ -11,6 +11,7 @@ import { DeezerTrack, SavedMusic } from '../types/music';
 import { DeezerService } from '../services/deezerService';
 import { formatReleaseDate } from '../utils/dateUtils';
 import { useMusicStore } from '../store/musicStore';
+import { useOperationsStore } from '../store/operationsStore';
 import { musicItemStyles as styles } from '../styles/components/MusicItem.styles';
 
 // Use generic types for better type safety
@@ -28,10 +29,31 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
   isLoading = false,
 }: MusicItemProps<T>) {
   const { getSavedMusicById } = useMusicStore();
-
+  
+  // ✨ Add global operation awareness
+  const { isTrackSaving, isRatingUpdating, isMusicDeleting } = useOperationsStore();
+  
   // Type guard to check if it's SavedMusic
   const isSavedMusic = (item: DeezerTrack | SavedMusic): item is SavedMusic => {
     return 'rating' in item && 'savedAt' in item;
+  };
+
+  // ✨ Calculate if any operation is in progress for this item
+  const isOperationInProgress = () => {
+    if (isLoading) return true;
+    
+    // Check track save operation
+    if (isTrackSaving(music.id)) return true;
+    
+    // Check rating/delete operations (only for SavedMusic)
+    if (isSavedMusic(music)) {
+      const firebaseId = music.firebaseId;
+      if (firebaseId && (isRatingUpdating(firebaseId) || isMusicDeleting(firebaseId))) {
+        return true;
+      }
+    }
+    
+    return false;
   };
 
   // Extract common data regardless of type
@@ -133,11 +155,11 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
 
   return (
     <TouchableOpacity
-      style={[styles.container, isLoading && { opacity: 0.6 }]}
-      onPress={() => !isLoading && onPress(music)}
+      style={[styles.container, isOperationInProgress() && { opacity: 0.6 }]} // ✨ Updated
+      onPress={() => !isOperationInProgress() && onPress(music)} // ✨ Updated
       onLongPress={handleLongPress}
-      activeOpacity={isLoading ? 1 : 0.7}
-      disabled={isLoading}
+      activeOpacity={isOperationInProgress() ? 1 : 0.7} // ✨ Updated
+      disabled={isOperationInProgress()} // ✨ Updated
     >
       <Image
         source={{ uri: data.coverUrl }}

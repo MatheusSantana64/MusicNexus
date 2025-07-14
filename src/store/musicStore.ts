@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { SavedMusic } from '../types/music';
 import { getSavedMusic, updateMusicRating, deleteMusic } from '../services/musicService';
+import { useOperationsStore } from './operationsStore';
 
 interface MusicState {
   // State
@@ -64,7 +65,6 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     }
   },
 
-  // ✨ NEW: Add music to local state without database call
   addMusic: (music: SavedMusic) => {
     const { savedMusic } = get();
     const exists = savedMusic.some(m => m.id === music.id);
@@ -78,7 +78,6 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     }
   },
 
-  // ✨ NEW: Add multiple musics to local state
   addMusicBatch: (musics: SavedMusic[]) => {
     const { savedMusic } = get();
     const existingIds = new Set(savedMusic.map(m => m.id));
@@ -94,7 +93,18 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   },
 
   updateRating: async (firebaseId: string, rating: number): Promise<boolean> => {
+    const operations = useOperationsStore.getState();
+    
+    // ✨ Check if already updating
+    if (operations.isRatingUpdating(firebaseId)) {
+      console.warn('⚠️ Rating update already in progress for:', firebaseId);
+      return false;
+    }
+
     try {
+      // ✨ Start operation tracking
+      operations.startRatingUpdate(firebaseId);
+
       // 1. Optimistically update local state FIRST
       const { savedMusic } = get();
       const updatedMusic = savedMusic.map(music => 
@@ -119,11 +129,25 @@ export const useMusicStore = create<MusicState>((set, get) => ({
       // 3. Rollback on error by reloading from database
       await get().loadMusic();
       return false;
+    } finally {
+      // ✨ Always finish operation tracking
+      operations.finishRatingUpdate(firebaseId);
     }
   },
 
   deleteMusic: async (firebaseId: string): Promise<boolean> => {
+    const operations = useOperationsStore.getState();
+    
+    // ✨ Check if already deleting
+    if (operations.isMusicDeleting(firebaseId)) {
+      console.warn('⚠️ Delete operation already in progress for:', firebaseId);
+      return false;
+    }
+
     try {
+      // ✨ Start operation tracking
+      operations.startMusicDelete(firebaseId);
+
       console.log('🗑️ Deleting music with Firebase ID:', firebaseId);
       
       // 1. Optimistically remove from local state FIRST
@@ -145,6 +169,9 @@ export const useMusicStore = create<MusicState>((set, get) => ({
       // 3. Rollback on error by reloading from database
       await get().loadMusic();
       return false;
+    } finally {
+      // ✨ Always finish operation tracking
+      operations.finishMusicDelete(firebaseId);
     }
   },
 

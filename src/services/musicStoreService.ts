@@ -1,6 +1,7 @@
 import { DeezerTrack, SavedMusic } from '../types/music';
 import { saveMusic, saveMusicBatch } from './musicService';
 import { useMusicStore } from '../store/musicStore';
+import { useOperationsStore } from '../store/operationsStore';
 import { DeezerService } from './deezerService';
 
 /**
@@ -12,7 +13,18 @@ export class MusicStoreService {
    * Saves a track and automatically updates the store
    */
   static async saveTrack(track: DeezerTrack, rating: number = 0): Promise<string> {
+    const operations = useOperationsStore.getState();
+    
+    // ✨ Check if already saving
+    if (operations.isTrackSaving(track.id)) {
+      console.warn('⚠️ Track save already in progress for:', track.id);
+      throw new Error('Esta música já está sendo salva. Aguarde...');
+    }
+
     try {
+      // ✨ Start operation tracking
+      operations.startTrackSave(track.id);
+
       // 1. Save to database first
       const firebaseId = await saveMusic(track, { rating });
       
@@ -42,6 +54,9 @@ export class MusicStoreService {
     } catch (error) {
       console.error('Error in saveTrack:', error);
       throw error;
+    } finally {
+      // ✨ Always finish operation tracking
+      operations.finishTrackSave(track.id);
     }
   }
 
@@ -49,12 +64,31 @@ export class MusicStoreService {
    * Saves multiple tracks and automatically updates the store
    */
   static async saveTracksBatch(tracks: DeezerTrack[], rating: number = 0): Promise<string[]> {
+    const operations = useOperationsStore.getState();
+    
+    // ✨ Filter out tracks already being saved
+    const tracksToSave = tracks.filter(track => {
+      if (operations.isTrackSaving(track.id)) {
+        console.warn('⚠️ Skipping track already being saved:', track.id);
+        return false;
+      }
+      return true;
+    });
+
+    if (tracksToSave.length === 0) {
+      console.warn('⚠️ All tracks in batch are already being saved');
+      return [];
+    }
+
+    // ✨ Start operation tracking for all tracks
+    tracksToSave.forEach(track => operations.startTrackSave(track.id));
+
     try {
       // 1. Save to database first
-      const firebaseIds = await saveMusicBatch(tracks, rating);
+      const firebaseIds = await saveMusicBatch(tracksToSave, rating);
       
       // 2. Create SavedMusic objects
-      const savedMusics: SavedMusic[] = tracks.map((track, index) => ({
+      const savedMusics: SavedMusic[] = tracksToSave.map((track, index) => ({
         id: track.id,
         title: track.title,
         artist: track.artist.name,
@@ -79,6 +113,9 @@ export class MusicStoreService {
     } catch (error) {
       console.error('Error in saveTracksBatch:', error);
       throw error;
+    } finally {
+      // ✨ Always finish operation tracking for all tracks
+      tracksToSave.forEach(track => operations.finishTrackSave(track.id));
     }
   }
 }

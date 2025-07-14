@@ -1,37 +1,23 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { DeezerTrack } from '../types/music';
 import { AlbumOperationsService, AlbumGroup } from '../services/albumOperationsService';
 import { useMusicStore } from '../store/musicStore';
+import { useOperationsStore } from '../store/operationsStore';
 
 export function useAlbumSaver() {
-  const [savingAlbumIds, setSavingAlbumIds] = useState<Set<string>>(new Set());
-  
-  // Use store instead of context
+  // ✨ Use global operations store instead of local state
   const { isMusicSaved } = useMusicStore();
-
-  const isSaving = useCallback((albumId: string): boolean => {
-    return savingAlbumIds.has(albumId);
-  }, [savingAlbumIds]);
+  const { isAlbumSaving } = useOperationsStore();
 
   const saveAlbum = useCallback(async (albumGroup: AlbumGroup, rating: number = 0) => {
-    const albumId = albumGroup.albumId;
-    
-    // Set loading state
-    setSavingAlbumIds(prev => new Set(prev).add(albumId));
-    
     try {
       const unsavedTracks = albumGroup.tracks.filter((track: DeezerTrack) => !isMusicSaved(track.id));
       await AlbumOperationsService.saveAlbumTracks(albumGroup, rating, unsavedTracks);
-      // ✨ No need to call loadMusic() - store auto-updates!
-    } finally {
-      // Clear loading state
-      setSavingAlbumIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(albumId);
-        return newSet;
-      });
+    } catch (error) {
+      // Error handling is already done in AlbumOperationsService
+      console.error('Error in useAlbumSaver:', error);
     }
-  }, [isMusicSaved]); // ✨ Removed loadMusic dependency
+  }, [isMusicSaved]);
 
   const handleSaveAlbum = useCallback((albumGroup: AlbumGroup) => {
     const savedTracks = albumGroup.tracks.filter((track: DeezerTrack) => isMusicSaved(track.id));
@@ -54,7 +40,7 @@ export function useAlbumSaver() {
   }, [isMusicSaved, saveAlbum]);
 
   return {
-    isSaving,
+    isSaving: isAlbumSaving, // ✨ Direct reference to store method
     handleSaveAlbum,
   };
 }
