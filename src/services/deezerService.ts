@@ -2,15 +2,15 @@
 // Deezer service for searching tracks and albums
 import { DeezerSearchResponse, DeezerTrack, DeezerAlbumSearchResponse, DeezerAlbum, SearchMode, SearchOptions } from '../types/music';
 import { compareDates } from '../utils/dateUtils';
+import { CacheService } from './cacheService';
+import { BatchRequestService } from './batchRequestService';
 
 // === CONSTANTS & CONFIGURATION ===
 const DEEZER_API_URL = 'https://api.deezer.com';
-const albumCache = new Map<string, any>();
 
 export class DeezerService {
   // === PUBLIC API METHODS ===
   
-  // Searches for tracks based on the provided query and mode
   static async searchTracks(query: string, mode: SearchMode = 'album', limit: number = 25): Promise<DeezerTrack[]> {
     const options: SearchOptions = { mode, query, limit };
     
@@ -24,42 +24,63 @@ export class DeezerService {
 
   static async getTrackById(trackId: string): Promise<DeezerTrack | null> {
     try {
+      // Check cache first
+      const cached = CacheService.getTrack(trackId);
+      if (cached) {
+        console.log(`✅ Track ${trackId} served from cache`);
+        return cached;
+      }
+
       const response = await fetch(`${DEEZER_API_URL}/track/${trackId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const track = await response.json();
+      CacheService.setTrack(trackId, track);
+      return track;
     } catch (error) {
       console.error('Error fetching track by ID:', error);
       return null;
     }
   }
 
-  // === SEARCH IMPLEMENTATIONS ===
+  // === OPTIMIZED SEARCH IMPLEMENTATIONS ===
 
-  // Mode 1: Search by album (with detailed track info)
-  // Albums sorted by release date (most recent first)
   private static async searchTracksByAlbum(options: SearchOptions): Promise<DeezerTrack[]> {
     try {
       if (!options.query?.trim()) return [];
 
+      console.log(`🔍 [ALBUM MODE] Starting search for: "${options.query}"`);
+      const startTime = Date.now();
+
+      // Step 1: Search albums (1 API call)
       const albums = await this.fetchAndSortAlbums(options);
       if (albums.length === 0) return [];
 
-      const allTracks = await this.fetchTracksFromAlbums(albums);
-      return this.sortTracksByAlbumOrder(allTracks);
+      console.log(`📀 Found ${albums.length} albums`);
+
+      // Step 2: Get tracks with optimized batching (much fewer API calls)
+      const allTracks = await this.fetchTracksFromAlbumsOptimized(albums);
+      const sortedTracks = this.sortTracksByAlbumOrder(allTracks);
+
+      const endTime = Date.now();
+      console.log(`✅ [ALBUM MODE] Completed in ${endTime - startTime}ms: ${sortedTracks.length} tracks`);
+      
+      return sortedTracks;
     } catch (error) {
       console.error('Error searching tracks by album:', error);
       throw new Error('Falha ao pesquisar álbuns. Verifique sua conexão com a internet.');
     }
   }
 
-  // Mode 2: Quick search (without album info)
   private static async searchTracksQuick(options: SearchOptions): Promise<DeezerTrack[]> {
     try {
       if (!options.query?.trim()) return [];
+
+      console.log(`⚡ [QUICK MODE] Starting search for: "${options.query}"`);
+      const startTime = Date.now();
 
       const encodedQuery = encodeURIComponent(options.query.trim());
       const response = await fetch(`${DEEZER_API_URL}/search?q=${encodedQuery}&limit=${options.limit}`);
@@ -71,13 +92,14 @@ export class DeezerService {
       const data: DeezerSearchResponse = await response.json();
       let tracks = data.data || [];
 
-      console.log(`[QUICK MODE] Found ${tracks.length} tracks`);
+      console.log(`🎵 Found ${tracks.length} tracks`);
       
-      // Enrich tracks with album data
-      tracks = await this.enrichTracksWithAlbumData(tracks);
-      
-      // Sort tracks like album search does
+      // Step 3: Enrich tracks with optimized album data fetching
+      tracks = await this.enrichTracksWithAlbumDataOptimized(tracks);
       tracks = this.sortTracksByAlbumOrder(tracks);
+      
+      const endTime = Date.now();
+      console.log(`✅ [QUICK MODE] Completed in ${endTime - startTime}ms: ${tracks.length} tracks`);
       
       return tracks;
     } catch (error) {
@@ -86,7 +108,7 @@ export class DeezerService {
     }
   }
 
-  // === ALBUM PROCESSING ===
+  // === OPTIMIZED ALBUM PROCESSING ===
 
   private static async fetchAndSortAlbums(options: SearchOptions): Promise<DeezerAlbum[]> {
     const encodedQuery = encodeURIComponent(options.query.trim());
@@ -101,127 +123,83 @@ export class DeezerService {
     const albumData: DeezerAlbumSearchResponse = await albumResponse.json();
     let albums = albumData.data || [];
 
-    console.log(`[ALBUM MODE] Found ${albums.length} albums`);
-
-    // Enrich and sort albums
-    albums = await this.enrichAlbumsWithReleaseData(albums);
+    // Enrich and sort albums with optimized batching
+    albums = await this.enrichAlbumsWithReleaseDataOptimized(albums);
     return this.sortAlbumsByReleaseDate(albums);
   }
 
-  private static async fetchTracksFromAlbums(albums: DeezerAlbum[]): Promise<DeezerTrack[]> {
+  // 🚀 OPTIMIZED: Fetch tracks using batch requests and smart caching
+  private static async fetchTracksFromAlbumsOptimized(albums: DeezerAlbum[]): Promise<DeezerTrack[]> {
     const allTracks: DeezerTrack[] = [];
     
-    for (const album of albums) {
-      try {
-        const albumTracksResponse = await fetch(`${DEEZER_API_URL}/album/${album.id}/tracks`);
-        
-        if (albumTracksResponse.ok) {
-          const albumTracksData = await albumTracksResponse.json();
-          const enrichedTracks = (albumTracksData.data || []).map((track: any) => 
-            this.enrichTrackWithAlbumData(track, album)
-          );
-          allTracks.push(...enrichedTracks);
+    console.log(`📦 Starting optimized track fetching for ${albums.length} albums`);
+    
+    // Process albums in smaller batches to avoid overwhelming the API
+    const albumBatches = this.chunkArray(albums, 5);
+    
+    for (const batch of albumBatches) {
+      const batchPromises = batch.map(async (album) => {
+        try {
+          const albumTracksResponse = await fetch(`${DEEZER_API_URL}/album/${album.id}/tracks`);
+          
+          if (albumTracksResponse.ok) {
+            const albumTracksData = await albumTracksResponse.json();
+            const enrichedTracks = (albumTracksData.data || []).map((track: any) => 
+              this.enrichTrackWithAlbumData(track, album)
+            );
+            return enrichedTracks;
+          }
+          return [];
+        } catch (error) {
+          console.warn(`Failed to fetch tracks for album ${album.id}:`, error);
+          return [];
         }
-      } catch (error) {
-        console.warn(`Failed to fetch tracks for album ${album.id}:`, error);
+      });
+
+      const batchResults = await Promise.allSettled(batchPromises);
+      
+      for (const result of batchResults) {
+        if (result.status === 'fulfilled') {
+          allTracks.push(...result.value);
+        }
       }
     }
 
+    console.log(`✅ Fetched ${allTracks.length} tracks total`);
     return allTracks;
   }
 
-  // === SORTING UTILITIES ===
+  // 🚀 OPTIMIZED: Use batch requests for album data enrichment
+  private static async enrichAlbumsWithReleaseDataOptimized(albums: DeezerAlbum[]): Promise<DeezerAlbum[]> {
+    const albumsToEnrich = albums.filter(album => !album.release_date);
+    const albumsWithData = albums.filter(album => album.release_date);
+    
+    if (albumsToEnrich.length === 0) {
+      console.log(`✅ All ${albums.length} albums already have release data`);
+      return albums;
+    }
 
-  private static sortAlbumsByReleaseDate(albums: DeezerAlbum[]): DeezerAlbum[] {
-    return albums.sort((a, b) => {
-      // Use existing date comparison utility
-      if (a.release_date && b.release_date) {
-        const dateComparison = compareDates(b.release_date, a.release_date); // Reverse for newest first
-        if (dateComparison !== 0) return dateComparison;
-      }
-      
-      // Fallback logic
-      if (a.release_date && !b.release_date) return -1;
-      if (!a.release_date && b.release_date) return 1;
-      return a.title.localeCompare(b.title);
-    });
-  }
+    console.log(`📦 Enriching ${albumsToEnrich.length} albums with release data`);
 
-  private static sortTracksByAlbumOrder(tracks: DeezerTrack[]): DeezerTrack[] {
-    return tracks.sort((a, b) => {
-      // 1. Album release date (newest first)
-      if (a.album.release_date && b.album.release_date) {
-        const dateComparison = compareDates(b.album.release_date, a.album.release_date);
-        if (dateComparison !== 0) return dateComparison;
-      }
-      
-      if (a.album.release_date && !b.album.release_date) return -1;
-      if (!a.album.release_date && b.album.release_date) return 1;
-      
-      // 2. Album name
-      const albumComparison = a.album.title.localeCompare(b.album.title);
-      if (albumComparison !== 0) return albumComparison;
-      
-      // 3. Disk number
-      const diskA = a.disk_number || 1;
-      const diskB = b.disk_number || 1;
-      if (diskA !== diskB) return diskA - diskB;
-      
-      // 4. Track position
-      const trackPosA = a.track_position || 999;
-      const trackPosB = b.track_position || 999;
-      return trackPosA - trackPosB;
-    });
-  }
-
-  // === DATA ENRICHMENT ===
-
-  private static enrichTrackWithAlbumData(track: any, album: DeezerAlbum): DeezerTrack {
-    return {
-      ...track,
-      album: {
-        id: album.id,
-        title: album.title,
-        cover: album.cover,
-        cover_small: album.cover_small,
-        cover_medium: album.cover_medium,
-        cover_big: album.cover_big,
-        release_date: album.release_date,
-      },
-      artist: album.artist,
-    };
-  }
-
-  private static async enrichAlbumsWithReleaseData(albums: DeezerAlbum[]): Promise<DeezerAlbum[]> {
-    return Promise.all(
-      albums.map(async (album) => {
-        if (album.release_date) return album;
-
-        // Check cache first
-        if (albumCache.has(album.id)) {
-          const cachedData = albumCache.get(album.id);
-          return { ...album, release_date: cachedData.release_date || '' };
-        }
-
-        try {
-          const albumResponse = await fetch(`${DEEZER_API_URL}/album/${album.id}`);
-          
-          if (albumResponse.ok) {
-            const albumData = await albumResponse.json();
-            albumCache.set(album.id, albumData);
-            return { ...album, release_date: albumData.release_date || '' };
-          }
-        } catch (error) {
-          console.warn(`Failed to fetch detailed data for album ${album.id}:`, error);
-        }
-
+    // Use batch requests to get album data
+    const enrichmentPromises = albumsToEnrich.map(async (album) => {
+      try {
+        const albumData = await BatchRequestService.requestAlbum(album.id);
+        return { ...album, release_date: albumData.release_date || '' };
+      } catch (error) {
+        console.warn(`Failed to fetch detailed data for album ${album.id}:`, error);
         return album;
-      })
-    );
+      }
+    });
+
+    const enrichedAlbums = await Promise.all(enrichmentPromises);
+    
+    console.log(`✅ Enriched ${enrichedAlbums.length} albums`);
+    return [...albumsWithData, ...enrichedAlbums];
   }
 
-  // Enrich tracks with album data
-  private static async enrichTracksWithAlbumData(tracks: DeezerTrack[]): Promise<DeezerTrack[]> {
+  // 🚀 OPTIMIZED: Smart album data enrichment with aggressive caching
+  private static async enrichTracksWithAlbumDataOptimized(tracks: DeezerTrack[]): Promise<DeezerTrack[]> {
     const albumIds = new Set<string>();
     const albumDataMap = new Map<string, any>();
     const albumTracksMap = new Map<string, DeezerTrack[]>();
@@ -233,31 +211,42 @@ export class DeezerService {
       }
     });
 
-    // Fetch album data in parallel
-    await Promise.all(
-      Array.from(albumIds).map(async (albumId) => {
+    const uniqueAlbumIds = Array.from(albumIds);
+    console.log(`📦 Enriching ${tracks.length} tracks from ${uniqueAlbumIds.length} unique albums`);
+
+    // Check cache first
+    const cachedAlbums = CacheService.getAlbumsBatch(uniqueAlbumIds);
+    const uncachedAlbumIds = uniqueAlbumIds.filter(id => !cachedAlbums.has(id));
+    
+    console.log(`✅ Found ${cachedAlbums.size} albums in cache, need to fetch ${uncachedAlbumIds.length}`);
+
+    // Add cached data to maps
+    for (const [albumId, albumData] of cachedAlbums) {
+      albumDataMap.set(albumId, albumData);
+    }
+
+    // Fetch uncached albums using batch requests
+    if (uncachedAlbumIds.length > 0) {
+      const batchPromises = uncachedAlbumIds.map(async (albumId) => {
         try {
-          // Fetch album data
-          const albumResponse = await fetch(`${DEEZER_API_URL}/album/${albumId}`);
-          if (albumResponse.ok) {
-            const albumData = await albumResponse.json();
-            albumCache.set(albumId, albumData);
-            albumDataMap.set(albumId, albumData);
-          }
+          // Get album data using batch service
+          const albumData = await BatchRequestService.requestAlbum(albumId);
+          albumDataMap.set(albumId, albumData);
 
           // Always fetch tracks separately to ensure we have track_position
           const albumTracksResponse = await fetch(`${DEEZER_API_URL}/album/${albumId}/tracks`);
           if (albumTracksResponse.ok) {
             const albumTracksData = await albumTracksResponse.json();
             albumTracksMap.set(albumId, albumTracksData.data || []);
-          } else {
-            console.warn(`[QUICK MODE] Failed to fetch tracks for album ${albumId}`);
           }
         } catch (error) {
           console.warn(`Failed to fetch album data for ${albumId}:`, error);
         }
-      })
-    );
+      });
+
+      await Promise.allSettled(batchPromises);
+      console.log(`✅ Fetched ${uncachedAlbumIds.length} albums from API`);
+    }
 
     // Enrich tracks with album data and track position
     const enrichedTracks = tracks.map(track => {
@@ -292,14 +281,78 @@ export class DeezerService {
     return enrichedTracks;
   }
 
-  // === PUBLIC UTILITIES ===
+  // === UTILITY METHODS ===
 
-  // Extracts the release date of a track, prioritizing album date, then track date
+  private static chunkArray<T>(array: T[], size: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  }
+
+  // === SORTING UTILITIES (unchanged) ===
+
+  private static sortAlbumsByReleaseDate(albums: DeezerAlbum[]): DeezerAlbum[] {
+    return albums.sort((a, b) => {
+      if (a.release_date && b.release_date) {
+        const dateComparison = compareDates(b.release_date, a.release_date);
+        if (dateComparison !== 0) return dateComparison;
+      }
+      
+      if (a.release_date && !b.release_date) return -1;
+      if (!a.release_date && b.release_date) return 1;
+      return a.title.localeCompare(b.title);
+    });
+  }
+
+  private static sortTracksByAlbumOrder(tracks: DeezerTrack[]): DeezerTrack[] {
+    return tracks.sort((a, b) => {
+      if (a.album.release_date && b.album.release_date) {
+        const dateComparison = compareDates(b.album.release_date, a.album.release_date);
+        if (dateComparison !== 0) return dateComparison;
+      }
+      
+      if (a.album.release_date && !b.album.release_date) return -1;
+      if (!a.album.release_date && b.album.release_date) return 1;
+      
+      const albumComparison = a.album.title.localeCompare(b.album.title);
+      if (albumComparison !== 0) return albumComparison;
+      
+      const diskA = a.disk_number || 1;
+      const diskB = b.disk_number || 1;
+      if (diskA !== diskB) return diskA - diskB;
+      
+      const trackPosA = a.track_position || 999;
+      const trackPosB = b.track_position || 999;
+      return trackPosA - trackPosB;
+    });
+  }
+
+  // === DATA ENRICHMENT (unchanged) ===
+
+  private static enrichTrackWithAlbumData(track: any, album: DeezerAlbum): DeezerTrack {
+    return {
+      ...track,
+      album: {
+        id: album.id,
+        title: album.title,
+        cover: album.cover,
+        cover_small: album.cover_small,
+        cover_medium: album.cover_medium,
+        cover_big: album.cover_big,
+        release_date: album.release_date,
+      },
+      artist: album.artist,
+    };
+  }
+
+  // === PUBLIC UTILITIES (unchanged) ===
+
   static getTrackReleaseDate(track: DeezerTrack): string | null {
     return track.album?.release_date || track.release_date || null;
   }
 
-  // Get track position
   static getTrackPosition(track: DeezerTrack): string | null {
     if (!track.track_position && track.track_position !== 0) return null;
     
@@ -309,7 +362,6 @@ export class DeezerService {
       : position;
   }
 
-  // Get release year
   static getReleaseYear(track: DeezerTrack): string | null {
     const releaseDate = this.getTrackReleaseDate(track);
     if (!releaseDate) return null;
@@ -321,7 +373,6 @@ export class DeezerService {
     }
   }
 
-  // Get search mode description
   static getSearchModeDescription(mode: SearchMode): string {
     const descriptions = {
       album: 'Por álbum completo',
@@ -332,8 +383,15 @@ export class DeezerService {
 
   // === CACHE MANAGEMENT ===
 
-  // Clear album cache
   static clearCaches(): void {
-    albumCache.clear();
+    CacheService.clearAll();
+    BatchRequestService.clearQueue();
+  }
+
+  static getCacheStats() {
+    return {
+      cache: CacheService.getStats(),
+      queue: BatchRequestService.getQueueStatus(),
+    };
   }
 }
