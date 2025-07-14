@@ -105,6 +105,9 @@ export const useMusicStore = create<MusicState>((set, get) => ({
         lastUpdated: Date.now()
       });
       console.log('➕ Music added to store:', music.title);
+      console.log('📊 Total music count:', savedMusic.length + 1);
+    } else {
+      console.log('⚠️ Music already exists in store:', music.title);
     }
   },
 

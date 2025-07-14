@@ -8,6 +8,7 @@ import { SavedMusic } from '../types/music';
 import { MusicItem } from '../components/MusicItem';
 import { LibraryEmptyState } from '../components/LibraryEmptyState';
 import { LibraryHeader } from '../components/LibraryHeader';
+import { StarRatingModal } from '../components/StarRatingModal';
 import { useLibrary } from '../hooks/useLibrary';
 import { libraryStyles as styles } from '../styles/screens/LibraryScreen.styles';
 
@@ -26,6 +27,11 @@ export default function LibraryScreen() {
     handleMusicAction,
     refresh,
     clearSearch,
+    // MODAL STATE
+    ratingModalVisible,
+    selectedMusic,
+    handleRatingSave,
+    handleRatingCancel,
   } = useLibrary();
 
   const renderItem = useCallback(({ item }: { item: SavedMusic }) => (
@@ -90,6 +96,16 @@ export default function LibraryScreen() {
           onClearSearch={clearSearch}
         />
       )}
+
+      {/* STAR RATING MODAL */}
+      <StarRatingModal
+        visible={ratingModalVisible}
+        title="Update Rating"
+        itemName={selectedMusic ? `${selectedMusic.title} - ${selectedMusic.artist}` : ''}
+        initialRating={selectedMusic?.rating || 0}
+        onSave={handleRatingSave}
+        onCancel={handleRatingCancel}
+      />
     </SafeAreaView>
   );
 }

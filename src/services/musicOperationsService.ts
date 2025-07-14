@@ -17,20 +17,15 @@ export interface AlbumGroup {
 export class MusicOperationsService {
   // === TRACK OPERATIONS ===
   static async saveTrack(track: DeezerTrack, rating: number): Promise<void> {
-    if (!track?.id || !track?.title) {
-      throw new Error('Invalid track data');
-    }
-
     const store = useMusicStore.getState();
     
-    if (store.isTrackSaving(track.id)) {
-      throw new Error('This song is already being saved. Please wait...');
-    }
-
     try {
       store.startTrackSave(track.id);
+      
+      console.log('💾 Saving track to Firebase:', track.title);
       const firebaseId = await saveMusic(track, { rating });
       
+      // Create SavedMusic object for optimistic update
       const savedMusic: SavedMusic = {
         id: track.id,
         title: track.title,
@@ -42,15 +37,20 @@ export class MusicOperationsService {
         preview: track.preview,
         duration: track.duration,
         rating,
-        releaseDate: DeezerService.getTrackReleaseDate(track) || '1900-01-01',
-        trackPosition: track.track_position || 0,
+        releaseDate: track.album.release_date,
+        trackPosition: track.track_position || 1,
         diskNumber: track.disk_number || 1,
         savedAt: new Date(),
         firebaseId,
       };
-      
+
+      // OPTIMISTIC UPDATE TO STORE
       store.addMusic(savedMusic);
-      console.log(`✅ Track saved: ${track.title}`);
+      
+      console.log('✅ Track saved successfully:', track.title);
+    } catch (error) {
+      console.error('❌ Error saving track:', error);
+      throw error;
     } finally {
       store.finishTrackSave(track.id);
     }
@@ -167,36 +167,6 @@ export class MusicOperationsService {
         { text: 'Save without rating', onPress: onSaveWithoutRating },
         { text: 'Rate and save', onPress: onSaveWithRating },
       ]
-    );
-  }
-
-  static showRatingDialog(
-    title: string,
-    itemName: string,
-    onSave: (rating: number) => void
-  ): void {
-    Alert.prompt(
-      title,
-      `Enter a rating from 1 to 10 for "${itemName}"`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Save',
-          onPress: (rating) => {
-            const numRating = parseInt(rating || '0');
-            
-            if (numRating < 1 || numRating > 10) {
-              Alert.alert('Error', 'Please enter a rating between 1 and 10');
-              return;
-            }
-
-            onSave(numRating);
-          },
-        },
-      ],
-      'plain-text',
-      '',
-      'numeric'
     );
   }
 }

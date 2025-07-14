@@ -1,19 +1,27 @@
 // src/hooks/useMusicOperations.ts
 // Custom hook for music operations like saving tracks and albums
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { DeezerTrack } from '../types/music';
 import { MusicOperationsService, AlbumGroup } from '../services/musicOperationsService';
 import { useMusicStore } from '../store/musicStore';
 
 export function useMusicOperations() {
   const { getSavedMusicById, isTrackSaving, isAlbumSaving, isMusicSaved } = useMusicStore();
+  
+  // MODAL STATE FOR SEARCH SCREEN
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
+  const [ratingType, setRatingType] = useState<'track' | 'album'>('track');
+  const [selectedAlbum, setSelectedAlbum] = useState<AlbumGroup | null>(null);
 
   // Track operations
   const saveTrack = useCallback(async (track: DeezerTrack, rating: number = 0) => {
     try {
+      console.log('🎵 Starting track save:', track.title);
       await MusicOperationsService.saveTrack(track, rating);
+      console.log('✅ Track save completed:', track.title);
     } catch (error) {
-      console.error('Error saving track:', error);
+      console.error('❌ Error saving track:', error);
     }
   }, []);
 
@@ -22,11 +30,9 @@ export function useMusicOperations() {
     
     const onSaveWithoutRating = () => saveTrack(track, 0);
     const onSaveWithRating = () => {
-      MusicOperationsService.showRatingDialog(
-        'Rate Song',
-        track.title,
-        (rating) => saveTrack(track, rating)
-      );
+      setSelectedTrack(track);
+      setRatingType('track');
+      setRatingModalVisible(true);
     };
 
     MusicOperationsService.showTrackDialog(
@@ -53,11 +59,9 @@ export function useMusicOperations() {
     
     const onSaveWithoutRating = () => saveAlbum(albumGroup, 0);
     const onSaveWithRating = () => {
-      MusicOperationsService.showRatingDialog(
-        'Rate Album',
-        albumGroup.album.title,
-        (rating) => saveAlbum(albumGroup, rating)
-      );
+      setSelectedAlbum(albumGroup);
+      setRatingType('album');
+      setRatingModalVisible(true);
     };
 
     MusicOperationsService.showAlbumDialog(
@@ -68,6 +72,26 @@ export function useMusicOperations() {
       onSaveWithRating
     );
   }, [isMusicSaved, saveAlbum]);
+
+  // HANDLE RATING SAVE FOR SEARCH SCREEN
+  const handleRatingSave = useCallback(async (rating: number) => {
+    if (ratingType === 'track' && selectedTrack) {
+      await saveTrack(selectedTrack, rating);
+    } else if (ratingType === 'album' && selectedAlbum) {
+      await saveAlbum(selectedAlbum, rating);
+    }
+    
+    setRatingModalVisible(false);
+    setSelectedTrack(null);
+    setSelectedAlbum(null);
+  }, [ratingType, selectedTrack, selectedAlbum, saveTrack, saveAlbum]);
+
+  // HANDLE RATING CANCEL FOR SEARCH SCREEN
+  const handleRatingCancel = useCallback(() => {
+    setRatingModalVisible(false);
+    setSelectedTrack(null);
+    setSelectedAlbum(null);
+  }, []);
 
   return {
     // Track operations
@@ -83,5 +107,13 @@ export function useMusicOperations() {
     // Shared utilities
     isMusicSaved,
     getSavedMusicById,
+    
+    // MODAL STATE FOR SEARCH SCREEN
+    ratingModalVisible,
+    selectedTrack,
+    selectedAlbum,
+    ratingType,
+    handleRatingSave,
+    handleRatingCancel,
   };
 }

@@ -12,6 +12,7 @@ import { SearchBar } from '../components/SearchBar';
 import { AlbumHeader, AlbumGroup } from '../components/AlbumHeader';
 import { SearchEmptyState } from '../components/SearchEmptyState';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { StarRatingModal } from '../components/StarRatingModal';
 import { searchStyles as styles } from '../styles/screens/SearchScreen.styles';
 
 const MIN_SEARCH_LENGTH = 3;
@@ -24,7 +25,14 @@ export default function SearchScreen() {
     handleAlbumSave, 
     isTrackSaving, 
     isAlbumSaving, 
-    isMusicSaved 
+    isMusicSaved,
+    // MODAL STATE
+    ratingModalVisible,
+    selectedTrack,
+    selectedAlbum,
+    ratingType,
+    handleRatingSave,
+    handleRatingCancel,
   } = useMusicOperations();
   
   const albumGroups = useAlbumGrouping(tracks, searchMode);
@@ -128,6 +136,22 @@ export default function SearchScreen() {
             />
           )}
           showsVerticalScrollIndicator={false}
+        />
+
+        {/* STAR RATING MODAL FOR SEARCH SCREEN */}
+        <StarRatingModal
+          visible={ratingModalVisible}
+          title={ratingType === 'track' ? 'Rate Song' : 'Rate Album'}
+          itemName={
+            ratingType === 'track' && selectedTrack
+              ? `${selectedTrack.title} - ${selectedTrack.artist.name}`
+              : selectedAlbum
+              ? `${selectedAlbum.album.title} - ${selectedAlbum.artist.name}`
+              : ''
+          }
+          initialRating={0}
+          onSave={handleRatingSave}
+          onCancel={handleRatingCancel}
         />
       </SafeAreaView>
     </ErrorBoundary>

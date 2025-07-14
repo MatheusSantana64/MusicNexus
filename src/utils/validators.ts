@@ -76,7 +76,10 @@ export const SavedMusicInputSchema = z.object({
   coverUrl: z.string(),
   preview: z.string(),
   duration: z.number().min(1, 'Duration must be greater than 0'),
-  rating: z.number().min(0).max(10).int('Rating must be an integer'),
+  rating: z.number().min(0).max(10).refine(
+    (val) => val % 0.5 === 0, 
+    'Rating must be in 0.5 increments (0, 0.5, 1, 1.5, ..., 10)'
+  ),
   releaseDate: z.string(),
   trackPosition: z.number().min(0),
   diskNumber: z.number().min(1),

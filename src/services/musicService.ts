@@ -38,8 +38,8 @@ export async function saveMusic(track: DeezerTrack, options: SaveMusicOptions = 
     throw new Error('Invalid track data');
   }
 
-  if (rating < 0 || rating > 10 || !Number.isInteger(rating)) {
-    throw new Error('Rating must be an integer between 0 and 10');
+  if (rating < 0 || rating > 10 || rating % 0.5 !== 0) {
+    throw new Error('Rating must be between 0 and 10 in 0.5 increments');
   }
 
   try {
@@ -115,8 +115,8 @@ export async function updateMusicRating(firebaseId: string, rating: number): Pro
     throw new Error('Firebase ID is required');
   }
 
-  if (rating < 0 || rating > 10 || !Number.isInteger(rating)) {
-    throw new Error('Rating must be an integer between 0 and 10');
+  if (rating < 0 || rating > 10 || rating % 0.5 !== 0) {
+    throw new Error('Rating must be between 0 and 10 in 0.5 increments');
   }
 
   try {

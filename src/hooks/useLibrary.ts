@@ -11,6 +11,10 @@ export function useLibrary() {
   const [isReversed, setIsReversed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
+  // State for rating modal
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [selectedMusic, setSelectedMusic] = useState<SavedMusic | null>(null);
+
   const {
     savedMusic,
     loading,
@@ -46,32 +50,8 @@ export function useLibrary() {
   // Unified handler for music actions
   const handleMusicAction = useCallback((music: SavedMusic, action: 'rate' | 'delete') => {
     if (action === 'rate') {
-      Alert.prompt(
-        'Update Rating',
-        `Enter a new rating from 1 to 10 for "${music.title}"`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Save', 
-            onPress: async (rating) => {
-              const numRating = parseInt(rating || '0');
-              
-              if (numRating < 0 || numRating > 10) {
-                Alert.alert('Error', 'Enter a rating between 0 and 10');
-                return;
-              }
-
-              const success = await updateRating(music.firebaseId!, numRating);
-              if (!success) {
-                Alert.alert('Error', 'Could not update the rating');
-              }
-            }
-          },
-        ],
-        'plain-text',
-        music.rating.toString(),
-        'numeric'
-      );
+      setSelectedMusic(music);
+      setRatingModalVisible(true);
     } else if (action === 'delete') {
       Alert.alert(
         'Remove Music',
@@ -93,6 +73,25 @@ export function useLibrary() {
     }
   }, [updateRating, deleteMusic]);
 
+  // HANDLE RATING SAVE
+  const handleRatingSave = useCallback(async (rating: number) => {
+    if (!selectedMusic) return;
+    
+    const success = await updateRating(selectedMusic.firebaseId!, rating);
+    if (!success) {
+      Alert.alert('Error', 'Could not update the rating');
+    }
+    
+    setRatingModalVisible(false);
+    setSelectedMusic(null);
+  }, [selectedMusic, updateRating]);
+
+  // HANDLE RATING CANCEL
+  const handleRatingCancel = useCallback(() => {
+    setRatingModalVisible(false);
+    setSelectedMusic(null);
+  }, []);
+
   const handleSortModeChange = useCallback((mode: SortMode, reversed: boolean = false) => {
     setSortMode(mode);
     setIsReversed(reversed);
@@ -113,11 +112,18 @@ export function useLibrary() {
     error,
     refreshing,
     
+    // MODAL STATE TO RETURN
+    ratingModalVisible,
+    selectedMusic,
+    
     // Actions
     setSortMode: handleSortModeChange,
     setSearchQuery,
     handleMusicAction,
     refresh,
     clearSearch,
+    // RATING HANDLERS TO RETURN
+    handleRatingSave,
+    handleRatingCancel,
   };
 }
