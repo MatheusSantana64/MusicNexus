@@ -8,13 +8,18 @@ interface MusicState {
   loading: boolean;
   error: string | null;
   refreshing: boolean;
+  lastUpdated: number;
   
   // Actions
   loadMusic: () => Promise<void>;
+  addMusic: (music: SavedMusic) => void;
   updateRating: (firebaseId: string, rating: number) => Promise<boolean>;
   deleteMusic: (firebaseId: string) => Promise<boolean>;
   refresh: () => void;
   clearError: () => void;
+  
+  // Batch operations
+  addMusicBatch: (musics: SavedMusic[]) => void;
   
   // Computed/Helper functions
   getSavedMusicById: (trackId: string) => SavedMusic | null;
@@ -28,6 +33,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   loading: true,
   error: null,
   refreshing: false,
+  lastUpdated: 0,
 
   // Actions
   loadMusic: async () => {
@@ -43,7 +49,8 @@ export const useMusicStore = create<MusicState>((set, get) => ({
         savedMusic: music, 
         loading: false, 
         refreshing: false,
-        error: null 
+        error: null,
+        lastUpdated: Date.now()
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar biblioteca';
@@ -57,11 +64,38 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     }
   },
 
+  // ✨ NEW: Add music to local state without database call
+  addMusic: (music: SavedMusic) => {
+    const { savedMusic } = get();
+    const exists = savedMusic.some(m => m.id === music.id);
+    
+    if (!exists) {
+      set({ 
+        savedMusic: [...savedMusic, music],
+        lastUpdated: Date.now()
+      });
+      console.log('➕ Music added to local store:', music.title);
+    }
+  },
+
+  // ✨ NEW: Add multiple musics to local state
+  addMusicBatch: (musics: SavedMusic[]) => {
+    const { savedMusic } = get();
+    const existingIds = new Set(savedMusic.map(m => m.id));
+    const newMusics = musics.filter(m => !existingIds.has(m.id));
+    
+    if (newMusics.length > 0) {
+      set({ 
+        savedMusic: [...savedMusic, ...newMusics],
+        lastUpdated: Date.now()
+      });
+      console.log('➕ Batch added to local store:', newMusics.length, 'songs');
+    }
+  },
+
   updateRating: async (firebaseId: string, rating: number): Promise<boolean> => {
     try {
-      await updateMusicRating(firebaseId, rating);
-      
-      // Optimistically update the local state
+      // 1. Optimistically update local state FIRST
       const { savedMusic } = get();
       const updatedMusic = savedMusic.map(music => 
         music.firebaseId === firebaseId 
@@ -69,14 +103,21 @@ export const useMusicStore = create<MusicState>((set, get) => ({
           : music
       );
       
-      set({ savedMusic: updatedMusic });
+      set({ 
+        savedMusic: updatedMusic,
+        lastUpdated: Date.now()
+      });
       
-      // Refresh from database to ensure consistency
-      await get().loadMusic();
+      // 2. Then update database
+      await updateMusicRating(firebaseId, rating);
       
+      console.log('⭐ Rating updated locally and in database');
       return true;
     } catch (error) {
       console.error('Error updating rating:', error);
+      
+      // 3. Rollback on error by reloading from database
+      await get().loadMusic();
       return false;
     }
   },
@@ -85,25 +126,24 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     try {
       console.log('🗑️ Deleting music with Firebase ID:', firebaseId);
       
-      // Optimistically remove from local state
+      // 1. Optimistically remove from local state FIRST
       const { savedMusic } = get();
       const filteredMusic = savedMusic.filter(music => music.firebaseId !== firebaseId);
-      set({ savedMusic: filteredMusic });
+      set({ 
+        savedMusic: filteredMusic,
+        lastUpdated: Date.now()
+      });
       
+      // 2. Then delete from database
       await deleteMusic(firebaseId);
       
-      console.log('✅ Music deleted from Firebase, refreshing store...');
-      
-      // Refresh from database to ensure consistency
-      await get().loadMusic();
-      
+      console.log('✅ Music deleted locally and from database');
       return true;
     } catch (error) {
       console.error('Error deleting music:', error);
       
-      // Rollback optimistic update on error
+      // 3. Rollback on error by reloading from database
       await get().loadMusic();
-      
       return false;
     }
   },

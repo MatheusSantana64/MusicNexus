@@ -1,6 +1,6 @@
 import { Alert } from 'react-native';
 import { DeezerTrack, SavedMusic } from '../types/music';
-import { saveMusic } from './musicService';
+import { MusicStoreService } from './musicStoreService';
 
 export class TrackOperationsService {
   private static readonly RATING_RANGE = { MIN: 1, MAX: 10 } as const;
@@ -11,7 +11,8 @@ export class TrackOperationsService {
 
   static async saveTrack(track: DeezerTrack, rating: number): Promise<void> {
     try {
-      await saveMusic(track, { rating });
+      // ✨ Use smart service instead of direct saveMusic
+      await MusicStoreService.saveTrack(track, rating);
       
       const message = rating === 0 
         ? `Música "${track.title}" salva sem nota!`

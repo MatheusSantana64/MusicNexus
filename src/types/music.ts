@@ -74,7 +74,6 @@ export interface SavedMusic {
   diskNumber: number; // Disk number for multi-disk albums
   savedAt: Date;
   firebaseId?: string;
-  source: 'deezer' | 'spotify' | 'tidal';
 }
 
 // Tipos para os modos de pesquisa

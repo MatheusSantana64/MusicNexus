@@ -7,7 +7,7 @@ export function useTrackSaver() {
   const [savingTrackIds, setSavingTrackIds] = useState<Set<string>>(new Set());
   
   // Use store instead of context
-  const { getSavedMusicById, loadMusic } = useMusicStore();
+  const { getSavedMusicById } = useMusicStore();
 
   const isSaving = useCallback((trackId: string): boolean => {
     return savingTrackIds.has(trackId);
@@ -21,7 +21,7 @@ export function useTrackSaver() {
     
     try {
       await TrackOperationsService.saveTrack(track, rating);
-      await loadMusic(); // Refresh store
+      // ✨ No need to call loadMusic() - store auto-updates!
     } finally {
       // Clear loading state
       setSavingTrackIds(prev => {
@@ -30,7 +30,7 @@ export function useTrackSaver() {
         return newSet;
       });
     }
-  }, [loadMusic]);
+  }, []); // ✨ Removed loadMusic dependency
 
   const handleTrackPress = useCallback((track: DeezerTrack) => {
     const savedMusicData = getSavedMusicById(track.id);

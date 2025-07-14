@@ -7,7 +7,7 @@ export function useAlbumSaver() {
   const [savingAlbumIds, setSavingAlbumIds] = useState<Set<string>>(new Set());
   
   // Use store instead of context
-  const { isMusicSaved, loadMusic } = useMusicStore();
+  const { isMusicSaved } = useMusicStore();
 
   const isSaving = useCallback((albumId: string): boolean => {
     return savingAlbumIds.has(albumId);
@@ -22,7 +22,7 @@ export function useAlbumSaver() {
     try {
       const unsavedTracks = albumGroup.tracks.filter((track: DeezerTrack) => !isMusicSaved(track.id));
       await AlbumOperationsService.saveAlbumTracks(albumGroup, rating, unsavedTracks);
-      await loadMusic(); // Refresh store
+      // ✨ No need to call loadMusic() - store auto-updates!
     } finally {
       // Clear loading state
       setSavingAlbumIds(prev => {
@@ -31,7 +31,7 @@ export function useAlbumSaver() {
         return newSet;
       });
     }
-  }, [isMusicSaved, loadMusic]);
+  }, [isMusicSaved]); // ✨ Removed loadMusic dependency
 
   const handleSaveAlbum = useCallback((albumGroup: AlbumGroup) => {
     const savedTracks = albumGroup.tracks.filter((track: DeezerTrack) => isMusicSaved(track.id));

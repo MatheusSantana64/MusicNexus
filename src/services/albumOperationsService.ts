@@ -1,6 +1,6 @@
 import { Alert } from 'react-native';
 import { DeezerTrack } from '../types/music';
-import { saveMusicBatch } from './musicService';
+import { MusicStoreService } from './musicStoreService';
 
 export interface AlbumGroup {
   albumId: string;
@@ -28,7 +28,8 @@ export class AlbumOperationsService {
     }
 
     try {
-      const savedIds = await saveMusicBatch(unsavedTracks, rating);
+      // ✨ Use smart service instead of direct saveMusicBatch
+      const savedIds = await MusicStoreService.saveTracksBatch(unsavedTracks, rating);
       
       const message = rating === 0 
         ? `${savedIds.length} faixas salvas sem nota!`

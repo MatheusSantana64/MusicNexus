@@ -22,7 +22,6 @@ export type SortMode = 'savedAt' | 'release';
 
 interface SaveMusicOptions {
   rating?: number;
-  source?: SavedMusic['source'];
 }
 
 // === VALIDATION ===
@@ -53,7 +52,7 @@ export async function saveMusic(
   track: DeezerTrack, 
   options: SaveMusicOptions = {}
 ): Promise<string> {
-  const { rating = 0, source = 'deezer' } = options;
+  const { rating = 0 } = options;
   
   try {
     validateTrack(track);
@@ -71,10 +70,9 @@ export async function saveMusic(
       duration: track.duration,
       rating,
       releaseDate: DeezerService.getTrackReleaseDate(track) || DEFAULT_RELEASE_DATE,
-      trackPosition: track.track_position || 0, // Make sure this saves 0 instead of undefined
+      trackPosition: track.track_position || 0,
       diskNumber: track.disk_number || 1,
       savedAt: new Date(),
-      source,
     };
 
     const docRef = await addDoc(collection(db, COLLECTION_NAME), musicData);
