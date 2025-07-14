@@ -1,3 +1,5 @@
+// src/styles/screens/SearchScreen.styles.ts
+// Styles for the Search Screen
 import { StyleSheet } from 'react-native';
 import { theme } from '../theme';
 

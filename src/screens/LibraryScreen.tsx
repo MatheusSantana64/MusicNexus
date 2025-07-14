@@ -1,3 +1,5 @@
+// src/screens/LibraryScreen.tsx
+// Screen for managing saved music
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,

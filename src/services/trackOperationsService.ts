@@ -1,3 +1,5 @@
+// src/services/trackOperationsService.ts
+// Track operations service for saving tracks, showing dialogs, and handling ratings
 import { Alert } from 'react-native';
 import { DeezerTrack, SavedMusic } from '../types/music';
 import { MusicStoreService } from './musicStoreService';

@@ -1,3 +1,5 @@
+// src/hooks/useTrackSaver.ts
+// Hook for saving tracks and managing their state
 import { useCallback } from 'react';
 import { DeezerTrack } from '../types/music';
 import { TrackOperationsService } from '../services/trackOperationsService';

@@ -1,3 +1,5 @@
+// src/screens/SearchScreen.tsx
+// Screen for searching music online (Deezer API)
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,

@@ -1,9 +1,8 @@
+// src/styles/theme.ts
 import { StyleSheet } from 'react-native';
 
 export const theme = {
-  // =============================================================================
-  // 🎨 CORES - AMOLED DARK MODE
-  // =============================================================================
+  // 🎨 COLORS - AMOLED DARK MODE
   colors: {
     primary: '#007AFF',
     background: '#000000', // Pure black for AMOLED
@@ -19,9 +18,7 @@ export const theme = {
     warning: '#FF9F0A', // Brighter orange for dark mode
   },
   
-  // =============================================================================
-  // 🔤 TIPOGRAFIA
-  // =============================================================================
+  // 🔤 TYPOGRAPHY
   sizes: {
     xsmall: 10,
     small: 12,
@@ -37,19 +34,15 @@ export const theme = {
     bold: '700' as const,
   },
   
-  // =============================================================================
-  // 🔘 BORDAS
-  // =============================================================================
+  // 🔘 BORDERS
   borderRadius: {
     sm: 4,
     md: 8,
     lg: 12,
     round: 22,
   },
-  
-  // =============================================================================
-  // 🧩 ESTILOS COMUNS - AMOLED DARK
-  // =============================================================================
+
+  // 🧩 COMMON STYLES - AMOLED DARK
   styles: StyleSheet.create({
     container: {
       flex: 1,
@@ -79,8 +72,8 @@ export const theme = {
       borderColor: '#444444', // Dark border
       color: '#FFFFFF', // White text
     },
-    
-    // Textos
+
+    // Text styles
     title: {
       fontSize: 20,
       fontWeight: '600',

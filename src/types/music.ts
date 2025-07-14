@@ -1,3 +1,5 @@
+// src/types/music.ts
+// Types related to music, tracks, albums, and search functionality
 export interface DeezerTrack {
   id: string;
   title: string;
@@ -70,8 +72,8 @@ export interface SavedMusic {
   duration: number;
   rating: number;
   releaseDate: string; // Format: "YYYY-MM-DD"
-  trackPosition: number; // Position of track in the album
-  diskNumber: number; // Disk number for multi-disk albums
+  trackPosition: number;
+  diskNumber: number;
   savedAt: Date;
   firebaseId?: string;
 }

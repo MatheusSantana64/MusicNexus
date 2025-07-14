@@ -1,6 +1,5 @@
-/**
- * Formata uma data no formato ISO (YYYY-MM-DD) para exibição em português
- */
+// src/utils/dateUtils.ts
+// Utility functions for date formatting and validation
 export function formatReleaseDate(dateString: string): string {
   try {
     const date = new Date(dateString);
@@ -14,32 +13,27 @@ export function formatReleaseDate(dateString: string): string {
   }
 }
 
-/**
- * Extrai apenas o ano de uma data
- */
+// Extracts the year from a date string in various formats
 export function getYearFromDate(dateString: string): string | null {
   try {
     const date = new Date(dateString);
     return date.getFullYear().toString();
   } catch {
-    // Tenta extrair o ano se a string estiver no formato YYYY-MM-DD
+    // Fallback for invalid date formats. Assuming dateString is in format "YYYY-MM-DD" or similar
     const yearMatch = dateString.match(/^(\d{4})/);
     return yearMatch ? yearMatch[1] : null;
   }
 }
 
-/**
- * Verifica se uma data é válida
- */
+// Checks if a date string is valid
+// Returns true if the date is valid, false otherwise
 export function isValidDate(dateString: string): boolean {
   const date = new Date(dateString);
   return !isNaN(date.getTime());
 }
 
-/**
- * Compara duas datas de lançamento
- * Retorna: -1 se a < b, 1 se a > b, 0 se iguais
- */
+// Compares two date strings and returns -1, 0, or 1
+// -1 if dateA is earlier than dateB
 export function compareDates(dateA: string, dateB: string): number {
   const timeA = new Date(dateA).getTime();
   const timeB = new Date(dateB).getTime();

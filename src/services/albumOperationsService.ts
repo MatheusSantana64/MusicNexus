@@ -1,3 +1,5 @@
+// src/services/albumOperationsService.ts
+// Service for album operations like saving albums and tracks
 import { Alert } from 'react-native';
 import { DeezerTrack } from '../types/music';
 import { MusicStoreService } from './musicStoreService';

@@ -1,3 +1,5 @@
+// src/components/MusicItem.tsx
+// MusicItem component for displaying music tracks in the app
 import React from 'react';
 import {
   View,

@@ -1,11 +1,13 @@
+// src/hooks/useSearch.ts
+// Hook for searching music tracks using the Deezer API
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { DeezerTrack, SearchMode } from '../types/music';
 import { DeezerService } from '../services/deezerService';
 
-// Configurações de busca
+// Search configuration
 const SEARCH_CONFIG = {
-  DEBOUNCE_DELAY: 800, // Tempo de espera após parar de digitar (em ms)
-  MIN_QUERY_LENGTH: 3, // Tamanho mínimo da query para buscar
+  DEBOUNCE_DELAY: 800, // Debounce delay in milliseconds
+  MIN_QUERY_LENGTH: 3, // Minimum query length for search
 } as const;
 
 interface UseSearchResult {
@@ -22,9 +24,9 @@ export function useSearch(): UseSearchResult {
   const [tracks, setTracks] = useState<DeezerTrack[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchMode, setSearchMode] = useState<SearchMode>('album'); // Álbum como padrão
+  const [searchMode, setSearchMode] = useState<SearchMode>('album'); // Album as default
 
-  // Refs para controlar debounce e cancelamento
+  // Refs to control debounce and cancellation
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentSearchRef = useRef<string>('');
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -41,14 +43,14 @@ export function useSearch(): UseSearchResult {
     };
   }, []);
 
-  // Função interna para fazer a busca real
+  // Internal function to perform the actual search
   const performSearch = useCallback(async (query: string, mode: SearchMode) => {
-    // Cancelar requisição anterior se existir
+    // Cancel previous request if it exists
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
-    // Criar novo AbortController para esta busca
+    // Create new AbortController for this search
     abortControllerRef.current = new AbortController();
     const searchId = Math.random().toString(36).substr(2, 9);
     currentSearchRef.current = searchId;
@@ -60,8 +62,8 @@ export function useSearch(): UseSearchResult {
       console.log(`[${searchId}] Starting ${mode} search for:`, query);
       
       const results = await DeezerService.searchTracks(query, mode);
-      
-      // Verificar se esta ainda é a busca mais recente
+
+      // Verify if this is still the most recent search
       if (currentSearchRef.current === searchId) {
         console.log(`[${searchId}] Search completed:`, results.length, 'tracks found');
         setTracks(results);
@@ -69,20 +71,20 @@ export function useSearch(): UseSearchResult {
         console.log(`[${searchId}] Search cancelled - newer search in progress`);
       }
     } catch (err: unknown) {
-      // Verificar se esta ainda é a busca mais recente e não foi cancelada
+      // Verify if this is still the most recent search and not cancelled
       if (currentSearchRef.current === searchId) {
-        // Type guard para verificar se é um erro de abort
+        // Type guard to check if it's an abort error
         const isAbortError = err instanceof Error && err.name === 'AbortError';
         
         if (!isAbortError) {
-          const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
           setError(errorMessage);
           setTracks([]);
           console.error(`[${searchId}] Search error:`, err);
         }
       }
     } finally {
-      // Só parar o loading se esta for a busca mais recente
+      // Stop loading indicator if this is still the most recent search
       if (currentSearchRef.current === searchId) {
         setLoading(false);
       }
@@ -92,12 +94,12 @@ export function useSearch(): UseSearchResult {
   const searchTracks = useCallback(async (query: string, mode?: SearchMode) => {
     const currentMode = mode || searchMode;
     
-    // Limpar timeout anterior
+    // Cancel previous debounce timeout if it exists
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
 
-    // Se query estiver vazia, limpar resultados imediatamente
+    // If query is empty, clear results immediately
     if (!query || query.trim().length === 0) {
       setTracks([]);
       setError(null);
@@ -106,7 +108,7 @@ export function useSearch(): UseSearchResult {
       return;
     }
 
-    // Se query for muito curta, não buscar
+    // If query is too short, do not search
     if (query.trim().length < SEARCH_CONFIG.MIN_QUERY_LENGTH) {
       setTracks([]);
       setError(null);
@@ -114,7 +116,7 @@ export function useSearch(): UseSearchResult {
       return;
     }
 
-    // Implementar debounce configurável
+    // Implement debounce configuration
     debounceTimeoutRef.current = setTimeout(() => {
       performSearch(query.trim(), currentMode);
     }, SEARCH_CONFIG.DEBOUNCE_DELAY);
@@ -125,17 +127,17 @@ export function useSearch(): UseSearchResult {
   }, []);
 
   const clearResults = useCallback(() => {
-    // Cancelar timeout de debounce
+    // Cancel debounce timeout
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
-    
-    // Cancelar requisição em andamento
+
+    // Cancel ongoing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
-    // Limpar estado
+
+    // Clear state
     setTracks([]);
     setError(null);
     setLoading(false);

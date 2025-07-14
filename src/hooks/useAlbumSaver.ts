@@ -1,3 +1,5 @@
+// src/hooks/useAlbumSaver.ts
+// Hook for saving albums and managing their state
 import { useCallback } from 'react';
 import { DeezerTrack } from '../types/music';
 import { AlbumOperationsService, AlbumGroup } from '../services/albumOperationsService';

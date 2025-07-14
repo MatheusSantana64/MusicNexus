@@ -1,3 +1,5 @@
+// src/store/operationsStore.ts
+// Operations store for managing music operations like saving, updating ratings, and deleting
 import { create } from 'zustand';
 
 interface OperationState {

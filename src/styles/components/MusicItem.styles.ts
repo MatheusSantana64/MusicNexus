@@ -1,3 +1,5 @@
+// src/styles/components/MusicItem.styles.ts
+// Styles for the Music Item component
 import { StyleSheet } from 'react-native';
 import { theme } from '../theme';
 

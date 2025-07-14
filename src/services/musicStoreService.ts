@@ -1,17 +1,15 @@
+// src/services/musicService.ts
+// Music service for saving, updating, and deleting music
 import { DeezerTrack, SavedMusic } from '../types/music';
 import { saveMusic, saveMusicBatch } from './musicService';
 import { useMusicStore } from '../store/musicStore';
 import { useOperationsStore } from '../store/operationsStore';
 import { DeezerService } from './deezerService';
 
-/**
- * Smart service that handles music operations with automatic store updates
- */
+// Smart service that handles music operations with automatic store updates
 export class MusicStoreService {
   
-  /**
-   * Saves a track and automatically updates the store
-   */
+  // Saves a track and automatically updates the store
   static async saveTrack(track: DeezerTrack, rating: number = 0): Promise<string> {
     const operations = useOperationsStore.getState();
     
@@ -60,9 +58,7 @@ export class MusicStoreService {
     }
   }
 
-  /**
-   * Saves multiple tracks and automatically updates the store
-   */
+  // Saves multiple tracks and automatically updates the store
   static async saveTracksBatch(tracks: DeezerTrack[], rating: number = 0): Promise<string[]> {
     const operations = useOperationsStore.getState();
     

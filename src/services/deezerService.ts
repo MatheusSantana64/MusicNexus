@@ -1,3 +1,5 @@
+// src/services/deezerService.ts
+// Deezer service for searching tracks and albums
 import { DeezerSearchResponse, DeezerTrack, DeezerAlbumSearchResponse, DeezerAlbum, SearchMode, SearchOptions } from '../types/music';
 import { compareDates } from '../utils/dateUtils';
 
@@ -8,9 +10,7 @@ const albumCache = new Map<string, any>();
 export class DeezerService {
   // === PUBLIC API METHODS ===
   
-  /**
-   * Busca principal que delega para o método específico baseado no modo
-   */
+  // Searches for tracks based on the provided query and mode
   static async searchTracks(query: string, mode: SearchMode = 'album', limit: number = 25): Promise<DeezerTrack[]> {
     const options: SearchOptions = { mode, query, limit };
     
@@ -39,10 +39,8 @@ export class DeezerService {
 
   // === SEARCH IMPLEMENTATIONS ===
 
-  /**
-   * Modo 1: Pesquisa por álbuns (padrão) - mostra todas as faixas dos álbuns encontrados
-   * Álbuns ordenados por data de lançamento (mais recentes primeiro)
-   */
+  // Mode 1: Search by album (with detailed track info)
+  // Albums sorted by release date (most recent first)
   private static async searchTracksByAlbum(options: SearchOptions): Promise<DeezerTrack[]> {
     try {
       if (!options.query?.trim()) return [];
@@ -58,9 +56,7 @@ export class DeezerService {
     }
   }
 
-  /**
-   * Modo 2: Pesquisa rápida do Deezer (com enriquecimento de dados)
-   */
+  // Mode 2: Quick search (without album info)
   private static async searchTracksQuick(options: SearchOptions): Promise<DeezerTrack[]> {
     try {
       if (!options.query?.trim()) return [];
@@ -77,7 +73,7 @@ export class DeezerService {
 
       console.log(`[QUICK MODE] Found ${tracks.length} tracks`);
       
-      // Enriquecer tracks com dados completos do álbum
+      // Enrich tracks with album data
       tracks = await this.enrichTracksWithAlbumData(tracks);
       
       // Sort tracks like album search does
@@ -224,24 +220,24 @@ export class DeezerService {
     );
   }
 
-  // Enriquece tracks individuais com dados do álbum
+  // Enrich tracks with album data
   private static async enrichTracksWithAlbumData(tracks: DeezerTrack[]): Promise<DeezerTrack[]> {
     const albumIds = new Set<string>();
     const albumDataMap = new Map<string, any>();
     const albumTracksMap = new Map<string, DeezerTrack[]>();
 
-    // Coletar IDs únicos dos álbuns
+    // Collect unique album IDs
     tracks.forEach(track => {
       if (track.album?.id) {
         albumIds.add(track.album.id);
       }
     });
 
-    // Buscar dados completos dos álbuns E suas tracks
+    // Fetch album data in parallel
     await Promise.all(
       Array.from(albumIds).map(async (albumId) => {
         try {
-          // Buscar dados do álbum
+          // Fetch album data
           const albumResponse = await fetch(`${DEEZER_API_URL}/album/${albumId}`);
           if (albumResponse.ok) {
             const albumData = await albumResponse.json();
@@ -249,7 +245,7 @@ export class DeezerService {
             albumDataMap.set(albumId, albumData);
           }
 
-          // Sempre buscar tracks separadamente para garantir que temos track_position
+          // Always fetch tracks separately to ensure we have track_position
           const albumTracksResponse = await fetch(`${DEEZER_API_URL}/album/${albumId}/tracks`);
           if (albumTracksResponse.ok) {
             const albumTracksData = await albumTracksResponse.json();
@@ -263,12 +259,12 @@ export class DeezerService {
       })
     );
 
-    // Enriquecer tracks com dados completos do álbum E posição da track
+    // Enrich tracks with album data and track position
     const enrichedTracks = tracks.map(track => {
       const albumData = albumDataMap.get(track.album?.id);
       const albumTracks = albumTracksMap.get(track.album?.id);
       
-      // Encontrar a track correspondente no álbum para obter track_position e disk_number
+      // Find the corresponding track in the album to get track_position and disk_number
       let trackPosition = track.track_position;
       let diskNumber = track.disk_number;
       
@@ -298,17 +294,12 @@ export class DeezerService {
 
   // === PUBLIC UTILITIES ===
 
-  /**
-   * Extrai a data de lançamento de uma track
-   * Prioriza a data do álbum, depois a data da track
-   */
+  // Extracts the release date of a track, prioritizing album date, then track date
   static getTrackReleaseDate(track: DeezerTrack): string | null {
     return track.album?.release_date || track.release_date || null;
   }
 
-  /**
-   * Obtém a posição da track no álbum
-   */
+  // Get track position
   static getTrackPosition(track: DeezerTrack): string | null {
     if (!track.track_position && track.track_position !== 0) return null;
     
@@ -318,9 +309,7 @@ export class DeezerService {
       : position;
   }
 
-  /**
-   * Obtém o ano de lançamento de uma track
-   */
+  // Get release year
   static getReleaseYear(track: DeezerTrack): string | null {
     const releaseDate = this.getTrackReleaseDate(track);
     if (!releaseDate) return null;
@@ -332,9 +321,7 @@ export class DeezerService {
     }
   }
 
-  /**
-   * Obtém descrição do modo de pesquisa
-   */
+  // Get search mode description
   static getSearchModeDescription(mode: SearchMode): string {
     const descriptions = {
       album: 'Por álbum completo',
@@ -345,9 +332,7 @@ export class DeezerService {
 
   // === CACHE MANAGEMENT ===
 
-  /**
-   * Limpa os caches (útil para testes ou limpeza de memória)
-   */
+  // Clear album cache
   static clearCaches(): void {
     albumCache.clear();
   }

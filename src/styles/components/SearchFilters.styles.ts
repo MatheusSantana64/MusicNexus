@@ -1,3 +1,5 @@
+// src/styles/components/SearchFilters.styles.ts
+// Styles for the Search Filters component
 import { StyleSheet } from 'react-native';
 import { theme } from '../theme';
 
@@ -24,6 +26,6 @@ export const searchFiltersStyles = StyleSheet.create({
     fontSize: 16,
   },
   iconButtonTextActive: {
-    // Ícones não mudam de cor, apenas o fundo
+    // Icons do not change color, only the background
   },
 });

@@ -1,3 +1,5 @@
+// src/services/musicService.ts
+// Music service for saving, updating, and deleting music
 import { 
   collection, 
   addDoc, 

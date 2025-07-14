@@ -1,3 +1,5 @@
+// src/store/musicStore.ts
+// Music store for managing saved music, loading, and operations
 import { create } from 'zustand';
 import { SavedMusic } from '../types/music';
 import { getSavedMusic, updateMusicRating, deleteMusic } from '../services/musicService';
