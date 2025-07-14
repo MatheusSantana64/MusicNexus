@@ -18,14 +18,14 @@ export interface DeezerTrack {
     cover_small: string;
     cover_medium: string;
     cover_big: string;
-    release_date: string; // Format: "YYYY-MM-DD"
+    release_date: string;
   };
   duration: number;
   preview: string;
   rank: number;
-  track_position?: number; // Position of track in the album
-  disk_number?: number; // Disk number for multi-disk albums
-  release_date?: string; // Some tracks have this field directly
+  track_position?: number;
+  disk_number?: number;
+  release_date?: string;
 }
 
 export interface DeezerSearchResponse {
@@ -49,7 +49,7 @@ export interface DeezerAlbum {
     picture_small: string;
     picture_medium: string;
   };
-  tracks: {
+  tracks?: {
     data: DeezerTrack[];
   };
 }
@@ -71,14 +71,13 @@ export interface SavedMusic {
   preview: string;
   duration: number;
   rating: number;
-  releaseDate: string; // Format: "YYYY-MM-DD"
+  releaseDate: string;
   trackPosition: number;
   diskNumber: number;
   savedAt: Date;
   firebaseId?: string;
 }
 
-// Tipos para os modos de pesquisa
 export type SearchMode = 'album' | 'quick';
 
 export interface SearchOptions {

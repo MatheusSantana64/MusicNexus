@@ -2,13 +2,11 @@
 // ErrorBoundary component to catch errors
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { ErrorHandlingService } from '../services/errorHandlingService';
 import { theme } from '../styles/theme';
 
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
-  errorInfo: string | null;
 }
 
 interface ErrorBoundaryProps {
@@ -22,7 +20,6 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null,
     };
   }
 
@@ -34,27 +31,14 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    this.setState({
-      errorInfo: errorInfo.componentStack,
-    });
-
-    // Log error to our centralized service
-    const appError = ErrorHandlingService.createError(
-      error.message,
-      'unknown',
-      'high',
-      error,
-      'ErrorBoundary'
-    );
-    
-    ErrorHandlingService.handleError(appError, false); // Don't show alert, we'll show our own UI
+    // Simple logging
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
   handleRetry = () => {
     this.setState({
       hasError: false,
       error: null,
-      errorInfo: null,
     });
   };
 
@@ -81,9 +65,6 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               <View style={styles.debugInfo}>
                 <Text style={styles.debugTitle}>Debug Info:</Text>
                 <Text style={styles.debugText}>{this.state.error.message}</Text>
-                {this.state.errorInfo && (
-                  <Text style={styles.debugText}>{this.state.errorInfo}</Text>
-                )}
               </View>
             )}
           </View>

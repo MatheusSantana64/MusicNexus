@@ -19,59 +19,37 @@ import { libraryStyles as styles } from '../styles/screens/LibraryScreen.styles'
 
 type SortMode = 'recent' | 'rating' | 'release' | 'alphabetical' | 'album' | 'artist';
 
-// === CONSTANTS & UTILITIES ===
-const SORT_MODES: Record<SortMode, string> = {
-  recent: 'Recent',
-  rating: 'Rating', 
-  release: 'Release',
-  alphabetical: 'Alphabetical',
-  album: 'Album',
-  artist: 'Artist',
-};
-
-const SORT_STRATEGIES = {
-  recent: (a: SavedMusic, b: SavedMusic) => 
-    new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime(),
-  rating: (a: SavedMusic, b: SavedMusic) => b.rating - a.rating,
-  release: (a: SavedMusic, b: SavedMusic) => 
-    new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime(),
-  alphabetical: (a: SavedMusic, b: SavedMusic) => a.title.localeCompare(b.title),
-  album: (a: SavedMusic, b: SavedMusic) => a.album.localeCompare(b.album),
-  artist: (a: SavedMusic, b: SavedMusic) => a.artist.localeCompare(b.artist),
-};
-
-const getSecondarySort = (a: SavedMusic, b: SavedMusic): number => {
-  return new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime() ||
-         a.artist.localeCompare(b.artist) ||
-         a.album.localeCompare(b.album) ||
-         a.diskNumber - b.diskNumber ||
-         a.trackPosition - b.trackPosition;
-};
-
-const filterMusic = (music: SavedMusic[], query: string) => {
-  if (!query.trim()) return music;
-  
-  const searchTerm = query.toLowerCase().trim();
-  return music.filter(item => 
-    item.title.toLowerCase().includes(searchTerm) ||
-    item.artist.toLowerCase().includes(searchTerm) ||
-    item.album.toLowerCase().includes(searchTerm)
-  );
-};
-
-const sortMusic = (music: SavedMusic[], mode: SortMode) => {
-  return [...music].sort((a, b) => {
-    const primarySort = SORT_STRATEGIES[mode](a, b);
-    return primarySort || getSecondarySort(a, b);
-  });
+const SORT_OPTIONS: Record<SortMode, { label: string; sortFn: (a: SavedMusic, b: SavedMusic) => number }> = {
+  recent: {
+    label: 'Recent',
+    sortFn: (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+  },
+  rating: {
+    label: 'Rating',
+    sortFn: (a, b) => b.rating - a.rating
+  },
+  release: {
+    label: 'Release',
+    sortFn: (a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()
+  },
+  alphabetical: {
+    label: 'Title',
+    sortFn: (a, b) => a.title.localeCompare(b.title)
+  },
+  album: {
+    label: 'Album',
+    sortFn: (a, b) => a.album.localeCompare(b.album)
+  },
+  artist: {
+    label: 'Artist',
+    sortFn: (a, b) => a.artist.localeCompare(b.artist)
+  },
 };
 
 export default function LibraryScreen() {
-  // === STATE & STORE ===
   const [sortMode, setSortMode] = useState<SortMode>('recent');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Use Zustand store instead of hooks
   const {
     savedMusic,
     loading,
@@ -82,162 +60,127 @@ export default function LibraryScreen() {
     refresh,
   } = useMusicStore();
 
-  // === HANDLERS ===
-  const showAlert = useCallback((title: string, message: string) => {
-    Alert.alert(title, message);
-  }, []);
-
-  const handleRatingPrompt = useCallback((music: SavedMusic) => {
-    Alert.prompt(
-      'Atualizar Avaliação',
-      `Digite uma nova nota de 1 a 10 para "${music.title}"`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Salvar', 
-          onPress: async (rating) => {
-            const numRating = parseInt(rating || '0');
-            
-            if (numRating < 0 || numRating > 10) {
-              showAlert('Erro', 'Digite uma nota entre 0 e 10');
-              return;
-            }
-
-            const success = await updateRating(music.firebaseId!, numRating);
-            
-            // ✅ REMOVIDO: Alerta de sucesso - o usuário pode ver a alteração da avaliação na UI
-            if (!success) {
-              showAlert('Erro', 'Não foi possível atualizar a avaliação');
-            } else {
-              console.log(`✅ Avaliação atualizada com sucesso: ${music.title} -> ${numRating}`);
-            }
-          }
-        },
-      ],
-      'plain-text',
-      music.rating.toString(),
-      'numeric'
-    );
-  }, [updateRating, showAlert]);
-
-  const handleDeletePrompt = useCallback((music: SavedMusic) => {
-    Alert.alert(
-      'Remover Música',
-      `Tem certeza que deseja remover "${music.title}" da sua biblioteca?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Remover',
-          style: 'destructive',
-          onPress: async () => {
-            const success = await deleteMusic(music.firebaseId!);
-            
-            // ✅ REMOVIDO: Alerta de sucesso - o usuário pode ver a música desaparecer da lista
-            if (!success) {
-              showAlert('Erro', 'Não foi possível remover a música');
-            } else {
-              console.log(`✅ Música removida com sucesso: ${music.title}`);
-            }
-          },
-        },
-      ]
-    );
-  }, [deleteMusic, showAlert]);
-
-  // === COMPUTED VALUES ===
+  // Process music: filter + sort in one step
   const processedMusic = useMemo(() => {
-    const filtered = filterMusic(savedMusic, searchQuery);
-    return sortMusic(filtered, sortMode);
+    let filtered = savedMusic;
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const searchTerm = searchQuery.toLowerCase().trim();
+      filtered = savedMusic.filter(item => 
+        item.title.toLowerCase().includes(searchTerm) ||
+        item.artist.toLowerCase().includes(searchTerm) ||
+        item.album.toLowerCase().includes(searchTerm)
+      );
+    }
+    
+    // Sort
+    return [...filtered].sort(SORT_OPTIONS[sortMode].sortFn);
   }, [savedMusic, searchQuery, sortMode]);
 
-  const hasMusic = savedMusic.length > 0;
-  const hasSearchResults = searchQuery.trim() && processedMusic.length === 0 && hasMusic;
+  // Unified handler for music actions
+  const handleMusicAction = useCallback((music: SavedMusic, action: 'rate' | 'delete') => {
+    if (action === 'rate') {
+      Alert.prompt(
+        'Atualizar Avaliação',
+        `Digite uma nova nota de 1 a 10 para "${music.title}"`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Salvar', 
+            onPress: async (rating) => {
+              const numRating = parseInt(rating || '0');
+              
+              if (numRating < 0 || numRating > 10) {
+                Alert.alert('Erro', 'Digite uma nota entre 0 e 10');
+                return;
+              }
 
-  // === RENDER FUNCTIONS ===
+              const success = await updateRating(music.firebaseId!, numRating);
+              if (!success) {
+                Alert.alert('Erro', 'Não foi possível atualizar a avaliação');
+              }
+            }
+          },
+        ],
+        'plain-text',
+        music.rating.toString(),
+        'numeric'
+      );
+    } else if (action === 'delete') {
+      Alert.alert(
+        'Remover Música',
+        `Tem certeza que deseja remover "${music.title}" da sua biblioteca?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Remover',
+            style: 'destructive',
+            onPress: async () => {
+              const success = await deleteMusic(music.firebaseId!);
+              if (!success) {
+                Alert.alert('Erro', 'Não foi possível remover a música');
+              }
+            },
+          },
+        ]
+      );
+    }
+  }, [updateRating, deleteMusic]);
+
   const renderItem = useCallback(({ item }: { item: SavedMusic }) => (
     <MusicItem
       music={item}
-      onPress={handleRatingPrompt}
+      onPress={(music) => handleMusicAction(music as SavedMusic, 'rate')}
       onLongPress={(music) => {
         Alert.alert(
           music.title,
           `Options for "${music.title}"`,
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Rate', onPress: () => handleRatingPrompt(music as SavedMusic) },
-            { text: 'Delete', style: 'destructive', onPress: () => handleDeletePrompt(music as SavedMusic) },
+            { text: 'Rate', onPress: () => handleMusicAction(music as SavedMusic, 'rate') },
+            { text: 'Delete', style: 'destructive', onPress: () => handleMusicAction(music as SavedMusic, 'delete') },
           ]
         );
       }}
     />
-  ), [handleRatingPrompt, handleDeletePrompt]);
+  ), [handleMusicAction]);
 
-  const renderSearchBar = () => (
-    <View style={styles.searchContainer}>
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Buscar na biblioteca..."
-        placeholderTextColor={styles.placeholderText.color}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        autoCorrect={false}
-        clearButtonMode="while-editing"
-      />
-    </View>
-  );
-
-  const renderSortHeader = () => (
-    <View style={styles.sortHeader}>
-      <Text style={styles.sortLabel}>Sort by:</Text>
-      {searchQuery.trim() && (
-        <Text style={styles.resultCount}>
-          {processedMusic.length} de {savedMusic.length} músicas
-        </Text>
-      )}
-    </View>
-  );
-
-  const renderSortButton = (mode: SortMode) => (
-    <TouchableOpacity
-      key={mode}
-      style={[styles.sortButton, sortMode === mode && styles.sortButtonActive]}
-      onPress={() => setSortMode(mode)}
-    >
-      <Text style={[
-        styles.sortButtonText,
-        sortMode === mode && styles.sortButtonTextActive
-      ]}>
-        {SORT_MODES[mode]}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const renderSortButtons = () => (
-    <View style={styles.sortContainer}>
-      {renderSortHeader()}
-      <View style={styles.sortButtons}>
-        {(Object.keys(SORT_MODES) as SortMode[]).map(renderSortButton)}
-      </View>
-    </View>
-  );
-
-  const renderEmptyState = () => {
-    const states = {
-      loading: (
+  const renderContent = () => {
+    if (loading) {
+      return (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
           <Text style={styles.loadingText}>Carregando biblioteca...</Text>
         </View>
-      ),
-      error: (
+      );
+    }
+
+    if (error) {
+      return (
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={refresh}>
             <Text style={styles.retryButtonText}>Tentar novamente</Text>
           </TouchableOpacity>
         </View>
-      ),
-      noResults: (
+      );
+    }
+
+    if (savedMusic.length === 0) {
+      return (
+        <View style={styles.centerContainer}>
+          <Text style={styles.emptyTitle}>🎵 Biblioteca Vazia</Text>
+          <Text style={styles.emptyText}>
+            Você ainda não salvou nenhuma música.{'\n'}
+            Vá para a aba de pesquisa e comece a adicionar suas músicas favoritas!
+          </Text>
+        </View>
+      );
+    }
+
+    if (searchQuery.trim() && processedMusic.length === 0) {
+      return (
         <View style={styles.centerContainer}>
           <Text style={styles.emptyTitle}>🔍 Nenhum resultado</Text>
           <Text style={styles.emptyText}>
@@ -251,36 +194,14 @@ export default function LibraryScreen() {
             <Text style={styles.clearSearchButtonText}>Limpar pesquisa</Text>
           </TouchableOpacity>
         </View>
-      ),
-      empty: (
-        <View style={styles.centerContainer}>
-          <Text style={styles.emptyTitle}>🎵 Biblioteca Vazia</Text>
-          <Text style={styles.emptyText}>
-            Você ainda não salvou nenhuma música.{'\n'}
-            Vá para a aba de pesquisa e comece a adicionar suas músicas favoritas!
-          </Text>
-        </View>
-      )
-    };
+      );
+    }
 
-    if (loading) return states.loading;
-    if (error) return states.error;
-    if (hasSearchResults) return states.noResults;
-    if (!hasMusic) return states.empty;
-    return null;
-  };
-
-  // === MAIN RENDER ===
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {hasMusic && renderSearchBar()}
-      {hasMusic && renderSortButtons()}
-
+    return (
       <FlatList
         data={processedMusic}
         keyExtractor={(item) => item.firebaseId!}
         renderItem={renderItem}
-        ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -293,6 +214,57 @@ export default function LibraryScreen() {
         maxToRenderPerBatch={10}
         windowSize={10}
       />
+    );
+  };
+
+  const hasMusic = savedMusic.length > 0;
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {hasMusic && (
+        <>
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar na biblioteca..."
+              placeholderTextColor={styles.placeholderText.color}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+            />
+          </View>
+          
+          <View style={styles.sortContainer}>
+            <View style={styles.sortHeader}>
+              <Text style={styles.sortLabel}>Sort by:</Text>
+              {searchQuery.trim() && (
+                <Text style={styles.resultCount}>
+                  {processedMusic.length} de {savedMusic.length} músicas
+                </Text>
+              )}
+            </View>
+            <View style={styles.sortButtons}>
+              {(Object.keys(SORT_OPTIONS) as SortMode[]).map((mode) => (
+                <TouchableOpacity
+                  key={mode}
+                  style={[styles.sortButton, sortMode === mode && styles.sortButtonActive]}
+                  onPress={() => setSortMode(mode)}
+                >
+                  <Text style={[
+                    styles.sortButtonText,
+                    sortMode === mode && styles.sortButtonTextActive
+                  ]}>
+                    {SORT_OPTIONS[mode].label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </>
+      )}
+      
+      {renderContent()}
     </SafeAreaView>
   );
 }

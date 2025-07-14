@@ -5,32 +5,30 @@ import { View, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeezerTrack, SearchMode } from '../types/music';
 import { useSearch } from '../hooks/useSearch';
-import { useAlbumSaver } from '../hooks/useAlbumSaver';
-import { useTrackSaver } from '../hooks/useTrackSaver';
+import { useMusicOperations } from '../hooks/useMusicOperations';
 import { useAlbumGrouping } from '../hooks/useAlbumGrouping';
 import { MusicItem } from '../components/MusicItem';
 import { SearchBar } from '../components/SearchBar';
 import { AlbumHeader, AlbumGroup } from '../components/AlbumHeader';
 import { SearchEmptyState } from '../components/SearchEmptyState';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { useMusicStore } from '../store/musicStore';
 import { searchStyles as styles } from '../styles/screens/SearchScreen.styles';
 
-// === CONSTANTS ===
 const MIN_SEARCH_LENGTH = 3;
 
 export default function SearchScreen() {
-  // === STATE & HOOKS ===
   const [searchQuery, setSearchQuery] = useState('');
   const { tracks, loading, error, searchMode, searchTracks, setSearchMode } = useSearch();
-  const { isMusicSaved } = useMusicStore();
-  const { isSaving: isAlbumSaving, handleSaveAlbum } = useAlbumSaver();
-  const { isSaving: isTrackSaving, handleTrackPress } = useTrackSaver();
+  const { 
+    handleTrackPress, 
+    handleAlbumSave, 
+    isTrackSaving, 
+    isAlbumSaving, 
+    isMusicSaved 
+  } = useMusicOperations();
   
-  // === COMPUTED VALUES ===
   const albumGroups = useAlbumGrouping(tracks, searchMode);
 
-  // === HANDLERS ===
   const handleSearch = useCallback(async (text: string) => {
     setSearchQuery(text);
     await searchTracks(text);
@@ -43,7 +41,6 @@ export default function SearchScreen() {
     }
   }, [setSearchMode, searchTracks, searchQuery]);
 
-  // === RENDER FUNCTIONS ===
   const renderTrackItem = useCallback(({ item }: { item: DeezerTrack }) => (
     <MusicItem 
       music={item} 
@@ -62,10 +59,10 @@ export default function SearchScreen() {
         savedCount={savedCount}
         totalCount={albumTracks.length}
         isLoading={isAlbumSaving(albumId)}
-        onSaveAlbum={handleSaveAlbum}
+        onSaveAlbum={handleAlbumSave}
       />
     );
-  }, [handleSaveAlbum, isAlbumSaving, isMusicSaved]);
+  }, [handleAlbumSave, isAlbumSaving, isMusicSaved]);
 
   const renderTrackList = useCallback(() => {
     const flatData: Array<{ type: 'album' | 'track'; data: any }> = [];
@@ -113,7 +110,6 @@ export default function SearchScreen() {
     );
   }, [searchMode, albumGroups, tracks, renderAlbumHeader, renderTrackItem, loading, error, searchQuery]);
 
-  // === MAIN RENDER ===
   return (
     <ErrorBoundary>
       <SafeAreaView style={styles.container} edges={['top']}>

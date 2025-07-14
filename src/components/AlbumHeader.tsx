@@ -29,6 +29,7 @@ export function AlbumHeader({
   onSaveAlbum 
 }: AlbumHeaderProps) {
   const { album, artist } = albumGroup;
+  const isFullySaved = savedCount === totalCount;
   
   return (
     <View style={styles.albumHeader}>
@@ -52,7 +53,7 @@ export function AlbumHeader({
           <ActivityIndicator size="small" color="#FFFFFF" />
         ) : (
           <Text style={styles.saveAlbumButtonText}>
-            {savedCount === totalCount ? 'Salvo' : 'Salvar Álbum'}
+            {isFullySaved ? 'Salvo' : 'Salvar'}
           </Text>
         )}
       </TouchableOpacity>

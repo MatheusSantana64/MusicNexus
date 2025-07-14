@@ -15,51 +15,29 @@ import { db } from '../config/firebaseConfig';
 import { SavedMusic, DeezerTrack } from '../types/music';
 import { DeezerService } from './deezerService';
 
-// === CONSTANTS ===
 const COLLECTION_NAME = 'savedMusic';
 const DEFAULT_RELEASE_DATE = '1900-01-01';
 
-// === TYPES ===
 export type SortMode = 'savedAt' | 'release';
 
 interface SaveMusicOptions {
   rating?: number;
 }
 
-// === VALIDATION ===
-function validateRating(rating: number): void {
-  if (rating < 0 || rating > 10 || !Number.isInteger(rating)) {
-    throw new Error('Rating must be an integer between 0 and 10');
-  }
-}
+// === CORE FUNCTIONS ===
 
-function validateFirebaseId(firebaseId: string): void {
-  if (!firebaseId?.trim()) {
-    throw new Error('Firebase ID is required');
-  }
-}
-
-function validateTrack(track: DeezerTrack): void {
+export async function saveMusic(track: DeezerTrack, options: SaveMusicOptions = {}): Promise<string> {
+  const { rating = 0 } = options;
+  
   if (!track?.id || !track?.title || !track?.artist?.name) {
     throw new Error('Invalid track data');
   }
-}
 
-// === CORE FUNCTIONS ===
+  if (rating < 0 || rating > 10 || !Number.isInteger(rating)) {
+    throw new Error('Rating must be an integer between 0 and 10');
+  }
 
-/**
- * Salva uma música no Firestore com validações
- */
-export async function saveMusic(
-  track: DeezerTrack, 
-  options: SaveMusicOptions = {}
-): Promise<string> {
-  const { rating = 0 } = options;
-  
   try {
-    validateTrack(track);
-    validateRating(rating);
-
     const musicData: Omit<SavedMusic, 'firebaseId'> = {
       id: track.id,
       title: track.title,
@@ -85,14 +63,10 @@ export async function saveMusic(
   }
 }
 
-/**
- * Função unificada para buscar músicas com ordenação configurável
- */
 export async function getSavedMusic(sortMode: SortMode = 'savedAt'): Promise<SavedMusic[]> {
   try {
     const constraints: QueryConstraint[] = [];
     
-    // Adicionar ordenação no servidor quando possível
     if (sortMode === 'savedAt') {
       constraints.push(orderBy('savedAt', 'desc'));
     }
@@ -113,14 +87,16 @@ export async function getSavedMusic(sortMode: SortMode = 'savedAt'): Promise<Sav
   }
 }
 
-/**
- * Atualiza a avaliação de uma música
- */
 export async function updateMusicRating(firebaseId: string, rating: number): Promise<void> {
-  try {
-    validateFirebaseId(firebaseId);
-    validateRating(rating);
+  if (!firebaseId?.trim()) {
+    throw new Error('Firebase ID is required');
+  }
 
+  if (rating < 0 || rating > 10 || !Number.isInteger(rating)) {
+    throw new Error('Rating must be an integer between 0 and 10');
+  }
+
+  try {
     await updateDoc(doc(db, COLLECTION_NAME, firebaseId), { rating });
   } catch (error) {
     console.error('Error updating rating:', error);
@@ -128,12 +104,12 @@ export async function updateMusicRating(firebaseId: string, rating: number): Pro
   }
 }
 
-/**
- * Remove uma música da biblioteca
- */
 export async function deleteMusic(firebaseId: string): Promise<void> {
+  if (!firebaseId?.trim()) {
+    throw new Error('Firebase ID is required');
+  }
+
   try {
-    validateFirebaseId(firebaseId);
     await deleteDoc(doc(db, COLLECTION_NAME, firebaseId));
   } catch (error) {
     console.error('Error deleting music:', error);
@@ -141,22 +117,15 @@ export async function deleteMusic(firebaseId: string): Promise<void> {
   }
 }
 
-// === UTILITY FUNCTIONS ===
-export async function isMusicSaved(trackId: string): Promise<boolean> {
-  const music = await getSavedMusicById(trackId);
-  return music !== null;
-}
-
-export async function getSavedMusicById(trackId: string): Promise<SavedMusic | null> {
-  try {
-    if (!trackId?.trim()) return null;
-    
-    const musics = await getSavedMusic();
-    return musics.find(music => music.id === trackId) || null;
-  } catch (error) {
-    console.error('Error getting saved music by ID:', error);
-    return null;
-  }
+// === BATCH OPERATIONS ===
+export async function saveMusicBatch(tracks: DeezerTrack[], rating: number = 0): Promise<string[]> {
+  const results = await Promise.allSettled(
+    tracks.map(track => saveMusic(track, { rating }))
+  );
+  
+  return results
+    .filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled')
+    .map(result => result.value);
 }
 
 // === HELPERS ===
@@ -174,13 +143,15 @@ function sortMusicByRelease(musics: SavedMusic[]): SavedMusic[] {
   });
 }
 
-// === BATCH OPERATIONS ===
-export async function saveMusicBatch(tracks: DeezerTrack[], rating: number = 0): Promise<string[]> {
-  const results = await Promise.allSettled(
-    tracks.map(track => saveMusic(track, { rating }))
-  );
+// === UTILITY FUNCTIONS (simplified) ===
+export async function getSavedMusicById(trackId: string): Promise<SavedMusic | null> {
+  if (!trackId?.trim()) return null;
   
-  return results
-    .filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled')
-    .map(result => result.value);
+  try {
+    const musics = await getSavedMusic();
+    return musics.find(music => music.id === trackId) || null;
+  } catch (error) {
+    console.error('Error getting saved music by ID:', error);
+    return null;
+  }
 }
