@@ -1,13 +1,13 @@
 // src/hooks/useLibrary.ts
 // Hook for managing library operations and logic
-import { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { SavedMusic } from '../types/music';
 import { useMusicStore } from '../store/musicStore';
 import { SORT_OPTIONS, SortMode } from '../components/LibraryHeader';
 
 export function useLibrary() {
-  const [sortMode, setSortMode] = useState<SortMode>('recent');
+  const [sortMode, setSortMode] = useState<SortMode>('release');
   const [isReversed, setIsReversed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -20,12 +20,21 @@ export function useLibrary() {
     loading,
     error,
     refreshing,
+    currentSortMode,
     updateRating,
     deleteMusic,
     refresh,
+    loadMusic,
   } = useMusicStore();
 
-  // Process music: filter + sort in one step
+  // Load music with new sort when sort mode changes
+  React.useEffect(() => {
+    if (sortMode !== currentSortMode) {
+      loadMusic(sortMode);
+    }
+  }, [sortMode, currentSortMode, loadMusic]);
+
+  // Process music: filter + hierarchical sort in memory
   const processedMusic = useMemo(() => {
     let filtered = savedMusic;
     
@@ -39,7 +48,7 @@ export function useLibrary() {
       );
     }
     
-    // Sort with reverse capability
+    // Apply hierarchical sorting with the user's sort preference
     const sortFunction = isReversed 
       ? SORT_OPTIONS[sortMode].reverseFn 
       : SORT_OPTIONS[sortMode].sortFn;

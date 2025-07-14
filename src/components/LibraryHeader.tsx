@@ -4,39 +4,41 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { SavedMusic } from '../types/music';
 import { libraryStyles as styles } from '../styles/screens/LibraryScreen.styles';
+import { LibrarySortingUtils } from '../utils/librarySortingUtils';
 
-type SortMode = 'recent' | 'rating' | 'release' | 'alphabetical' | 'album' | 'artist';
+type SortMode = 'added' | 'rating' | 'release' | 'alphabetical' | 'album' | 'artist';
 
+// Create the SORT_OPTIONS using the new utility
 const SORT_OPTIONS: Record<SortMode, { label: string; sortFn: (a: SavedMusic, b: SavedMusic) => number; reverseFn: (a: SavedMusic, b: SavedMusic) => number }> = {
-  recent: {
-    label: 'Added',
-    sortFn: (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime(), // Newest first
-    reverseFn: (a, b) => new Date(a.savedAt).getTime() - new Date(b.savedAt).getTime() // Oldest first
+  release: {
+    label: '🗓️',
+    sortFn: LibrarySortingUtils.createSortFunction('release', false),
+    reverseFn: LibrarySortingUtils.createSortFunction('release', true)
   },
   rating: {
-    label: 'Rating',
-    sortFn: (a, b) => b.rating - a.rating, // Highest first
-    reverseFn: (a, b) => a.rating - b.rating // Lowest first
+    label: '⭐',
+    sortFn: LibrarySortingUtils.createSortFunction('rating', false),
+    reverseFn: LibrarySortingUtils.createSortFunction('rating', true)
   },
-  release: {
-    label: 'Release',
-    sortFn: (a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime(), // Newest first
-    reverseFn: (a, b) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime() // Oldest first
+  added: {
+    label: '💾',
+    sortFn: LibrarySortingUtils.createSortFunction('added', false),
+    reverseFn: LibrarySortingUtils.createSortFunction('added', true)
   },
   alphabetical: {
-    label: 'Title',
-    sortFn: (a, b) => a.title.localeCompare(b.title), // A-Z
-    reverseFn: (a, b) => b.title.localeCompare(a.title) // Z-A
+    label: '🔠',
+    sortFn: LibrarySortingUtils.createSortFunction('alphabetical', false),
+    reverseFn: LibrarySortingUtils.createSortFunction('alphabetical', true)
   },
   album: {
-    label: 'Album',
-    sortFn: (a, b) => a.album.localeCompare(b.album), // A-Z
-    reverseFn: (a, b) => b.album.localeCompare(a.album) // Z-A
+    label: '💿',
+    sortFn: LibrarySortingUtils.createSortFunction('album', false),
+    reverseFn: LibrarySortingUtils.createSortFunction('album', true)
   },
   artist: {
-    label: 'Artist',
-    sortFn: (a, b) => a.artist.localeCompare(b.artist), // A-Z
-    reverseFn: (a, b) => b.artist.localeCompare(a.artist) // Z-A
+    label: '🎤',
+    sortFn: LibrarySortingUtils.createSortFunction('artist', false),
+    reverseFn: LibrarySortingUtils.createSortFunction('artist', true)
   },
 };
 
@@ -74,18 +76,17 @@ export function LibraryHeader({
     
     // Different indicators based on sort type
     switch (mode) {
-      case 'recent':
-        return isReversed ? ' ↑' : ' ↓'; // Oldest/Newest
-      case 'rating':
-        return isReversed ? ' ↑' : ' ↓'; // Lowest/Highest
+      case 'added':
       case 'release':
-        return isReversed ? ' ↑' : ' ↓'; // Oldest/Newest
+        return isReversed ? ' (Oldest)' : ' (Newest)'; // Oldest/Newest
+      case 'rating':
+        return isReversed ? ' (Lowest)' : ' (Highest)'; // Lowest/Highest
       case 'alphabetical':
       case 'album':
       case 'artist':
-        return isReversed ? ' ↓' : ' ↑'; // Z-A/A-Z
+        return isReversed ? ' (Z-A)' : ' (A-Z)'; // Z-A/A-Z
       default:
-        return isReversed ? ' ↓' : ' ↑';
+        return isReversed ? ' (↓)' : ' (↑)';
     }
   };
 

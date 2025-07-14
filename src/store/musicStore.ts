@@ -2,7 +2,7 @@
 // Music store for managing saved music, loading, and operations
 import { create } from 'zustand';
 import { SavedMusic } from '../types/music';
-import { getSavedMusic, updateMusicRating, deleteMusic } from '../services/musicService';
+import { getSavedMusic, updateMusicRating, deleteMusic, SortMode } from '../services/musicService';
 
 interface OperationState {
   savingTracks: Set<string>;
@@ -18,12 +18,13 @@ interface MusicState {
   error: string | null;
   refreshing: boolean;
   lastUpdated: number;
+  currentSortMode: SortMode;
   
   // Operations state - consolidated here
   operations: OperationState;
   
   // Core actions
-  loadMusic: () => Promise<void>;
+  loadMusic: (sortMode?: SortMode) => Promise<void>;
   addMusic: (music: SavedMusic) => void;
   addMusicBatch: (musics: SavedMusic[]) => void;
   updateRating: (firebaseId: string, rating: number) => Promise<boolean>;
@@ -59,6 +60,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   error: null,
   refreshing: false,
   lastUpdated: 0,
+  currentSortMode: 'release',
   operations: {
     savingTracks: new Set(),
     savingAlbums: new Set(),
@@ -67,30 +69,25 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   },
 
   // Core actions
-  loadMusic: async () => {
-    const state = get();
-    
+  loadMusic: async (sortMode: SortMode = 'release') => {
     try {
-      set({ error: null, loading: !state.refreshing });
+      set({ loading: true, error: null });
       
-      const music = await getSavedMusic();
-      console.log('🔄 Music store loaded:', music.length, 'songs');
+      const musics = await getSavedMusic(sortMode);
       
       set({ 
-        savedMusic: music, 
-        loading: false, 
+        savedMusic: musics,
+        currentSortMode: sortMode,
+        loading: false,
         refreshing: false,
-        error: null,
         lastUpdated: Date.now()
       });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error loading library';
-      console.error('Error loading saved music:', err);
-      
+    } catch (error) {
+      console.error('Error loading music:', error);
       set({ 
-        error: errorMessage, 
-        loading: false, 
-        refreshing: false 
+        error: error instanceof Error ? error.message : 'Failed to load music',
+        loading: false,
+        refreshing: false
       });
     }
   },
@@ -200,9 +197,10 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     }
   },
 
-  refresh: () => {
+  refresh: (sortMode?: SortMode) => {
+    const currentSort = sortMode || get().currentSortMode;
     set({ refreshing: true });
-    get().loadMusic();
+    get().loadMusic(currentSort);
   },
 
   clearError: () => {

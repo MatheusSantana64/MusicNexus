@@ -48,13 +48,13 @@ export const libraryStyles = StyleSheet.create({
     gap: 8,
   },
   sortButton: {
-    paddingHorizontal: 12 - 2,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
     borderColor: theme.colors.divider,
-    minWidth: 60,
+    minWidth: 30,
   },
   sortButtonActive: {
     backgroundColor: theme.colors.primary,

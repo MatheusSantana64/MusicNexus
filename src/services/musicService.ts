@@ -23,7 +23,7 @@ import {
 const COLLECTION_NAME = 'savedMusic';
 const DEFAULT_RELEASE_DATE = '1900-01-01';
 
-export type SortMode = 'savedAt' | 'release';
+export type SortMode = 'added' | 'rating' | 'release' | 'alphabetical' | 'album' | 'artist';
 
 interface SaveMusicOptions {
   rating?: number;
@@ -72,12 +72,30 @@ export async function saveMusic(track: DeezerTrack, options: SaveMusicOptions = 
   }
 }
 
-export async function getSavedMusic(sortMode: SortMode = 'savedAt'): Promise<SavedMusic[]> {
+export async function getSavedMusic(sortMode: SortMode = 'release'): Promise<SavedMusic[]> {
   try {
     const constraints: QueryConstraint[] = [];
     
-    if (sortMode === 'savedAt') {
-      constraints.push(orderBy('savedAt', 'desc'));
+    // Add database-level sorting for supported fields
+    switch (sortMode) {
+      case 'added':
+        constraints.push(orderBy('savedAt', 'desc'));
+        break;
+      case 'rating':
+        constraints.push(orderBy('rating', 'desc'));
+        break;
+      case 'release':
+        constraints.push(orderBy('releaseDate', 'desc'));
+        break;
+      case 'alphabetical':
+        constraints.push(orderBy('title', 'asc'));
+        break;
+      case 'album':
+        constraints.push(orderBy('album', 'asc'));
+        break;
+      case 'artist':
+        constraints.push(orderBy('artist', 'asc'));
+        break;
     }
     
     const q = query(collection(db, COLLECTION_NAME), ...constraints);
@@ -102,11 +120,11 @@ export async function getSavedMusic(sortMode: SortMode = 'savedAt'): Promise<Sav
       })
       .filter((music): music is SavedMusic => music !== null);
 
-    console.log(`✅ Loaded ${musics.length} validated music documents from Firebase`);
-    return sortMode === 'release' ? sortMusicByRelease(musics) : musics;
+    console.log(`✅ Loaded ${musics.length} validated music documents from Firebase (sorted by ${sortMode})`);
+    return musics;
   } catch (error) {
-    console.error('Error getting saved music:', error);
-    throw new Error('Failed to load saved music from database');
+    console.error('Error loading saved music:', error);
+    throw new Error(`Failed to load music: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
