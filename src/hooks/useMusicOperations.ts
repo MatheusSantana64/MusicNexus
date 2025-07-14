@@ -23,7 +23,7 @@ export function useMusicOperations() {
     const onSaveWithoutRating = () => saveTrack(track, 0);
     const onSaveWithRating = () => {
       MusicOperationsService.showRatingDialog(
-        'Avaliar Música',
+        'Rate Song',
         track.title,
         (rating) => saveTrack(track, rating)
       );
@@ -54,7 +54,7 @@ export function useMusicOperations() {
     const onSaveWithoutRating = () => saveAlbum(albumGroup, 0);
     const onSaveWithRating = () => {
       MusicOperationsService.showRatingDialog(
-        'Avaliar Álbum',
+        'Rate Album',
         albumGroup.album.title,
         (rating) => saveAlbum(albumGroup, rating)
       );

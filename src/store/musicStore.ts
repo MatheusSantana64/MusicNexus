@@ -84,7 +84,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
         lastUpdated: Date.now()
       });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar biblioteca';
+      const errorMessage = err instanceof Error ? err.message : 'Error loading library';
       console.error('Error loading saved music:', err);
       
       set({ 

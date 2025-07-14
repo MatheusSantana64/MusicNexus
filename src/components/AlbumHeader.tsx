@@ -38,9 +38,9 @@ export function AlbumHeader({
           💿 {album.title}
         </Text>
         <Text style={styles.albumArtist} numberOfLines={1}>
-          {artist.name} • {totalCount} faixas
+          {artist.name} • {totalCount} tracks
           {savedCount > 0 && (
-            <Text style={styles.savedCount}> • {savedCount} salvas</Text>
+            <Text style={styles.savedCount}> • {savedCount} saved</Text>
           )}
         </Text>
       </View>
@@ -53,7 +53,7 @@ export function AlbumHeader({
           <ActivityIndicator size="small" color="#FFFFFF" />
         ) : (
           <Text style={styles.saveAlbumButtonText}>
-            {isFullySaved ? 'Salvo' : 'Salvar'}
+            {isFullySaved ? 'Saved' : 'Save'}
           </Text>
         )}
       </TouchableOpacity>

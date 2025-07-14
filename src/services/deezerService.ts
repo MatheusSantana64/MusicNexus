@@ -86,7 +86,7 @@ export class DeezerService {
       return sortedTracks;
     } catch (error) {
       console.error('Error searching tracks by album:', error);
-      throw new Error('Falha ao pesquisar álbuns. Verifique sua conexão com a internet.');
+      throw new Error('Failed to search albums. Please check your internet connection.');
     }
   }
 
@@ -126,7 +126,7 @@ export class DeezerService {
       return tracks;
     } catch (error) {
       console.error('Error searching tracks quick:', error);
-      throw new Error('Falha ao pesquisar músicas. Verifique sua conexão com a internet.');
+      throw new Error('Failed to search songs. Please check your internet connection.');
     }
   }
 

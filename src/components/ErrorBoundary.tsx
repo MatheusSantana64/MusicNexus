@@ -52,13 +52,13 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       return (
         <View style={styles.container}>
           <View style={styles.content}>
-            <Text style={styles.title}>Ops! Algo deu errado</Text>
+            <Text style={styles.title}>Oops! Something went wrong</Text>
             <Text style={styles.message}>
-              Ocorreu um erro inesperado na aplicação. Por favor, tente novamente.
+              An unexpected error occurred in the application. Please try again.
             </Text>
             
             <TouchableOpacity style={styles.retryButton} onPress={this.handleRetry}>
-              <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+              <Text style={styles.retryButtonText}>Try Again</Text>
             </TouchableOpacity>
 
             {__DEV__ && this.state.error && (

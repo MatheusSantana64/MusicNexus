@@ -19,7 +19,7 @@ export function SearchEmptyState({ loading, error, searchQuery, tracksLength, se
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
         <Text style={styles.loadingText}>
-          {searchMode === 'album' ? 'Buscando álbuns...' : 'Pesquisa rápida...'}
+          {searchMode === 'album' ? 'Searching albums...' : 'Quick search...'}
         </Text>
       </View>
     );
@@ -37,10 +37,10 @@ export function SearchEmptyState({ loading, error, searchQuery, tracksLength, se
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.emptyText}>
-          Digite o nome de uma música, artista ou álbum para pesquisar
+          Type the name of a song, artist, or album to search
         </Text>
         <Text style={styles.hintText}>
-          💡 Use os filtros acima para escolher o tipo de pesquisa
+          💡 Use the filters above to choose the search type
         </Text>
       </View>
     );
@@ -50,10 +50,10 @@ export function SearchEmptyState({ loading, error, searchQuery, tracksLength, se
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.emptyText}>
-          Nenhum resultado encontrado para "{searchQuery}"
+          No results found for "{searchQuery}"
         </Text>
         <Text style={styles.hintText}>
-          Tente mudar o modo de pesquisa ou usar termos diferentes
+          Try changing the search mode or using different terms
         </Text>
       </View>
     );

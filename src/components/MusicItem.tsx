@@ -142,9 +142,9 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
     } else {
       Alert.alert(
         data.title,
-        `Artista: ${data.artist}\nÁlbum: ${data.album}\nRelease: ${data.releaseDate ? formatReleaseDate(data.releaseDate) : 'N/A'}${data.isSaved ? `\nSalva em: ${data.savedAt ? formatSavedDate(data.savedAt) : 'N/A'}` : '\nNão salva na biblioteca'}`,
+        `Artist: ${data.artist}\nAlbum: ${data.album}\nRelease: ${data.releaseDate ? formatReleaseDate(data.releaseDate) : 'N/A'}${data.isSaved ? `\nSaved on: ${data.savedAt ? formatSavedDate(data.savedAt) : 'N/A'}` : '\nNot saved in library'}`,
         [
-          { text: 'Fechar', style: 'cancel' },
+          { text: 'Close', style: 'cancel' },
         ]
       );
     }

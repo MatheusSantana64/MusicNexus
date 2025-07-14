@@ -25,7 +25,7 @@ export function SearchBar({
     <View style={styles.searchContainer}>
       <TextInput
         style={styles.searchInput}
-        placeholder="Pesquisar músicas..."
+        placeholder="Search music..."
         placeholderTextColor={styles.placeholderText.color}
         value={searchQuery}
         onChangeText={onSearchChange}

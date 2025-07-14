@@ -52,14 +52,14 @@ function TabNavigator() {
         name="Search" 
         component={SearchScreen}
         options={{ 
-          title: 'Pesquisar',
+          title: 'Search',
         }}
       />
       <Tab.Screen 
         name="Library" 
         component={LibraryScreen}
         options={{ 
-          title: 'Biblioteca',
+          title: 'Library',
         }}
       />
     </Tab.Navigator>

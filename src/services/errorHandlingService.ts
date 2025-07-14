@@ -3,18 +3,18 @@
 import { Alert } from 'react-native';
 
 export class ErrorHandlingService {
-  static showError(message: string, title: string = 'Erro'): void {
+  static showError(message: string, title: string = 'Error'): void {
     Alert.alert(title, message);
   }
 
   static handleNetworkError(error: Error): void {
     console.error('Network error:', error);
-    this.showError('Verifique sua conexão com a internet e tente novamente.');
+    this.showError('Please check your internet connection and try again.');
   }
 
   static handleUnknownError(error: unknown, context?: string): void {
     console.error('Unknown error:', error, 'Context:', context);
-    this.showError('Ocorreu um erro inesperado. Tente novamente.');
+    this.showError('An unexpected error occurred. Please try again.');
   }
 
   // Keep this method for backward compatibility with ErrorBoundary

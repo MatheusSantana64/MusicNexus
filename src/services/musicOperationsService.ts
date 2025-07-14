@@ -24,7 +24,7 @@ export class MusicOperationsService {
     const store = useMusicStore.getState();
     
     if (store.isTrackSaving(track.id)) {
-      throw new Error('Esta música já está sendo salva. Aguarde...');
+      throw new Error('This song is already being saved. Please wait...');
     }
 
     try {
@@ -63,7 +63,7 @@ export class MusicOperationsService {
     unsavedTracks: DeezerTrack[]
   ): Promise<string[]> {
     if (unsavedTracks.length === 0) {
-      Alert.alert('Aviso', 'Todas as faixas já estão salvas na biblioteca.');
+      Alert.alert('Warning', 'All tracks are already saved in the library.');
       return [];
     }
 
@@ -96,7 +96,7 @@ export class MusicOperationsService {
       console.log(`✅ Album saved: ${firebaseIds.length} tracks`);
       return firebaseIds;
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível salvar todas as faixas. Tente novamente.');
+      Alert.alert('Error', 'Could not save all tracks. Please try again.');
       console.error('Error saving album tracks:', error);
       throw error;
     } finally {
@@ -113,25 +113,25 @@ export class MusicOperationsService {
     onSaveWithRating: () => void
   ): void {
     const releaseYear = track.album?.release_date ? 
-      new Date(track.album.release_date).getFullYear() : 'Ano desconhecido';
+      new Date(track.album.release_date).getFullYear() : 'Unknown year';
 
     if (savedMusicData) {
       Alert.alert(
-        '⚠️ Música já salva',
-        `"${track.title}" já está na sua biblioteca com nota ${savedMusicData.rating === 0 ? 'sem nota' : savedMusicData.rating}.\n\nDeseja salvar novamente?`,
+        '⚠️ Song already saved',
+        `"${track.title}" is already in your library with rating ${savedMusicData.rating === 0 ? 'no rating' : savedMusicData.rating}.\n\nDo you want to save it again?`,
         [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Salvar novamente', style: 'default', onPress: onSaveWithoutRating },
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Save again', style: 'default', onPress: onSaveWithoutRating },
         ]
       );
     } else {
       Alert.alert(
         track.title,
-        `Artista: ${track.artist.name}\nÁlbum: ${track.album.title}\nAno: ${releaseYear}`,
+        `Artist: ${track.artist.name}\nAlbum: ${track.album.title}\nYear: ${releaseYear}`,
         [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Salvar sem nota', onPress: onSaveWithoutRating },
-          { text: 'Avaliar e salvar', onPress: onSaveWithRating },
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Save without rating', onPress: onSaveWithoutRating },
+          { text: 'Rate and save', onPress: onSaveWithRating },
         ]
       );
     }
@@ -146,26 +146,26 @@ export class MusicOperationsService {
   ): void {
     if (unsavedCount === 0) {
       Alert.alert(
-        'Álbum já salvo',
-        `Todas as faixas de "${albumGroup.album.title}" já estão na sua biblioteca.`,
+        'Album already saved',
+        `All tracks from "${albumGroup.album.title}" are already in your library.`,
         [{ text: 'OK' }]
       );
       return;
     }
 
-    let message = `Salvar ${albumGroup.tracks.length} faixas do álbum "${albumGroup.album.title}" de ${albumGroup.artist.name}?`;
+    let message = `Save ${albumGroup.tracks.length} tracks from album "${albumGroup.album.title}" by ${albumGroup.artist.name}?`;
     
     if (savedCount > 0) {
-      message += `\n\n⚠️ ${savedCount} faixa(s) já estão salvas e serão ignoradas.`;
+      message += `\n\n⚠️ ${savedCount} track(s) are already saved and will be ignored.`;
     }
 
     Alert.alert(
-      'Salvar Álbum Completo',
+      'Save Complete Album',
       message,
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Salvar sem nota', onPress: onSaveWithoutRating },
-        { text: 'Avaliar e salvar', onPress: onSaveWithRating },
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Save without rating', onPress: onSaveWithoutRating },
+        { text: 'Rate and save', onPress: onSaveWithRating },
       ]
     );
   }
@@ -177,16 +177,16 @@ export class MusicOperationsService {
   ): void {
     Alert.prompt(
       title,
-      `Digite uma nota de 1 a 10 para "${itemName}"`,
+      `Enter a rating from 1 to 10 for "${itemName}"`,
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Salvar',
+          text: 'Save',
           onPress: (rating) => {
             const numRating = parseInt(rating || '0');
             
             if (numRating < 1 || numRating > 10) {
-              Alert.alert('Erro', 'Por favor, digite uma nota entre 1 e 10');
+              Alert.alert('Error', 'Please enter a rating between 1 and 10');
               return;
             }
 
