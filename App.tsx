@@ -10,6 +10,7 @@ import SearchScreen from './src/screens/SearchScreen';
 import LibraryScreen from './src/screens/LibraryScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { theme } from './src/styles/theme';
+import TagsScreen from './src/screens/TagsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -36,8 +37,8 @@ function TabNavigator() {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textMuted,
+        tabBarActiveTintColor: theme.colors.blue,
+        tabBarInactiveTintColor: theme.colors.text.muted,
         tabBarStyle: [
           styles.tabBar,
           {
@@ -69,7 +70,7 @@ function TabNavigator() {
       />
       <Tab.Screen 
         name="Tags" 
-        component={SearchScreen}
+        component={TagsScreen}
         options={{ 
           title: 'Tags',
         }}
@@ -100,8 +101,8 @@ export default function App() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: theme.colors.background,
-    borderTopWidth: 0.5,
+    backgroundColor: theme.colors.background.amoled,
+    borderTopWidth: 0,
     borderTopColor: theme.colors.border,
     paddingTop: 5,
   },

@@ -84,12 +84,12 @@ export const SavedMusicInputSchema = z.object({
   trackPosition: z.number().min(0),
   diskNumber: z.number().min(1),
   savedAt: z.date(),
+  tags: z.array(z.string()).default([]),
 });
 
 // Schema for validating Firebase document data
 export const FirebaseMusicDocumentSchema = SavedMusicInputSchema.extend({
   firebaseId: z.string().optional(),
-  source: z.string().optional(), // Handle legacy "source" field
 });
 
 // === FLEXIBLE SCHEMAS FOR API RESPONSES ===

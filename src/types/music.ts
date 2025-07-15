@@ -75,6 +75,7 @@ export interface SavedMusic {
   trackPosition: number;
   diskNumber: number;
   savedAt: Date;
+  tags: string[];
   firebaseId?: string;
 }
 

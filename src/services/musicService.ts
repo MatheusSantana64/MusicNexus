@@ -59,6 +59,7 @@ export async function saveMusic(track: DeezerTrack, options: SaveMusicOptions = 
       trackPosition: track.track_position || 0,
       diskNumber: track.disk_number || 1,
       savedAt: new Date(),
+      tags: [],
     };
 
     // 🛡️ VALIDATE WITH ZOD BEFORE SAVING
