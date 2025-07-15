@@ -11,45 +11,41 @@ export const starRatingModalStyles = StyleSheet.create({
     backgroundColor: theme.colors.background.amoled + '75', // Semi-transparent overlay
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    height: '100%',
+    padding: 12,
   },
   modalContainer: {
     backgroundColor: theme.colors.background.amoled,
     borderRadius: theme.borderRadius.lg,
-    padding: 24,
-    width: Math.min(width - 40, 350),
+    padding: 12,
+    height: 'auto',
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
+
+  // Header
   title: {
-    fontSize: theme.sizes.title,
+    fontSize: 24,
     fontWeight: theme.weights.bold,
     color: theme.colors.text.primary,
     marginBottom: 8,
-    textAlign: 'center',
   },
-  itemName: {
-    fontSize: theme.sizes.medium,
-    color: theme.colors.text.secondary,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
+
+  // Star Rating
   ratingContainer: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   star: {
     marginHorizontal: 0,
   },
-  ratingText: {
-    marginBottom: 12,
-    fontWeight: theme.weights.medium,
-  },
   ratingValue: {
-    fontSize: theme.sizes.title,
+    fontSize: 24,
   },
+
+  // Buttons
   buttonContainer: {
     flexDirection: 'row',
     gap: 12,
@@ -57,7 +53,7 @@ export const starRatingModalStyles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 6,
     paddingHorizontal: 24,
     backgroundColor: theme.colors.button.cancel,
     borderRadius: theme.borderRadius.md,
@@ -71,8 +67,8 @@ export const starRatingModalStyles = StyleSheet.create({
     fontWeight: theme.weights.medium,
   },
   saveButton: {
-    flex: 1,
-    paddingVertical: 12,
+    flex: 1.5,
+    paddingVertical: 6,
     paddingHorizontal: 24,
     backgroundColor: theme.colors.button.primary,
     borderRadius: theme.borderRadius.md,
@@ -84,5 +80,30 @@ export const starRatingModalStyles = StyleSheet.create({
     color: theme.colors.text.primary,
     fontSize: theme.sizes.medium,
     fontWeight: theme.weights.semibold,
+  },
+
+  // Tags
+  tagButton: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 6,
+    marginVertical: 4,
+    minWidth: '90%',
+    alignItems: 'center',
+  },
+  tagButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  tagScrollContainer: {
+    width: '100%',
+    maxHeight: '70%',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  tagScrollContent: {
+    alignItems: 'center',
+    paddingBottom: 8,
   },
 });

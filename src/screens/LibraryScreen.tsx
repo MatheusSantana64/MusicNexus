@@ -13,6 +13,8 @@ import { OptionsModal } from '../components/OptionsModal';
 import { useLibrary } from '../hooks/useLibrary';
 import { useModal } from '../hooks/useModal';
 import { libraryStyles as styles } from '../styles/screens/LibraryScreen.styles';
+import { getTags } from '../services/tagService'; // Import getTags
+import { Tag } from '../types/music'; // Import Tag type
 
 export default function LibraryScreen() {
   // Add ratingFilter state
@@ -95,6 +97,23 @@ export default function LibraryScreen() {
   const hasMusic = savedMusic.length > 0;
   const shouldShowList = hasMusic && !loading && !error && !(searchQuery.trim() && processedMusic.length === 0);
 
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [tagsLoading, setTagsLoading] = useState(true);
+
+  // Fetch tags on mount and whenever the rating modal is opened
+  React.useEffect(() => {
+    let mounted = true;
+    if (ratingModalVisible) {
+      setTagsLoading(true);
+      getTags().then(tagList => {
+        if (mounted) setTags(tagList);
+      }).finally(() => {
+        if (mounted) setTagsLoading(false);
+      });
+    }
+    return () => { mounted = false; };
+  }, [ratingModalVisible]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {hasMusic && (
@@ -152,8 +171,10 @@ export default function LibraryScreen() {
       <StarRatingModal
         visible={ratingModalVisible}
         title={selectedMusic ? `${selectedMusic.title}` : ''}
-        itemName={selectedMusic ? `${selectedMusic.artist}\n${selectedMusic.album}` : ''}
+        itemName={selectedMusic ? `${selectedMusic.artist}` : ''}
         initialRating={selectedMusic?.rating ?? 0}
+        tags={tags}
+        initialSelectedTagIds={selectedMusic?.tags ?? []}
         onSave={handleRatingSave}
         onCancel={handleRatingCancel}
       />

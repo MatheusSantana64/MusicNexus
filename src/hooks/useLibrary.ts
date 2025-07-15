@@ -99,19 +99,18 @@ export function useLibrary(ratingFilter?: [number, number]) {
   }, [updateRating, deleteMusic, showModal]);
 
   // HANDLE RATING SAVE
-  const handleRatingSave = useCallback(async (rating: number) => {
+  const handleRatingSave = useCallback(async (rating: number, tags: string[]) => {
     if (!selectedMusic) return;
-    
-    // Close modal immediately
+
     setRatingModalVisible(false);
     setSelectedMusic(null);
-    
-    // Update rating in background
-    const success = await updateRating(selectedMusic.firebaseId!, rating);
+
+    // Update rating and tags in background
+    const success = await updateRating(selectedMusic.firebaseId!, rating, tags);
     if (!success) {
       showModal({
         title: 'Error',
-        message: 'Could not update the rating',
+        message: 'Could not update the rating/tags',
         actions: [
           { text: 'OK', style: 'default', onPress: () => {} }
         ],

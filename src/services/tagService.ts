@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, orderBy, query } from 'firebase/firestore';
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 import { Tag } from '../types/music';
 
@@ -23,5 +23,18 @@ export async function updateTag(id: string, tag: Partial<Tag>): Promise<void> {
 }
 
 export async function deleteTag(id: string): Promise<void> {
-  await deleteDoc(doc(db, COLLECTION_NAME, id));
+  // Delete the tag document
+  await deleteDoc(doc(db, 'tags', id));
+
+  // Remove the tag from all songs
+  const musicQuery = query(collection(db, 'savedMusic'), where('tags', 'array-contains', id));
+  const snapshot = await getDocs(musicQuery);
+
+  const updatePromises = snapshot.docs.map(docSnap => {
+    const musicData = docSnap.data();
+    const updatedTags = (musicData.tags || []).filter((tagId: string) => tagId !== id);
+    return updateDoc(doc(db, 'savedMusic', docSnap.id), { tags: updatedTags });
+  });
+
+  await Promise.all(updatePromises);
 }

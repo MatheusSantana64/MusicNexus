@@ -19,10 +19,10 @@ export function useMusicOperations() {
   const { showModal } = useModal();
 
   // Track operations
-  const saveTrack = useCallback(async (track: DeezerTrack, rating: number = 0) => {
+  const saveTrack = useCallback(async (track: DeezerTrack, rating: number = 0, tags: string[] = []) => {
     try {
       console.log('🎵 Starting track save:', track.title);
-      await MusicOperationsService.saveTrack(track, rating);
+      await MusicOperationsService.saveTrack(track, rating, tags);
       console.log('✅ Track save completed:', track.title);
     } catch (error) {
       console.error('❌ Error saving track:', error);
@@ -49,14 +49,14 @@ export function useMusicOperations() {
   }, [getSavedMusicById, saveTrack, showModal]);
 
   // Album operations
-  const saveAlbum = useCallback(async (albumGroup: AlbumGroup, rating: number = 0) => {
+  const saveAlbum = useCallback(async (albumGroup: AlbumGroup, rating: number = 0, tags: string[] = []) => {
     try {
       const unsavedTracks = albumGroup.tracks.filter((track: DeezerTrack) => !isMusicSaved(track.id));
-      await MusicOperationsService.saveAlbumTracks(albumGroup, rating, unsavedTracks, showModal);
+      await MusicOperationsService.saveAlbumTracks(albumGroup, rating, unsavedTracks, undefined, tags);
     } catch (error) {
       console.error('Error saving album:', error);
     }
-  }, [isMusicSaved, showModal]);
+  }, [isMusicSaved]);
 
   const handleAlbumSave = useCallback((albumGroup: AlbumGroup) => {
     const savedTracks = albumGroup.tracks.filter((track: DeezerTrack) => isMusicSaved(track.id));
@@ -80,13 +80,13 @@ export function useMusicOperations() {
   }, [isMusicSaved, saveAlbum, showModal]);
 
   // HANDLE RATING SAVE FOR SEARCH SCREEN
-  const handleRatingSave = useCallback(async (rating: number) => {
+  const handleRatingSave = useCallback(async (rating: number, tags: string[]) => {
     if (ratingType === 'track' && selectedTrack) {
-      await saveTrack(selectedTrack, rating);
+      await saveTrack(selectedTrack, rating, tags);
     } else if (ratingType === 'album' && selectedAlbum) {
-      await saveAlbum(selectedAlbum, rating);
+      await saveAlbum(selectedAlbum, rating, tags);
     }
-    
+
     setRatingModalVisible(false);
     setSelectedTrack(null);
     setSelectedAlbum(null);

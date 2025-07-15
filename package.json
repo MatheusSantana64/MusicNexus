@@ -21,6 +21,7 @@
     "firebase": "^11.10.0",
     "react": "19.0.0",
     "react-native": "0.79.5",
+    "react-native-gesture-handler": "~2.24.0",
     "react-native-modal": "^14.0.0-rc.1",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
@@ -29,8 +30,7 @@
     "react-native-svg": "15.11.2",
     "reanimated-color-picker": "^4.1.0",
     "zod": "^4.0.5",
-    "zustand": "^5.0.6",
-    "react-native-gesture-handler": "~2.24.0"
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

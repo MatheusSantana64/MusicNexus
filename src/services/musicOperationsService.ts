@@ -28,15 +28,15 @@ interface ShowModalFunction {
 
 export class MusicOperationsService {
   // === TRACK OPERATIONS ===
-  static async saveTrack(track: DeezerTrack, rating: number): Promise<void> {
+  static async saveTrack(track: DeezerTrack, rating: number, tags: string[] = []): Promise<void> {
     const store = useMusicStore.getState();
-    
+
     try {
       store.startTrackSave(track.id);
-      
+
       console.log('💾 Saving track to Firebase:', track.title);
-      const firebaseId = await saveMusic(track, { rating });
-      
+      const firebaseId = await saveMusic(track, { rating, tags });
+
       // Create SavedMusic object for optimistic update
       const savedMusic: SavedMusic = {
         id: track.id,
@@ -54,11 +54,12 @@ export class MusicOperationsService {
         diskNumber: track.disk_number || 1,
         savedAt: new Date(),
         firebaseId,
+        tags,
       };
 
       // OPTIMISTIC UPDATE TO STORE
       store.addMusic(savedMusic);
-      
+
       console.log('✅ Track saved successfully:', track.title);
     } catch (error) {
       console.error('❌ Error saving track:', error);
@@ -73,7 +74,8 @@ export class MusicOperationsService {
     albumGroup: AlbumGroup, 
     rating: number, 
     unsavedTracks: DeezerTrack[],
-    showModal?: ShowModalFunction
+    showModal?: ShowModalFunction,
+    tags: string[] = []
   ): Promise<string[]> {
     if (unsavedTracks.length === 0) {
       if (showModal) {
@@ -93,7 +95,7 @@ export class MusicOperationsService {
     unsavedTracks.forEach(track => store.startTrackSave(track.id));
 
     try {
-      const firebaseIds = await saveMusicBatch(unsavedTracks, rating);
+      const firebaseIds = await saveMusicBatch(unsavedTracks, rating, tags);
       
       const savedMusics: SavedMusic[] = unsavedTracks.map((track, index) => ({
         id: track.id,
@@ -111,6 +113,7 @@ export class MusicOperationsService {
         diskNumber: track.disk_number || 1,
         savedAt: new Date(),
         firebaseId: firebaseIds[index],
+        tags,
       })).filter((_, index) => firebaseIds[index]);
 
       store.addMusicBatch(savedMusics);

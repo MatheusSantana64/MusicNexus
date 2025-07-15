@@ -16,6 +16,8 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StarRatingModal } from '../components/StarRatingModal';
 import { OptionsModal } from '../components/OptionsModal';
 import { searchStyles as styles } from '../styles/screens/SearchScreen.styles';
+import { getTags } from '../services/tagService';
+import { Tag } from '../types/music';
 
 const MIN_SEARCH_LENGTH = 3;
 
@@ -41,6 +43,23 @@ export default function SearchScreen() {
   const { showModal: showInfoModal, modalProps: infoModalProps } = useModal();
   
   const albumGroups = useAlbumGrouping(tracks, searchMode);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [tagsLoading, setTagsLoading] = useState(true);
+
+  // Fetch tags on mount
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setTagsLoading(true);
+      try {
+        const tagList = await getTags();
+        if (mounted) setTags(tagList);
+      } finally {
+        setTagsLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const handleSearch = useCallback(async (text: string) => {
     setSearchQuery(text);
@@ -173,6 +192,8 @@ export default function SearchScreen() {
               : ''
           }
           initialRating={0}
+          tags={tags}
+          initialSelectedTagIds={[]} // No tags for new tracks
           onSave={handleRatingSave}
           onCancel={handleRatingCancel}
         />

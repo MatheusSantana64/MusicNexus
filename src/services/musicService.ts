@@ -28,12 +28,13 @@ export type SortMode = 'added' | 'rating' | 'release' | 'alphabetical' | 'album'
 
 interface SaveMusicOptions {
   rating?: number;
+  tags?: string[];
 }
 
 // === CORE FUNCTIONS ===
 
 export async function saveMusic(track: DeezerTrack, options: SaveMusicOptions = {}): Promise<string> {
-  const { rating = 0 } = options;
+  const { rating = 0, tags = [] } = options;
   
   if (!track?.id || !track?.title || !track?.artist?.name) {
     throw new Error('Invalid track data');
@@ -59,7 +60,7 @@ export async function saveMusic(track: DeezerTrack, options: SaveMusicOptions = 
       trackPosition: track.track_position || 0,
       diskNumber: track.disk_number || 1,
       savedAt: new Date(),
-      tags: [],
+      tags,
     };
 
     // 🛡️ VALIDATE WITH ZOD BEFORE SAVING
@@ -171,12 +172,30 @@ export async function deleteMusic(firebaseId: string): Promise<void> {
   }
 }
 
+export async function updateMusicRatingAndTags(firebaseId: string, rating: number, tags: string[]): Promise<void> {
+  if (!firebaseId?.trim()) {
+    throw new Error('Firebase ID is required');
+  }
+
+  if (rating < 0 || rating > 10 || rating % 0.5 !== 0) {
+    throw new Error('Rating must be between 0 and 10 in 0.5 increments');
+  }
+
+  try {
+    await updateDoc(doc(db, COLLECTION_NAME, firebaseId), { rating, tags });
+    console.log(`✅ Rating and tags updated for document ${firebaseId}: ${rating}, tags: ${tags.join(', ')}`);
+  } catch (error) {
+    console.error('Error updating rating/tags:', error);
+    throw new Error(`Failed to update rating/tags: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
 // === BATCH OPERATIONS ===
-export async function saveMusicBatch(tracks: DeezerTrack[], rating: number = 0): Promise<string[]> {
+export async function saveMusicBatch(tracks: DeezerTrack[], rating: number = 0, tags: string[] = []): Promise<string[]> {
   console.log(`📦 Starting batch save of ${tracks.length} tracks with rating ${rating}`);
   
   const results = await Promise.allSettled(
-    tracks.map(track => saveMusic(track, { rating }))
+    tracks.map(track => saveMusic(track, { rating, tags }))
   );
   
   const successful = results

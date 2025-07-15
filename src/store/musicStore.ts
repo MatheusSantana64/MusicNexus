@@ -2,7 +2,7 @@
 // Music store for managing saved music, loading, and operations
 import { create } from 'zustand';
 import { SavedMusic } from '../types/music';
-import { getSavedMusic, updateMusicRating, deleteMusic, SortMode } from '../services/musicService';
+import { getSavedMusic, updateMusicRating, updateMusicRatingAndTags, deleteMusic, SortMode } from '../services/musicService';
 
 interface OperationState {
   savingTracks: Set<string>;
@@ -27,7 +27,7 @@ interface MusicState {
   loadMusic: (sortMode?: SortMode) => Promise<void>;
   addMusic: (music: SavedMusic) => void;
   addMusicBatch: (musics: SavedMusic[]) => void;
-  updateRating: (firebaseId: string, rating: number) => Promise<boolean>;
+  updateRating: (firebaseId: string, rating: number, tags?: string[]) => Promise<boolean>;
   deleteMusic: (firebaseId: string) => Promise<boolean>;
   refresh: () => void;
   clearError: () => void;
@@ -122,9 +122,9 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     }
   },
 
-  updateRating: async (firebaseId: string, rating: number): Promise<boolean> => {
+  updateRating: async (firebaseId: string, rating: number, tags?: string[]): Promise<boolean> => {
     const { operations, isRatingUpdating } = get();
-    
+
     if (isRatingUpdating(firebaseId)) {
       console.warn('⚠️ Rating update already in progress for:', firebaseId);
       return false;
@@ -135,25 +135,29 @@ export const useMusicStore = create<MusicState>((set, get) => ({
 
       // 1. Optimistic update
       const { savedMusic } = get();
-      const updatedMusic = savedMusic.map(music => 
-        music.firebaseId === firebaseId 
-          ? { ...music, rating }
+      const updatedMusic = savedMusic.map(music =>
+        music.firebaseId === firebaseId
+          ? { ...music, rating, tags: tags ?? music.tags }
           : music
       );
-      
-      set({ 
+
+      set({
         savedMusic: updatedMusic,
         lastUpdated: Date.now()
       });
-      
+
       // 2. Update database
-      await updateMusicRating(firebaseId, rating);
-      
-      console.log('⭐ Rating updated successfully');
+      if (tags) {
+        await updateMusicRatingAndTags(firebaseId, rating, tags);
+      } else {
+        await updateMusicRating(firebaseId, rating);
+      }
+
+      console.log('⭐ Rating/tags updated successfully');
       return true;
     } catch (error) {
-      console.error('Error updating rating:', error);
-      
+      console.error('Error updating rating/tags:', error);
+
       // 3. Rollback on error
       await get().loadMusic();
       return false;

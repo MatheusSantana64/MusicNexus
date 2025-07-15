@@ -6,17 +6,21 @@ import {
   View,
   Text,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import StarRating from 'react-native-star-rating-widget';
 import { getRatingColor, getRatingText } from '../utils/ratingUtils';
 import { starRatingModalStyles as styles } from '../styles/components/StarRatingModal.styles';
+import { Tag } from '../types/music';
 
 interface StarRatingModalProps {
   visible: boolean;
   title: string;
   itemName: string;
   initialRating?: number;
-  onSave: (rating: number) => void;
+  tags: Tag[];
+  initialSelectedTagIds?: string[];
+  onSave: (rating: number, selectedTagIds: string[]) => void;
   onCancel: () => void;
 }
 
@@ -25,25 +29,37 @@ export function StarRatingModal({
   title,
   itemName,
   initialRating = 0,
+  tags,
+  initialSelectedTagIds = [],
   onSave,
   onCancel,
 }: StarRatingModalProps) {
   const [rating, setRating] = useState(initialRating);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialSelectedTagIds);
 
-  // Update rating when initialRating changes or modal becomes visible
+  // Update rating and selected tags when initialRating or initialSelectedTagIds changes or modal becomes visible
   React.useEffect(() => {
     if (visible) {
       setRating(initialRating);
+      setSelectedTagIds(initialSelectedTagIds);
     }
-  }, [visible, initialRating]);
+  }, [visible, initialRating, initialSelectedTagIds]);
+
+  const handleTagToggle = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
 
   const handleSave = () => {
-    onSave(rating);
+    onSave(rating, selectedTagIds);
     setRating(0); // Reset for next use
+    setSelectedTagIds([]); // Clear selected tags
   };
 
   const handleCancel = () => {
     setRating(initialRating); // Reset to initial value
+    setSelectedTagIds(initialSelectedTagIds); // Reset selected tags
     onCancel();
   };
 
@@ -56,13 +72,37 @@ export function StarRatingModal({
     >
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.itemName} numberOfLines={2}>
-            {itemName}
-          </Text>
+          <Text style={styles.title}>{title} - {itemName}</Text>
+
+          {/* Tag selection */}
+          <View style={styles.tagScrollContainer}>
+            <ScrollView
+              style={{ width: '100%' }}
+              contentContainerStyle={styles.tagScrollContent}
+              showsVerticalScrollIndicator={true}
+            >
+              {tags.map((tag) => (
+                <TouchableOpacity
+                  key={tag.id}
+                  onPress={() => handleTagToggle(tag.id)}
+                  style={[
+                    styles.tagButton,
+                    {
+                      backgroundColor: selectedTagIds.includes(tag.id) ? tag.color : '#222',
+                      borderColor: tag.color,
+                    },
+                  ]}
+                >
+                  <Text style={styles.tagButtonText}>
+                    {tag.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
           
           <View style={styles.ratingContainer}>
-            <Text style={styles.ratingText}>
+            <Text>
               <Text style={[styles.ratingValue, { color: getRatingColor(rating) }]}>
                 {rating === 0 ? getRatingText(rating) : `${getRatingText(rating)}/10`}
               </Text>
