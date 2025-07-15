@@ -26,7 +26,8 @@
     "react-native-screens": "~4.11.1",
     "react-native-star-rating-widget": "^1.9.2",
     "zod": "^4.0.5",
-    "zustand": "^5.0.6"
+    "zustand": "^5.0.6",
+    "react-native-svg": "15.11.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

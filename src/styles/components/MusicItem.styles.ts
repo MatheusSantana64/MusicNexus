@@ -9,7 +9,7 @@ export const musicItemStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     padding: 6,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.background.amoled,
     borderBottomWidth: 1,
     alignItems: 'center',
   },
@@ -18,7 +18,7 @@ export const musicItemStyles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.background.amoled,
   },
 
   contentContainer: {
@@ -41,18 +41,18 @@ export const musicItemStyles = StyleSheet.create({
   trackNumber: {
     fontSize: 10,
     fontWeight: theme.weights.normal,
-    color: theme.colors.textMuted,
+    color: theme.colors.text.muted,
   },
   title: {
     fontSize: theme.sizes.body,
     fontWeight: theme.weights.semibold,
-    color: theme.colors.textPrimary,
+    color: theme.colors.text.primary,
     lineHeight: 16,
     flexShrink: 1,
   },
   duration: {
     fontSize: theme.sizes.small,
-    color: theme.colors.textMuted,
+    color: theme.colors.text.muted,
     lineHeight: 12,
     marginLeft: 4,
     fontWeight: theme.weights.normal,
@@ -60,21 +60,21 @@ export const musicItemStyles = StyleSheet.create({
 
   artist: {
     fontSize: 11,
-    color: theme.colors.textPrimary,
+    color: theme.colors.text.primary,
     fontWeight: theme.weights.medium,
     marginBottom: MARGIN_BOTTOM,
     lineHeight: 14,
   },
   album: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: theme.colors.text.secondary,
     fontWeight: theme.weights.normal,
     flex: 1,
     lineHeight: 13,
   },
   releaseDate: {
     fontSize: theme.sizes.small,
-    color: theme.colors.textPrimary,
+    color: theme.colors.text.secondary,
     marginBottom: MARGIN_BOTTOM,
     fontWeight: theme.weights.normal,
     lineHeight: 11,

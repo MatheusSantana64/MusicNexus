@@ -3,7 +3,7 @@
 import { theme } from '../styles/theme';
 
 export const getRatingColor = (rating: number): string => {
-  if (rating === 0) return theme.colors.textMuted; // No rating
+  if (rating === 0) return theme.colors.text.muted; // No rating
   if (rating <= 2.5) return theme.colors.ratings.lowest; // Red
   if (rating <= 5) return theme.colors.ratings.low; // Orange
   if (rating <= 7.5) return theme.colors.ratings.medium; // Yellow

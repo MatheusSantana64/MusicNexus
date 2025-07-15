@@ -8,8 +8,8 @@ export const searchStyles = StyleSheet.create({
     ...theme.styles.container,
   },
   searchContainer: {
-    padding: 16,
-    backgroundColor: theme.colors.surface,
+    padding: 8,
+    backgroundColor: theme.colors.background.amoled,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
     flexDirection: 'row',
@@ -21,7 +21,7 @@ export const searchStyles = StyleSheet.create({
     flex: 1,
   },
   placeholderText: {
-    color: theme.colors.placeholder,
+    color: theme.colors.text.placeholder,
   },
   centerContainer: {
     ...theme.styles.centerContainer,
@@ -29,38 +29,40 @@ export const searchStyles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: theme.sizes.medium,
-    color: theme.colors.textSecondary,
+    color: theme.colors.text.secondary,
   },
   errorText: {
     fontSize: theme.sizes.medium,
-    color: theme.colors.error,
+    color: theme.colors.text.error,
     textAlign: 'center',
     lineHeight: 24,
   },
   emptyText: {
     fontSize: theme.sizes.medium,
-    color: theme.colors.textSecondary,
+    color: theme.colors.text.secondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 8,
   },
   hintText: {
     fontSize: theme.sizes.body,
-    color: theme.colors.textMuted,
+    color: theme.colors.text.muted,
     textAlign: 'center',
     lineHeight: 20,
     fontStyle: 'italic',
   },
   clearSearchButtonText: {
-    color: theme.colors.surface,
+    color: theme.colors.background.surface,
     fontWeight: theme.weights.medium,
     fontSize: theme.sizes.body,
   },
+
+  // Album card
   albumHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.background.amoled,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -73,19 +75,19 @@ export const searchStyles = StyleSheet.create({
   albumTitle: {
     fontSize: theme.sizes.medium,
     fontWeight: theme.weights.semibold,
-    color: theme.colors.textPrimary,
+    color: theme.colors.text.primary,
     marginBottom: 2,
   },
   albumArtist: {
     fontSize: theme.sizes.small,
-    color: theme.colors.textSecondary,
+    color: theme.colors.text.primary,
   },
   savedCount: {
-    color: theme.colors.primary,
+    color: theme.colors.text.blue,
     fontWeight: theme.weights.medium,
   },
   saveAlbumButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.button.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: theme.borderRadius.md,
@@ -97,7 +99,7 @@ export const searchStyles = StyleSheet.create({
     opacity: 0.6,
   },
   saveAlbumButtonText: {
-    color: theme.colors.surface,
+    color: theme.colors.text.primary,
     fontSize: theme.sizes.small,
     fontWeight: theme.weights.medium,
   },

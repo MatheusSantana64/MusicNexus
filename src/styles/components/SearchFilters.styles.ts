@@ -13,19 +13,21 @@ export const searchFiltersStyles = StyleSheet.create({
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.button.disabled,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
     borderColor: theme.colors.divider,
   },
   iconButtonActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.button.primary,
+    borderColor: theme.colors.divider,
   },
   iconButtonText: {
     fontSize: 16,
+    color: theme.colors.text.secondary,
   },
   iconButtonTextActive: {
-    // Icons do not change color, only the background
+    fontSize: 24,
+    color: theme.colors.text.primary,
   },
 });

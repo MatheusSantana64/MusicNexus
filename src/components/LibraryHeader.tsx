@@ -141,22 +141,21 @@ export function LibraryHeader({
           autoCorrect={false}
           clearButtonMode="never"
         />
-        {/* Clear button (X) */}
         {searchQuery.length > 0 && (
-          <TouchableOpacity
+          <TouchableOpacity // Clear search button (X)
             onPress={() => onSearchChange('')}
             style={{
               position: 'absolute',
-              right: 32,
-              top: 0,
-              bottom: 4,
+              right: 24,
+              top: 4,
+              bottom: 0,
               justifyContent: 'center',
               paddingHorizontal: 4,
               paddingVertical: 4,
             }}
             accessibilityLabel="Clear search"
           >
-            <Text style={{ fontSize: 18, color: theme.colors.textSecondary }}>✕</Text>
+            <Text style={{ fontSize: 18, color: theme.colors.text.secondary }}>✕</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -164,22 +163,22 @@ export function LibraryHeader({
       <View style={styles.sortContainer}>
         <View style={[styles.sortHeader, { justifyContent: 'space-between' }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity
+            <TouchableOpacity // Sort button
               onPress={() => setShowSortOptions((v) => !v)}
               style={[
                 styles.sortLabelButton,
-                showSortOptions && { backgroundColor: theme.colors.primary }
+                showSortOptions && { backgroundColor: theme.colors.button.primary }
               ]}
             >
               <Text style={styles.sortLabel}>
                 Sort by {SORT_OPTIONS[sortMode].label}{getSortIndicator(sortMode)}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
+            <TouchableOpacity // Rating filter button
               onPress={handleRatingButton}
               style={[
                 styles.sortLabelButton,
-                showRatingSlider && { backgroundColor: theme.colors.primary }
+                showRatingSlider && { backgroundColor: theme.colors.button.primary }
               ]}
             >
               <Text style={styles.sortLabel}>
@@ -198,7 +197,7 @@ export function LibraryHeader({
         {showSortOptions && (
           <View style={styles.sortButtons}>
             {(Object.keys(SORT_OPTIONS) as SortMode[]).map((mode) => (
-              <TouchableOpacity
+              <TouchableOpacity // Sort options
                 key={mode}
                 style={[styles.sortButton, sortMode === mode && styles.sortButtonActive]}
                 onPress={() => handleSortPress(mode)}
@@ -207,13 +206,13 @@ export function LibraryHeader({
                   <Ionicons
                     name={SORT_OPTIONS[mode].icon}
                     size={20}
-                    color={sortMode === mode ? theme.colors.textPrimary : theme.colors.textMuted}
+                    color={sortMode === mode ? theme.colors.text.primary : theme.colors.text.muted}
                   />
                   {sortMode === mode && (
                     <Ionicons
                       name={isReversed ? 'arrow-down' : 'arrow-up'}
                       size={16}
-                      color={theme.colors.textPrimary}
+                      color={theme.colors.text.primary}
                     />
                   )}
                 </View>
@@ -240,14 +239,14 @@ export function LibraryHeader({
               minMarkerOverlapDistance={0}
               snapped={true}
               markerStyle={{
-                backgroundColor: theme.colors.textPrimary,
+                backgroundColor: theme.colors.text.primary,
                 height: 24,
                 width: 24,
                 borderWidth: 1.5,
-                borderColor: theme.colors.primary,
+                borderColor: theme.colors.blue,
               }}
               selectedStyle={{
-                backgroundColor: theme.colors.primary,
+                backgroundColor: theme.colors.blue,
               }}
               containerStyle={{ alignSelf: 'center' }}
             />

@@ -4,19 +4,24 @@ import { StyleSheet } from 'react-native';
 export const theme = {
   // 🎨 COLORS - AMOLED DARK MODE
   colors: {
-    primary: '#007AFF',
-    background: '#000000', // Pure black for AMOLED
-    surface: '#111111', // Very dark gray for cards/surfaces
-    border: '#333333', // Dark gray borders
-    divider: '#222222', // Subtle dividers
-    textPrimary: '#FFFFFF', // White text
-    textSecondary: '#CCCCCC', // Light gray for secondary text
-    textMuted: '#888888', // Muted gray for less important text
-    placeholder: '#CCCCCC', // Placeholder text color
-    success: '#32D74B', // Brighter green for dark mode
-    error: '#FF453A', // Brighter red for dark mode
-    warning: '#FF9F0A', // Brighter orange for dark mode
-    gold: '#FFD700', // Gold color for stars
+    // TEXT COLORS (for dark mode)
+    text: {
+      primary: '#FFFFFF', // White text
+      secondary: '#CCCCCC', // Light gray for secondary text
+      muted: '#888888', // Muted gray for less important text
+      placeholder: '#CCCCCC', // Placeholder text color
+      black: '#000000', // Black text
+      blue: '#007AFF', // Blue for links and interactive text
+      success: '#32D74B', // Brighter green for dark mode
+      error: '#FF453A', // Brighter red for dark mode
+      warning: '#FF9F0A', // Brighter orange for dark mode
+    },
+    // BACKGROUND COLORS
+    background: {
+      amoled: '#000000', // Pure black for AMOLED
+      surface: '#111111', // Very dark gray for cards/surfaces
+    },
+    // RATINGS COLORS 
     ratings: {
       lowest: '#d83a32ff', // Red for lowest rating (0.5-2.5 stars)
       low: '#ec9317ff', // Orange for low rating (3-5 stars)
@@ -24,6 +29,20 @@ export const theme = {
       high: '#32ba49ff', // Green for high rating (8-9.5 stars)
       highest: '#32aed0ff', // Blue for highest rating (10 stars)
     },
+    // BUTTON COLORS
+    button: {
+      primary: '#004b9aff', // Blue for primary buttons
+      success: '#00570dff', // Green for success actions
+      delete: '#5a0f0bff', // Red for delete actions
+      cancel: '#444444', // Dark gray for cancel actions
+      disabled: '#1c1c1cff', // Dark gray for disabled buttons
+      white: '#FFFFFF', // White for buttons
+    },
+    // OTHER COLORS
+    blue: '#007AFF', // Blue for buttons
+    border: '#333333', // Dark gray borders
+    divider: '#222222', // Subtle dividers
+    gold: '#FFD700', // Gold color for stars
   },
   
   // 🔤 TYPOGRAPHY

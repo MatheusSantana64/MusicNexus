@@ -50,12 +50,12 @@ export function AlbumHeader({
         </Text>
       </View>
       <TouchableOpacity
-        style={[styles.saveAlbumButton, isFullySaved ? { backgroundColor: 'limegreen' } : {}, isLoading && styles.saveAlbumButtonLoading]}
+        style={[styles.saveAlbumButton, isFullySaved ? { backgroundColor: theme.colors.button.success } : {}, isLoading && styles.saveAlbumButtonLoading]}
         onPress={() => !isLoading && onSaveAlbum(albumGroup)}
         disabled={isLoading}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
+          <ActivityIndicator size="small" color={theme.colors.text.primary} />
         ) : (
           <Text style={styles.saveAlbumButtonText}>
             {isFullySaved ? 'Saved' : 'Save'}

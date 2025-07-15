@@ -31,7 +31,7 @@ export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps)
   return (
     <View style={styles.iconButtonsContainer}>
       {searchModes.map((mode) => (
-        <TouchableOpacity
+        <TouchableOpacity // Button for each search mode
           key={mode}
           style={[
             styles.iconButton,
@@ -41,8 +41,8 @@ export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps)
         >
           <Ionicons
             name={getModeIcon(mode)}
-            size={22}
-            color={currentMode === mode ? '#fff' : '#888'}
+            size={currentMode === mode ? 24 : 16}
+            color={currentMode === mode ? styles.iconButtonTextActive.color : styles.iconButtonText.color}
           />
         </TouchableOpacity>
       ))}

@@ -29,7 +29,6 @@ export function SearchBar({
         backgroundColor: styles.searchInput.backgroundColor,
         borderRadius: 8,
         flex: 1,
-        paddingHorizontal: 8,
       }}>
         <TextInput
           style={[styles.searchInput, { flex: 1, borderWidth: 0, backgroundColor: 'transparent' }]}
@@ -43,7 +42,7 @@ export function SearchBar({
         {searchQuery.length > 0 && (
           <TouchableOpacity
             onPress={() => onSearchChange('')}
-            style={{ paddingHorizontal: 4, paddingVertical: 4 }}
+            style={{ paddingRight: 12, paddingBottom: 2 }}
             accessibilityLabel="Clear search"
           >
             <Text style={{ fontSize: 18, color: '#888' }}>✕</Text>

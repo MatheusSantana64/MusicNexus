@@ -12,7 +12,7 @@ export const optionsModalStyles = StyleSheet.create({
     margin: 20,
   },
   modalContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.background.amoled,
     borderRadius: theme.borderRadius.lg,
     padding: 24,
     width: Math.min(width - 40, 320),
@@ -23,13 +23,13 @@ export const optionsModalStyles = StyleSheet.create({
   title: {
     fontSize: theme.sizes.title,
     fontWeight: theme.weights.bold,
-    color: theme.colors.textPrimary,
+    color: theme.colors.text.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
   message: {
     fontSize: theme.sizes.medium,
-    color: theme.colors.textSecondary,
+    color: theme.colors.text.secondary,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
@@ -46,15 +46,15 @@ export const optionsModalStyles = StyleSheet.create({
     alignItems: 'center',
   },
   defaultButton: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.button.primary,
+    borderColor: theme.colors.blue,
   },
   destructiveButton: {
-    backgroundColor: theme.colors.error + '20',
-    borderColor: theme.colors.error,
+    backgroundColor: theme.colors.button.delete,
+    borderColor: theme.colors.text.error,
   },
   cancelButton: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.button.cancel,
     borderColor: theme.colors.border,
   },
   actionButtonText: {
@@ -62,12 +62,12 @@ export const optionsModalStyles = StyleSheet.create({
     fontWeight: theme.weights.medium,
   },
   defaultButtonText: {
-    color: theme.colors.surface,
+    color: theme.colors.text.primary,
   },
   destructiveButtonText: {
-    color: theme.colors.error,
+    color: theme.colors.text.primary,
   },
   cancelButtonText: {
-    color: theme.colors.textSecondary,
+    color: theme.colors.text.primary,
   },
 });

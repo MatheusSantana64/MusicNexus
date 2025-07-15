@@ -7,24 +7,39 @@ export const libraryStyles = StyleSheet.create({
   container: {
     ...theme.styles.container,
   },
+
+  // Search section
   searchContainer: {
-    padding: 16,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingTop: 8,
+    paddingHorizontal: 8,
+    backgroundColor: theme.colors.background.amoled,
   },
   searchInput: {
     ...theme.styles.input,
   },
   placeholderText: {
-    color: theme.colors.placeholder,
+    color: theme.colors.text.placeholder,
   },
+
+  // Sort and filter section
   sortContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.background.amoled,
     paddingHorizontal: 8,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
+  },
+  sortLabelButton: {
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.button.disabled,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
   },
   sortHeader: {
     flexDirection: 'row',
@@ -34,11 +49,11 @@ export const libraryStyles = StyleSheet.create({
   sortLabel: {
     fontSize: theme.sizes.body,
     fontWeight: theme.weights.normal,
-    color: theme.colors.textPrimary,
+    color: theme.colors.text.primary,
   },
   resultCount: {
     fontSize: theme.sizes.small,
-    color: theme.colors.textSecondary,
+    color: theme.colors.text.secondary,
     fontStyle: 'italic',
     marginRight: 8,
   },
@@ -51,84 +66,74 @@ export const libraryStyles = StyleSheet.create({
   sortButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.button.disabled,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
     borderColor: theme.colors.divider,
     minWidth: 30,
   },
   sortButtonActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.button.primary,
+    borderColor: theme.colors.border,
   },
   sortButtonText: {
     fontSize: theme.sizes.small,
     fontWeight: theme.weights.medium,
-    color: theme.colors.textPrimary,
+    color: theme.colors.text.primary,
     textAlign: 'center',
   },
   sortButtonTextActive: {
-    color: theme.colors.surface,
+    color: theme.colors.text.primary,
   },
+
+  // Library content
   centerContainer: {
     ...theme.styles.centerContainer,
   },
   loadingText: {
     marginTop: 16,
     fontSize: theme.sizes.medium,
-    color: theme.colors.textSecondary,
+    color: theme.colors.text.secondary,
   },
   errorText: {
     fontSize: theme.sizes.medium,
-    color: theme.colors.error,
+    color: theme.colors.text.error,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.button.success,
     paddingHorizontal: 24,
     paddingVertical: 12 - 2,
     borderRadius: theme.borderRadius.md,
   },
   retryButtonText: {
-    color: theme.colors.surface,
+    color: theme.colors.text.primary,
     fontWeight: theme.weights.semibold,
   },
   emptyTitle: {
     fontSize: 24,
     fontWeight: theme.weights.bold,
-    color: theme.colors.textPrimary,
+    color: theme.colors.text.primary,
     marginBottom: 12,
   },
   emptyText: {
     fontSize: theme.sizes.medium,
-    color: theme.colors.textSecondary,
+    color: theme.colors.text.secondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 16,
   },
   clearSearchButton: {
-    backgroundColor: theme.colors.textSecondary,
+    backgroundColor: theme.colors.button.white,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   clearSearchButtonText: {
-    color: theme.colors.surface,
+    color: theme.colors.text.black,
     fontWeight: theme.weights.medium,
     fontSize: theme.sizes.body,
-  },
-  sortLabelButton: {
-    paddingHorizontal: 6,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
-    marginRight: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
   },
 });

@@ -6,7 +6,7 @@ import { theme } from '../theme';
 export const errorBoundaryStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.background.amoled,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -18,44 +18,44 @@ export const errorBoundaryStyles = StyleSheet.create({
   title: {
     fontSize: theme.sizes.title,
     fontWeight: theme.weights.bold,
-    color: theme.colors.textPrimary,
+    color: theme.colors.text.primary,
     marginBottom: 16,
     textAlign: 'center',
   },
   message: {
     fontSize: theme.sizes.medium,
-    color: theme.colors.textSecondary,
+    color: theme.colors.text.secondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.button.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: theme.borderRadius.md,
   },
   retryButtonText: {
-    color: theme.colors.surface,
+    color: theme.colors.text.primary,
     fontSize: theme.sizes.medium,
     fontWeight: theme.weights.semibold,
   },
   debugInfo: {
     marginTop: 20,
     padding: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.background.surface,
     borderRadius: theme.borderRadius.md,
     width: '100%',
   },
   debugTitle: {
     fontSize: theme.sizes.body,
     fontWeight: theme.weights.semibold,
-    color: theme.colors.error,
+    color: theme.colors.text.error,
     marginBottom: 8,
   },
   debugText: {
     fontSize: theme.sizes.small,
-    color: theme.colors.textSecondary,
+    color: theme.colors.text.secondary,
     fontFamily: 'monospace',
   },
 });
