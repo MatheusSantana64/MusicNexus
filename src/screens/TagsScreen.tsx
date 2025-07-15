@@ -9,13 +9,37 @@ import { tagsScreenStyles as styles } from '../styles/screens/TagsScreen.styles'
 
 interface Tag {
   id: string;
+  position: number;
   name: string;
   color: string;
 }
 
-function TagRow({ tag, onEdit, onDelete }: { tag: Tag; onEdit: (tag: Tag) => void; onDelete: (id: string) => void }) {
+function TagRow({
+  tag,
+  onEdit,
+  onDelete,
+  onMoveUp, // Add prop
+}: {
+  tag: Tag;
+  onEdit: (tag: Tag) => void;
+  onDelete: (id: string) => void;
+  onMoveUp: (id: string) => void; // Add prop type
+}) {
   return (
     <View style={styles.tagRow}>
+      {/* Up arrow button */}
+      <TouchableOpacity
+        onPress={() => onMoveUp(tag.id)}
+        style={styles.moveUpButton}
+        accessibilityLabel="Move Up"
+        disabled={tag.position === 1}
+      >
+        <Ionicons
+          name="arrow-up"
+          size={18}
+          color={tag.position === 1 ? theme.colors.text.placeholder : theme.colors.text.primary}
+        />
+      </TouchableOpacity>
       <Text style={[styles.tagName, { backgroundColor: tag.color }]}>{tag.name}</Text>
       <TouchableOpacity onPress={() => onEdit(tag)} style={styles.editButton}>
         <Ionicons name="pencil" size={16} color={theme.colors.text.blue} style={styles.icon} />
@@ -31,8 +55,8 @@ function TagRow({ tag, onEdit, onDelete }: { tag: Tag; onEdit: (tag: Tag) => voi
 
 export default function TagsScreen() {
   const [tags, setTags] = useState<Tag[]>([
-    { id: '1', name: 'Favorite', color: '#FFD700' },
-    { id: '2', name: 'Relax', color: '#32D74B' },
+    { id: '1', position: 1, name: 'Favorite', color: '#FFD700' },
+    { id: '2', position: 2, name: 'Relax', color: '#32D74B' },
   ]);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [inputName, setInputName] = useState('');
@@ -62,7 +86,7 @@ export default function TagsScreen() {
         tag.id === editingTag.id ? { ...tag, name: inputName, color: inputColor } : tag
       ));
     } else {
-      setTags([...tags, { id: Date.now().toString(), name: inputName, color: inputColor }]);
+      setTags([...tags, { id: Date.now().toString(), position: tags.length + 1, name: inputName, color: inputColor }]);
     }
     setInputVisible(false);
     setEditingTag(null);
@@ -81,13 +105,28 @@ export default function TagsScreen() {
     setTags(tags.filter(tag => tag.id !== id));
   };
 
+  // Move tag up by 1 position
+  const handleMoveUp = (id: string) => {
+    setTags(prevTags => {
+      const idx = prevTags.findIndex(tag => tag.id === id);
+      if (idx > 0) {
+        const newTags = [...prevTags];
+        // Swap positions
+        [newTags[idx - 1], newTags[idx]] = [newTags[idx], newTags[idx - 1]];
+        // Update position numbers
+        return newTags.map((tag, i) => ({ ...tag, position: i + 1 }));
+      }
+      return prevTags;
+    });
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
-        <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['top']}>
 
         {/* Tag creation/edit row */}
         {inputVisible ? (
@@ -145,12 +184,17 @@ export default function TagsScreen() {
 
         {/* Tag list */}
         <FlashList
-          data={tags}
+          data={tags.sort((a, b) => a.position - b.position)}
           keyExtractor={tag => tag.id}
           estimatedItemSize={48}
           contentContainerStyle={{ paddingBottom: 24 }}
           renderItem={({ item }) => (
-            <TagRow tag={item} onEdit={openEdit} onDelete={handleDeleteTag} />
+            <TagRow
+              tag={item}
+              onEdit={openEdit}
+              onDelete={handleDeleteTag}
+              onMoveUp={handleMoveUp}
+            />
           )}
         />
       </SafeAreaView>
