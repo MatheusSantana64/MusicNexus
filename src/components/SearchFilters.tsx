@@ -4,8 +4,8 @@ import React from 'react';
 import {
   View,
   TouchableOpacity,
-  Text,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SearchMode } from '../types/music';
 import { searchFiltersStyles as styles } from '../styles/components/SearchFilters.styles';
 
@@ -17,14 +17,14 @@ interface SearchFiltersProps {
 export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps) {
   const searchModes: SearchMode[] = ['album', 'quick'];
 
-  const getModeIcon = (mode: SearchMode): string => {
+  const getModeIcon = (mode: SearchMode): keyof typeof Ionicons.glyphMap => {
     switch (mode) {
       case 'album':
-        return '💿';
+        return 'disc-sharp';
       case 'quick':
-        return '⚡';
+        return 'flash-outline';
       default:
-        return '💿';
+        return 'disc-outline';
     }
   };
 
@@ -39,12 +39,11 @@ export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps)
           ]}
           onPress={() => onModeChange(mode)}
         >
-          <Text style={[
-            styles.iconButtonText,
-            currentMode === mode && styles.iconButtonTextActive
-          ]}>
-            {getModeIcon(mode)}
-          </Text>
+          <Ionicons
+            name={getModeIcon(mode)}
+            size={22}
+            color={currentMode === mode ? '#fff' : '#888'}
+          />
         </TouchableOpacity>
       ))}
     </View>

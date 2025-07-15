@@ -1,42 +1,50 @@
 // src/components/LibraryHeader.tsx
 // Component for the header section of LibraryScreen with search and sort
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { SavedMusic } from '../types/music';
 import { libraryStyles as styles } from '../styles/screens/LibraryScreen.styles';
 import { LibrarySortingUtils } from '../utils/librarySortingUtils';
+import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../styles/theme';
 
 type SortMode = 'added' | 'rating' | 'release' | 'alphabetical' | 'album' | 'artist';
 
 // Create the SORT_OPTIONS using the new utility
-const SORT_OPTIONS: Record<SortMode, { label: string; sortFn: (a: SavedMusic, b: SavedMusic) => number; reverseFn: (a: SavedMusic, b: SavedMusic) => number }> = {
+const SORT_OPTIONS: Record<SortMode, { icon: keyof typeof Ionicons.glyphMap; label: string; sortFn: (a: SavedMusic, b: SavedMusic) => number; reverseFn: (a: SavedMusic, b: SavedMusic) => number }> = {
   release: {
-    label: '🗓️',
+    icon: 'calendar-number-outline',
+    label: 'Release',
     sortFn: LibrarySortingUtils.createSortFunction('release', false),
     reverseFn: LibrarySortingUtils.createSortFunction('release', true)
   },
   rating: {
-    label: '⭐',
+    icon: 'star-half-outline',
+    label: 'Rating',
     sortFn: LibrarySortingUtils.createSortFunction('rating', false),
     reverseFn: LibrarySortingUtils.createSortFunction('rating', true)
   },
   added: {
-    label: '💾',
+    icon: 'save-outline',
+    label: 'Added',
     sortFn: LibrarySortingUtils.createSortFunction('added', false),
     reverseFn: LibrarySortingUtils.createSortFunction('added', true)
   },
   alphabetical: {
-    label: '🔠',
+    icon: 'text-outline',
+    label: 'Title',
     sortFn: LibrarySortingUtils.createSortFunction('alphabetical', false),
     reverseFn: LibrarySortingUtils.createSortFunction('alphabetical', true)
   },
   album: {
-    label: '💿',
+    icon: 'disc-sharp',
+    label: 'Album',
     sortFn: LibrarySortingUtils.createSortFunction('album', false),
     reverseFn: LibrarySortingUtils.createSortFunction('album', true)
   },
   artist: {
-    label: '🎤',
+    icon: 'mic-outline',
+    label: 'Artist',
     sortFn: LibrarySortingUtils.createSortFunction('artist', false),
     reverseFn: LibrarySortingUtils.createSortFunction('artist', true)
   },
@@ -61,12 +69,12 @@ export function LibraryHeader({
   resultCount,
   totalCount,
 }: LibraryHeaderProps) {
+  const [showSortOptions, setShowSortOptions] = useState(false);
+
   const handleSortPress = (mode: SortMode) => {
     if (mode === sortMode) {
-      // If clicking the same mode, toggle reverse
       onSortModeChange(mode, !isReversed);
     } else {
-      // If clicking a different mode, start with normal order
       onSortModeChange(mode, false);
     }
   };
@@ -92,43 +100,82 @@ export function LibraryHeader({
 
   return (
     <>
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, { position: 'relative' }]}>
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { paddingRight: 48 }]} // Right padding so text doesn't go under the X
           placeholder="Search in library..."
           placeholderTextColor={styles.placeholderText.color}
           value={searchQuery}
           onChangeText={onSearchChange}
           autoCorrect={false}
-          clearButtonMode="while-editing"
+          clearButtonMode="never"
         />
+        {/* Clear button (X) */}
+        {searchQuery.length > 0 && (
+          <TouchableOpacity
+            onPress={() => onSearchChange('')}
+            style={{
+              position: 'absolute',
+              right: 32,
+              top: 0,
+              bottom: 4,
+              justifyContent: 'center',
+              paddingHorizontal: 4,
+              paddingVertical: 4,
+            }}
+            accessibilityLabel="Clear search"
+          >
+            <Text style={{ fontSize: 18, color: theme.colors.textSecondary }}>✕</Text>
+          </TouchableOpacity>
+        )}
       </View>
       
       <View style={styles.sortContainer}>
         <View style={styles.sortHeader}>
-          <Text style={styles.sortLabel}>Sort by:</Text>
+          <TouchableOpacity
+            onPress={() => setShowSortOptions((v) => !v)}
+            style={[
+              styles.sortLabelButton,
+              showSortOptions && { backgroundColor: theme.colors.primary }
+            ]}
+          >
+            <Text style={styles.sortLabel}>
+              Sort by {SORT_OPTIONS[sortMode].label}{getSortIndicator(sortMode)}
+            </Text>
+          </TouchableOpacity>
           {searchQuery.trim() && (
             <Text style={styles.resultCount}>
               {resultCount} of {totalCount} songs
             </Text>
           )}
         </View>
-        <View style={styles.sortButtons}>
-          {(Object.keys(SORT_OPTIONS) as SortMode[]).map((mode) => (
-            <TouchableOpacity
-              key={mode}
-              style={[styles.sortButton, sortMode === mode && styles.sortButtonActive]}
-              onPress={() => handleSortPress(mode)}
-            >
-              <Text style={[
-                styles.sortButtonText,
-                sortMode === mode && styles.sortButtonTextActive
-              ]}>
-                {SORT_OPTIONS[mode].label}{getSortIndicator(mode)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {showSortOptions && (
+          <View style={styles.sortButtons}>
+            {(Object.keys(SORT_OPTIONS) as SortMode[]).map((mode) => (
+              <TouchableOpacity
+                key={mode}
+                style={[styles.sortButton, sortMode === mode && styles.sortButtonActive]}
+                onPress={() => handleSortPress(mode)}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons
+                    name={SORT_OPTIONS[mode].icon}
+                    size={20}
+                    color={sortMode === mode ? theme.colors.textPrimary : theme.colors.textMuted}
+                  />
+                  {sortMode === mode && (
+                    <Ionicons
+                      name={isReversed ? 'arrow-down' : 'arrow-up'}
+                      size={16}
+                      color={theme.colors.textPrimary}
+                      style={{ marginLeft: 4 }}
+                    />
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
     </>
   );

@@ -1,7 +1,7 @@
 // src/components/SearchBar.tsx
 // This file defines the SearchBar component used in the music search feature of the application.
 import React from 'react';
-import { View, TextInput, ActivityIndicator } from 'react-native';
+import { View, TextInput, ActivityIndicator, TouchableOpacity, Text } from 'react-native';
 import { SearchMode } from '../types/music';
 import { SearchFilters } from './SearchFilters';
 import { searchStyles as styles } from '../styles/screens/SearchScreen.styles';
@@ -22,22 +22,34 @@ export function SearchBar({
   onModeChange 
 }: SearchBarProps) {
   return (
-    <View style={styles.searchContainer}>
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search music..."
-        placeholderTextColor={styles.placeholderText.color}
-        value={searchQuery}
-        onChangeText={onSearchChange}
-        autoCorrect={false}
-        clearButtonMode="while-editing"
-      />
-      {loading && (
-        <ActivityIndicator 
-          size="small" 
-          color="#007AFF"
+    <View style={[styles.searchContainer, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: styles.searchInput.backgroundColor,
+        borderRadius: 8,
+        flex: 1,
+        paddingHorizontal: 8,
+      }}>
+        <TextInput
+          style={[styles.searchInput, { flex: 1, borderWidth: 0, backgroundColor: 'transparent' }]}
+          placeholder="Search music..."
+          placeholderTextColor={styles.placeholderText.color}
+          value={searchQuery}
+          onChangeText={onSearchChange}
+          autoCorrect={false}
+          clearButtonMode="never"
         />
-      )}
+        {searchQuery.length > 0 && (
+          <TouchableOpacity
+            onPress={() => onSearchChange('')}
+            style={{ paddingHorizontal: 4, paddingVertical: 4 }}
+            accessibilityLabel="Clear search"
+          >
+            <Text style={{ fontSize: 18, color: '#888' }}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
       <SearchFilters 
         currentMode={searchMode}
         onModeChange={onModeChange}

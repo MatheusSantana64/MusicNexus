@@ -1,3 +1,5 @@
+// src/utils/ratingUtils.ts
+// Utility functions for handling music ratings and colors
 import { theme } from '../styles/theme';
 
 export const getRatingColor = (rating: number): string => {

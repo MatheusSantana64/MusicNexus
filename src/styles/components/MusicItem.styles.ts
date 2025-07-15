@@ -82,7 +82,7 @@ export const musicItemStyles = StyleSheet.create({
 
   savedDate: {
     fontSize: theme.sizes.xsmall,
-    color: theme.colors.textMuted,
+    color: 'green',
     fontStyle: 'italic',
     lineHeight: 11,
   },

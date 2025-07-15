@@ -1,3 +1,5 @@
+// src/utils/librarySortingUtils.ts
+// Utility functions for sorting library music with hierarchical fallbacks
 import { SavedMusic } from '../types/music';
 
 export class LibrarySortingUtils {

@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import SearchScreen from './src/screens/SearchScreen';
 import LibraryScreen from './src/screens/LibraryScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { theme } from './src/styles/theme';
 
 const Tab = createBottomTabNavigator();
 
@@ -25,14 +26,18 @@ function TabNavigator() {
             iconName = focused ? 'search' : 'search-outline';
           } else if (route.name === 'Library') {
             iconName = focused ? 'library' : 'library-outline';
+          } else if (route.name === 'Tags') {
+            iconName = focused ? 'pricetag' : 'pricetag-outline';
+          } else if (route.name === 'History') {
+            iconName = focused ? 'time' : 'time-outline';
           } else {
-            iconName = 'help-outline';
+            iconName = 'help-circle-outline'; // Fallback icon
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarStyle: [
           styles.tabBar,
           {
@@ -62,6 +67,20 @@ function TabNavigator() {
           title: 'Search',
         }}
       />
+      <Tab.Screen 
+        name="Tags" 
+        component={SearchScreen}
+        options={{ 
+          title: 'Tags',
+        }}
+      />
+      <Tab.Screen 
+        name="History" 
+        component={SearchScreen}
+        options={{ 
+          title: 'History',
+        }}
+      />
     </Tab.Navigator>
   );
 }
@@ -81,9 +100,9 @@ export default function App() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#111111',
-    borderTopWidth: 1,
-    borderTopColor: '#333333',
+    backgroundColor: theme.colors.background,
+    borderTopWidth: 0.5,
+    borderTopColor: theme.colors.border,
     paddingTop: 5,
   },
 });

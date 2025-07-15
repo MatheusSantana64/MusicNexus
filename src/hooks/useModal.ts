@@ -1,3 +1,5 @@
+// src/hooks/useModal.ts
+// Hook for managing modal visibility and actions
 import { useState, useCallback } from 'react';
 import { ModalAction } from '../components/OptionsModal';
 

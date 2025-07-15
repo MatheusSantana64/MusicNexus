@@ -21,20 +21,19 @@ export const libraryStyles = StyleSheet.create({
   },
   sortContainer: {
     backgroundColor: theme.colors.surface,
-    paddingHorizontal: 24,
+    paddingHorizontal: 8,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
   sortHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'space-between',
   },
   sortLabel: {
     fontSize: theme.sizes.body,
-    fontWeight: theme.weights.semibold,
+    fontWeight: theme.weights.normal,
     color: theme.colors.textPrimary,
   },
   resultCount: {
@@ -43,6 +42,7 @@ export const libraryStyles = StyleSheet.create({
     fontStyle: 'italic',
   },
   sortButtons: {
+    marginTop: 8,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
@@ -117,5 +117,17 @@ export const libraryStyles = StyleSheet.create({
     color: theme.colors.surface,
     fontWeight: theme.weights.medium,
     fontSize: theme.sizes.body,
+  },
+  sortLabelButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
   },
 });

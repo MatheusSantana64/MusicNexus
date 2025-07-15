@@ -1,13 +1,14 @@
+// src/components/OptionsModal.tsx
+// OptionsModal component for displaying options in a modal
 import React from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   Dimensions,
 } from 'react-native';
 import Modal from 'react-native-modal';
-import { theme } from '../styles/theme';
+import { optionsModalStyles as styles } from '../styles/components/OptionsModal.styles';
 
 export interface ModalAction {
   text: string;
@@ -102,70 +103,3 @@ export function OptionsModal({
 }
 
 const { width } = Dimensions.get('window');
-
-const styles = StyleSheet.create({
-  modal: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    margin: 20,
-  },
-  modalContainer: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: 24,
-    width: Math.min(width - 40, 320),
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  title: {
-    fontSize: theme.sizes.title,
-    fontWeight: theme.weights.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  message: {
-    fontSize: theme.sizes.medium,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  actionsContainer: {
-    width: '100%',
-    gap: 12,
-  },
-  actionButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  defaultButton: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  destructiveButton: {
-    backgroundColor: theme.colors.error + '20',
-    borderColor: theme.colors.error,
-  },
-  cancelButton: {
-    backgroundColor: theme.colors.background,
-    borderColor: theme.colors.border,
-  },
-  actionButtonText: {
-    fontSize: theme.sizes.medium,
-    fontWeight: theme.weights.medium,
-  },
-  defaultButtonText: {
-    color: theme.colors.surface,
-  },
-  destructiveButtonText: {
-    color: theme.colors.error,
-  },
-  cancelButtonText: {
-    color: theme.colors.textSecondary,
-  },
-});

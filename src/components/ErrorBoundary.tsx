@@ -1,8 +1,9 @@
 // src/components/ErrorBoundary.tsx
 // ErrorBoundary component to catch errors
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { theme } from '../styles/theme';
+import { errorBoundaryStyles as styles } from '../styles/components/ErrorBoundary.styles';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -75,60 +76,3 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     return this.props.children;
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  content: {
-    alignItems: 'center',
-    maxWidth: 300,
-  },
-  title: {
-    fontSize: theme.sizes.title,
-    fontWeight: theme.weights.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  message: {
-    fontSize: theme.sizes.medium,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 24,
-  },
-  retryButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: theme.borderRadius.md,
-  },
-  retryButtonText: {
-    color: theme.colors.surface,
-    fontSize: theme.sizes.medium,
-    fontWeight: theme.weights.semibold,
-  },
-  debugInfo: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    width: '100%',
-  },
-  debugTitle: {
-    fontSize: theme.sizes.body,
-    fontWeight: theme.weights.semibold,
-    color: theme.colors.error,
-    marginBottom: 8,
-  },
-  debugText: {
-    fontSize: theme.sizes.small,
-    color: theme.colors.textSecondary,
-    fontFamily: 'monospace',
-  },
-});
