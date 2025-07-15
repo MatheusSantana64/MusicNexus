@@ -9,7 +9,8 @@ import {
   deleteDoc, 
   query, 
   orderBy,
-  QueryConstraint 
+  QueryConstraint,
+  where 
 } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 import { SavedMusic, DeezerTrack } from '../types/music';
@@ -72,7 +73,10 @@ export async function saveMusic(track: DeezerTrack, options: SaveMusicOptions = 
   }
 }
 
-export async function getSavedMusic(sortMode: SortMode = 'release'): Promise<SavedMusic[]> {
+export async function getSavedMusic(
+  sortMode: SortMode = 'release',
+  ratingFilter?: [number, number]
+): Promise<SavedMusic[]> {
   try {
     const constraints: QueryConstraint[] = [];
     
@@ -98,6 +102,12 @@ export async function getSavedMusic(sortMode: SortMode = 'release'): Promise<Sav
         break;
     }
     
+    // Add rating filter if provided
+    if (ratingFilter) {
+      constraints.push(where('rating', '>=', ratingFilter[0]));
+      constraints.push(where('rating', '<=', ratingFilter[1]));
+    }
+
     const q = query(collection(db, COLLECTION_NAME), ...constraints);
     const querySnapshot = await getDocs(q);
     

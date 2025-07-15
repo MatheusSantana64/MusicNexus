@@ -40,6 +40,7 @@ export const libraryStyles = StyleSheet.create({
     fontSize: theme.sizes.small,
     color: theme.colors.textSecondary,
     fontStyle: 'italic',
+    marginRight: 8,
   },
   sortButtons: {
     marginTop: 8,
@@ -119,7 +120,7 @@ export const libraryStyles = StyleSheet.create({
     fontSize: theme.sizes.body,
   },
   sortLabelButton: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 6,
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,

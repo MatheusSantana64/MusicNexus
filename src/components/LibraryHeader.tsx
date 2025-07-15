@@ -1,12 +1,14 @@
 // src/components/LibraryHeader.tsx
 // Component for the header section of LibraryScreen with search and sort
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { SavedMusic } from '../types/music';
 import { libraryStyles as styles } from '../styles/screens/LibraryScreen.styles';
 import { LibrarySortingUtils } from '../utils/librarySortingUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
+import MultiSlider from '@ptomasroos/react-native-multi-slider';
+import { getRatingText } from '../utils/ratingUtils';
 
 type SortMode = 'added' | 'rating' | 'release' | 'alphabetical' | 'album' | 'artist';
 
@@ -58,6 +60,8 @@ interface LibraryHeaderProps {
   onSortModeChange: (mode: SortMode, reversed?: boolean) => void;
   resultCount: number;
   totalCount: number;
+  ratingFilter?: [number, number];
+  onRatingFilterChange?: (range: [number, number]) => void;
 }
 
 export function LibraryHeader({
@@ -68,8 +72,25 @@ export function LibraryHeader({
   onSortModeChange,
   resultCount,
   totalCount,
+  ratingFilter = [0, 10],
+  onRatingFilterChange,
 }: LibraryHeaderProps) {
   const [showSortOptions, setShowSortOptions] = useState(false);
+  const [showRatingSlider, setShowRatingSlider] = useState(false);
+  const [sliderValues, setSliderValues] = useState<[number, number]>(ratingFilter);
+  const sliderValuesRef = useRef(sliderValues);
+
+  // Keep ref in sync with state
+  React.useEffect(() => {
+    sliderValuesRef.current = sliderValues;
+  }, [sliderValues]);
+
+  // Only sync sliderValues from ratingFilter when slider is closed
+  React.useEffect(() => {
+    if (!showRatingSlider && (sliderValues[0] !== ratingFilter[0] || sliderValues[1] !== ratingFilter[1])) {
+      setSliderValues(ratingFilter);
+    }
+  }, [ratingFilter, showRatingSlider]);
 
   const handleSortPress = (mode: SortMode) => {
     if (mode === sortMode) {
@@ -96,6 +117,16 @@ export function LibraryHeader({
       default:
         return isReversed ? ' (↓)' : ' (↑)';
     }
+  };
+
+  // Rating button toggles slider and applies filter when hiding
+  const handleRatingButton = () => {
+    setShowRatingSlider((prev) => {
+      if (prev && onRatingFilterChange) {
+        onRatingFilterChange(sliderValuesRef.current);
+      }
+      return !prev;
+    });
   };
 
   return (
@@ -131,23 +162,38 @@ export function LibraryHeader({
       </View>
       
       <View style={styles.sortContainer}>
-        <View style={styles.sortHeader}>
-          <TouchableOpacity
-            onPress={() => setShowSortOptions((v) => !v)}
-            style={[
-              styles.sortLabelButton,
-              showSortOptions && { backgroundColor: theme.colors.primary }
-            ]}
-          >
-            <Text style={styles.sortLabel}>
-              Sort by {SORT_OPTIONS[sortMode].label}{getSortIndicator(sortMode)}
-            </Text>
-          </TouchableOpacity>
-          {searchQuery.trim() && (
-            <Text style={styles.resultCount}>
-              {resultCount} of {totalCount} songs
-            </Text>
-          )}
+        <View style={[styles.sortHeader, { justifyContent: 'space-between' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              onPress={() => setShowSortOptions((v) => !v)}
+              style={[
+                styles.sortLabelButton,
+                showSortOptions && { backgroundColor: theme.colors.primary }
+              ]}
+            >
+              <Text style={styles.sortLabel}>
+                Sort by {SORT_OPTIONS[sortMode].label}{getSortIndicator(sortMode)}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleRatingButton}
+              style={[
+                styles.sortLabelButton,
+                showRatingSlider && { backgroundColor: theme.colors.primary }
+              ]}
+            >
+              <Text style={styles.sortLabel}>
+                {sliderValues[0] === sliderValues[1]
+                  ? `Rating: ${sliderValues[0] === 10 ? '10' 
+                    : sliderValues[0] === 0 ? 'N/A' 
+                    : sliderValues[0].toFixed(1)}`
+                  : `Rating: ${sliderValues[0] === 10 ? '10' : sliderValues[0].toFixed(1)} - ${sliderValues[1] === 10 ? '10' : sliderValues[1].toFixed(1)}`}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.resultCount}>
+            {resultCount} songs
+          </Text>
         </View>
         {showSortOptions && (
           <View style={styles.sortButtons}>
@@ -168,12 +214,45 @@ export function LibraryHeader({
                       name={isReversed ? 'arrow-down' : 'arrow-up'}
                       size={16}
                       color={theme.colors.textPrimary}
-                      style={{ marginLeft: 4 }}
                     />
                   )}
                 </View>
               </TouchableOpacity>
             ))}
+          </View>
+        )}
+        {showRatingSlider && (
+          <View style={{ marginTop: 8 }}>
+            <MultiSlider
+              values={sliderValues}
+              sliderLength={300}
+              onValuesChange={vals => setSliderValues([Number(vals[0]), Number(vals[1])])}
+              onValuesChangeFinish={vals => {
+                setSliderValues([Number(vals[0]), Number(vals[1])]);
+                if (onRatingFilterChange) {
+                  onRatingFilterChange([Number(vals[0]), Number(vals[1])]);
+                }
+              }}
+              min={0}
+              max={10}
+              step={0.5}
+              allowOverlap={true}
+              minMarkerOverlapDistance={0}
+              snapped={true}
+              markerStyle={{
+                backgroundColor: theme.colors.textPrimary,
+                height: 24,
+                width: 24,
+                borderWidth: 1.5,
+                borderColor: theme.colors.primary,
+              }}
+              selectedStyle={{
+                backgroundColor: theme.colors.primary,
+              }}
+              containerStyle={{ alignSelf: 'center' }}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            </View>
           </View>
         )}
       </View>

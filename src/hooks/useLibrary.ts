@@ -6,7 +6,7 @@ import { useMusicStore } from '../store/musicStore';
 import { SORT_OPTIONS, SortMode } from '../components/LibraryHeader';
 import { useModal } from './useModal';
 
-export function useLibrary() {
+export function useLibrary(ratingFilter?: [number, number]) {
   const [sortMode, setSortMode] = useState<SortMode>('release');
   const [isReversed, setIsReversed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,24 +40,31 @@ export function useLibrary() {
   // Process music: filter + hierarchical sort in memory
   const processedMusic = useMemo(() => {
     let filtered = savedMusic;
-    
+
+    // Filter by rating range if provided
+    if (ratingFilter) {
+      filtered = filtered.filter(
+        item => item.rating >= ratingFilter[0] && item.rating <= ratingFilter[1]
+      );
+    }
+
     // Filter by search query
     if (searchQuery.trim()) {
       const searchTerm = searchQuery.toLowerCase().trim();
-      filtered = savedMusic.filter(item => 
+      filtered = filtered.filter(item =>
         item.title.toLowerCase().includes(searchTerm) ||
         item.artist.toLowerCase().includes(searchTerm) ||
         item.album.toLowerCase().includes(searchTerm)
       );
     }
-    
+
     // Apply hierarchical sorting with the user's sort preference
-    const sortFunction = isReversed 
-      ? SORT_OPTIONS[sortMode].reverseFn 
+    const sortFunction = isReversed
+      ? SORT_OPTIONS[sortMode].reverseFn
       : SORT_OPTIONS[sortMode].sortFn;
-    
+
     return [...filtered].sort(sortFunction);
-  }, [savedMusic, searchQuery, sortMode, isReversed]);
+  }, [savedMusic, searchQuery, sortMode, isReversed, ratingFilter]);
 
   // Unified handler for music actions
   const handleMusicAction = useCallback((music: SavedMusic, action: 'rate' | 'delete') => {

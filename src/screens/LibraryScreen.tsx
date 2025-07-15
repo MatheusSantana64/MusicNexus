@@ -1,6 +1,6 @@
 // src/screens/LibraryScreen.tsx
 // Screen for displaying music library
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +15,9 @@ import { useModal } from '../hooks/useModal';
 import { libraryStyles as styles } from '../styles/screens/LibraryScreen.styles';
 
 export default function LibraryScreen() {
+  // Add ratingFilter state
+  const [ratingFilter, setRatingFilter] = useState<[number, number]>([0, 10]);
+
   const {
     sortMode,
     isReversed,
@@ -29,14 +32,12 @@ export default function LibraryScreen() {
     handleMusicAction,
     refresh,
     clearSearch,
-    // MODAL STATE
     ratingModalVisible,
     selectedMusic,
     handleRatingSave,
     handleRatingCancel,
-    // CONFIRMATION MODAL PROPS FROM useLibrary
     modalProps: libraryModalProps,
-  } = useLibrary();
+  } = useLibrary(ratingFilter); // Pass ratingFilter to useLibrary
 
   // Options modal for long press actions
   const { showModal: showOptionsModal, modalProps: optionsModalProps } = useModal();
@@ -105,6 +106,8 @@ export default function LibraryScreen() {
           onSortModeChange={setSortMode}
           resultCount={processedMusic.length}
           totalCount={savedMusic.length}
+          ratingFilter={ratingFilter}
+          onRatingFilterChange={setRatingFilter}
         />
       )}
       
