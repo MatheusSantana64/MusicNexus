@@ -86,3 +86,10 @@ export interface SearchOptions {
   query: string;
   limit?: number;
 }
+
+export interface Tag {
+  id: string;
+  position: number;
+  name: string;
+  color: string;
+}

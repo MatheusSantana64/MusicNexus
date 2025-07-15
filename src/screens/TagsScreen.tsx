@@ -1,33 +1,27 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { theme } from '../styles/theme';
 import { TagColorPicker } from '../components/TagColorPicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { tagsScreenStyles as styles } from '../styles/screens/TagsScreen.styles';
-
-interface Tag {
-  id: string;
-  position: number;
-  name: string;
-  color: string;
-}
+import { getTags, addTag, updateTag, deleteTag } from '../services/tagService';
+import { Tag } from '../types/music';
 
 function TagRow({
   tag,
   onEdit,
   onDelete,
-  onMoveUp, // Add prop
+  onMoveUp,
 }: {
   tag: Tag;
   onEdit: (tag: Tag) => void;
   onDelete: (id: string) => void;
-  onMoveUp: (id: string) => void; // Add prop type
+  onMoveUp: (id: string) => void;
 }) {
   return (
     <View style={styles.tagRow}>
-      {/* Up arrow button */}
       <TouchableOpacity
         onPress={() => onMoveUp(tag.id)}
         style={styles.moveUpButton}
@@ -54,15 +48,29 @@ function TagRow({
 }
 
 export default function TagsScreen() {
-  const [tags, setTags] = useState<Tag[]>([
-    { id: '1', position: 1, name: 'Favorite', color: '#FFD700' },
-    { id: '2', position: 2, name: 'Relax', color: '#32D74B' },
-  ]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [inputName, setInputName] = useState('');
   const [inputColor, setInputColor] = useState('#002a55');
   const [inputVisible, setInputVisible] = useState(false);
   const [colorPickerVisible, setColorPickerVisible] = useState(false);
+
+  // Load tags from Firestore
+  useEffect(() => {
+    fetchTags();
+  }, []);
+
+  const fetchTags = async () => {
+    setLoading(true);
+    try {
+      const data = await getTags();
+      setTags(data);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to load tags');
+    }
+    setLoading(false);
+  };
 
   // Open create or edit
   const openCreate = () => {
@@ -79,19 +87,22 @@ export default function TagsScreen() {
   };
 
   // Save create or edit
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!inputName.trim()) return;
     if (editingTag) {
-      setTags(tags.map(tag =>
-        tag.id === editingTag.id ? { ...tag, name: inputName, color: inputColor } : tag
-      ));
+      await updateTag(editingTag.id, { name: inputName, color: inputColor });
     } else {
-      setTags([...tags, { id: Date.now().toString(), position: tags.length + 1, name: inputName, color: inputColor }]);
+      await addTag({
+        name: inputName,
+        color: inputColor,
+        position: tags.length + 1,
+      });
     }
     setInputVisible(false);
     setEditingTag(null);
     setInputName('');
     setInputColor('#002a55');
+    fetchTags();
   };
 
   const handleCancel = () => {
@@ -101,23 +112,24 @@ export default function TagsScreen() {
     setInputColor('#002a55');
   };
 
-  const handleDeleteTag = (id: string) => {
-    setTags(tags.filter(tag => tag.id !== id));
+  const handleDeleteTag = async (id: string) => {
+    await deleteTag(id);
+    fetchTags();
   };
 
   // Move tag up by 1 position
-  const handleMoveUp = (id: string) => {
-    setTags(prevTags => {
-      const idx = prevTags.findIndex(tag => tag.id === id);
-      if (idx > 0) {
-        const newTags = [...prevTags];
-        // Swap positions
-        [newTags[idx - 1], newTags[idx]] = [newTags[idx], newTags[idx - 1]];
-        // Update position numbers
-        return newTags.map((tag, i) => ({ ...tag, position: i + 1 }));
-      }
-      return prevTags;
-    });
+  const handleMoveUp = async (id: string) => {
+    const idx = tags.findIndex(tag => tag.id === id);
+    if (idx > 0) {
+      const newTags = [...tags];
+      [newTags[idx - 1], newTags[idx]] = [newTags[idx], newTags[idx - 1]];
+      // Update positions in Firestore
+      await Promise.all([
+        updateTag(newTags[idx].id, { position: idx + 1 }),
+        updateTag(newTags[idx - 1].id, { position: idx }),
+      ]);
+      fetchTags();
+    }
   };
 
   return (
@@ -128,7 +140,6 @@ export default function TagsScreen() {
     >
       <SafeAreaView style={styles.container} edges={['top']}>
 
-        {/* Tag creation/edit row */}
         {inputVisible ? (
           <View style={styles.inputRow}>
             <TextInput
@@ -174,7 +185,6 @@ export default function TagsScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Color Picker Modal */}
         <TagColorPicker
           visible={colorPickerVisible}
           value={inputColor}
@@ -182,21 +192,24 @@ export default function TagsScreen() {
           onClose={() => setColorPickerVisible(false)}
         />
 
-        {/* Tag list */}
-        <FlashList
-          data={tags.sort((a, b) => a.position - b.position)}
-          keyExtractor={tag => tag.id}
-          estimatedItemSize={48}
-          contentContainerStyle={{ paddingBottom: 24 }}
-          renderItem={({ item }) => (
-            <TagRow
-              tag={item}
-              onEdit={openEdit}
-              onDelete={handleDeleteTag}
-              onMoveUp={handleMoveUp}
-            />
-          )}
-        />
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.colors.text.primary} style={{ marginTop: 32 }} />
+        ) : (
+          <FlashList
+            data={[...tags].sort((a, b) => a.position - b.position)}
+            keyExtractor={tag => tag.id}
+            estimatedItemSize={48}
+            contentContainerStyle={{ paddingBottom: 24 }}
+            renderItem={({ item }) => (
+              <TagRow
+                tag={item}
+                onEdit={openEdit}
+                onDelete={handleDeleteTag}
+                onMoveUp={handleMoveUp}
+              />
+            )}
+          />
+        )}
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
