@@ -11,14 +11,13 @@ import {
 import StarRating from 'react-native-star-rating-widget';
 import { getRatingColor, getRatingText } from '../utils/ratingUtils';
 import { starRatingModalStyles as styles } from '../styles/components/StarRatingModal.styles';
-import { Tag } from '../types/music';
+import { useTagStore } from '../store/tagStore';
 
 interface StarRatingModalProps {
   visible: boolean;
   title: string;
   itemName: string;
   initialRating?: number;
-  tags: Tag[];
   initialSelectedTagIds?: string[];
   onSave: (rating: number, selectedTagIds: string[]) => void;
   onCancel: () => void;
@@ -29,13 +28,13 @@ export function StarRatingModal({
   title,
   itemName,
   initialRating = 0,
-  tags,
   initialSelectedTagIds = [],
   onSave,
   onCancel,
 }: StarRatingModalProps) {
   const [rating, setRating] = useState(initialRating);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialSelectedTagIds);
+  const { tags } = useTagStore();
 
   // Update rating and selected tags when initialRating or initialSelectedTagIds changes or modal becomes visible
   React.useEffect(() => {
@@ -81,23 +80,56 @@ export function StarRatingModal({
               contentContainerStyle={styles.tagScrollContent}
               showsVerticalScrollIndicator={true}
             >
-              {tags.map((tag) => (
-                <TouchableOpacity
-                  key={tag.id}
-                  onPress={() => handleTagToggle(tag.id)}
-                  style={[
-                    styles.tagButton,
-                    {
-                      backgroundColor: selectedTagIds.includes(tag.id) ? tag.color : '#222',
-                      borderColor: tag.color,
-                    },
-                  ]}
-                >
-                  <Text style={styles.tagButtonText}>
-                    {tag.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {(() => {
+                const selectedTags = [...tags]
+                  .filter(tag => selectedTagIds.includes(tag.id))
+                  .sort((a, b) => a.position - b.position);
+                const unselectedTags = [...tags]
+                  .filter(tag => !selectedTagIds.includes(tag.id))
+                  .sort((a, b) => a.position - b.position);
+
+                return (
+                  <>
+                    {selectedTags.map((tag) => (
+                      <TouchableOpacity
+                        key={tag.id}
+                        onPress={() => handleTagToggle(tag.id)}
+                        style={[
+                          styles.tagButton,
+                          {
+                            backgroundColor: selectedTagIds.includes(tag.id) ? tag.color : '#222',
+                            borderColor: tag.color,
+                          },
+                        ]}
+                      >
+                        <Text style={styles.tagButtonText}>
+                          {tag.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                    {selectedTags.length > 0 && unselectedTags.length > 0 && (
+                      <View style={{ height: 8 }} /> // Small margin separator between selected and unselected tags
+                    )}
+                    {unselectedTags.map((tag) => (
+                      <TouchableOpacity
+                        key={tag.id}
+                        onPress={() => handleTagToggle(tag.id)}
+                        style={[
+                          styles.tagButton,
+                          {
+                            backgroundColor: selectedTagIds.includes(tag.id) ? tag.color : '#222',
+                            borderColor: tag.color,
+                          },
+                        ]}
+                      >
+                        <Text style={styles.tagButtonText}>
+                          {tag.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </>
+                );
+              })()}
             </ScrollView>
           </View>
           

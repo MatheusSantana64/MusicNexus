@@ -6,8 +6,8 @@ import { TagColorPicker } from '../components/TagColorPicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { tagsScreenStyles as styles } from '../styles/screens/TagsScreen.styles';
-import { getTags, addTag, updateTag, deleteTag } from '../services/tagService';
 import { Tag } from '../types/music';
+import { useTagStore } from '../store/tagStore'; // <-- Use Zustand store
 
 function TagRow({
   tag,
@@ -48,29 +48,22 @@ function TagRow({
 }
 
 export default function TagsScreen() {
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use Zustand store for tags
+  const {
+    tags,
+    loading,
+    error,
+    addTag,
+    updateTag,
+    deleteTag,
+    refresh,
+  } = useTagStore();
+
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [inputName, setInputName] = useState('');
   const [inputColor, setInputColor] = useState('#002a55');
   const [inputVisible, setInputVisible] = useState(false);
   const [colorPickerVisible, setColorPickerVisible] = useState(false);
-
-  // Load tags from Firestore
-  useEffect(() => {
-    fetchTags();
-  }, []);
-
-  const fetchTags = async () => {
-    setLoading(true);
-    try {
-      const data = await getTags();
-      setTags(data);
-    } catch (e) {
-      Alert.alert('Error', 'Failed to load tags');
-    }
-    setLoading(false);
-  };
 
   // Open create or edit
   const openCreate = () => {
@@ -102,7 +95,7 @@ export default function TagsScreen() {
     setEditingTag(null);
     setInputName('');
     setInputColor('#002a55');
-    fetchTags();
+    refresh();
   };
 
   const handleCancel = () => {
@@ -114,7 +107,7 @@ export default function TagsScreen() {
 
   const handleDeleteTag = async (id: string) => {
     await deleteTag(id);
-    fetchTags();
+    refresh();
   };
 
   // Move tag up by 1 position
@@ -128,7 +121,7 @@ export default function TagsScreen() {
         updateTag(newTags[idx].id, { position: idx + 1 }),
         updateTag(newTags[idx - 1].id, { position: idx }),
       ]);
-      fetchTags();
+      refresh();
     }
   };
 
