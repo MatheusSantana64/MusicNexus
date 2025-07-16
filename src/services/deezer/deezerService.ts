@@ -2,7 +2,7 @@
 import { DeezerTrack, SearchMode, SearchOptions } from '../../types/music';
 import { DeezerApiClient } from './deezerApiClient';
 import { DeezerSearchService } from './deezerSearchService';
-import { CacheService } from '../cacheService';
+import { CacheService } from './deezerCacheService';
 import { BatchRequestService } from '../batchRequestService';
 
 export class DeezerService {

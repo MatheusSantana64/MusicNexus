@@ -1,6 +1,6 @@
 // src/services/deezer/deezerApiClient.ts
 import { DeezerTrack, DeezerAlbum, DeezerSearchResponse, DeezerAlbumSearchResponse } from '../../types/music';
-import { CacheService } from '../cacheService';
+import { CacheService } from './deezerCacheService';
 import { 
   validateDeezerAlbumSearchResponse,
   safeParseDeezerTrack,

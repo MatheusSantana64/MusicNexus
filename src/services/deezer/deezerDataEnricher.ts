@@ -3,7 +3,7 @@
 import { DeezerTrack, DeezerAlbum, SearchOptions } from '../../types/music';
 import { DeezerApiClient } from './deezerApiClient';
 import { DeezerSortingUtils } from './deezerSortingUtils';
-import { CacheService } from '../cacheService';
+import { CacheService } from './deezerCacheService';
 import { BatchRequestService } from '../batchRequestService';
 import { safeParseDeezerTrack } from '../../utils/validators';
 

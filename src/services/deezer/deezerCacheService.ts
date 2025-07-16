@@ -1,5 +1,5 @@
-// src/services/cacheService.ts
-// Smart caching service for managing API responses
+// src/services/deezer/deezerCacheService.ts
+// Service for caching Deezer API responses
 interface CacheEntry<T> {
   data: T;
   timestamp: number;

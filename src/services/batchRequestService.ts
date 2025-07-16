@@ -1,6 +1,6 @@
 // src/services/batchRequestService.ts
 // Service for batching requests to the Deezer API
-import { CacheService } from './cacheService';
+import { CacheService } from './deezer/deezerCacheService';
 
 // This service batches requests to the Deezer API to reduce the number of calls made, improving performance and reducing load.
 interface BatchRequestOptions {
