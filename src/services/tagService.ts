@@ -1,7 +1,9 @@
+// src/services/tagService.ts
+// TagService for managing music tags in the Firestore database
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
-import { Tag } from '../types/music';
-import { setTagsMeta } from './firestoreMetaHelper'; // Add this import
+import { Tag } from '../types';
+import { setTagsMeta } from './firestoreMetaHelper';
 
 const COLLECTION_NAME = 'tags';
 

@@ -1,5 +1,7 @@
+// src/store/tagStore.ts
+// Zustand store for managing music tags
 import { create } from 'zustand';
-import { Tag } from '../types/music';
+import { Tag } from '../types';
 import { 
   getCachedTags, 
   setCachedTags, 

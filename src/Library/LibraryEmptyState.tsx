@@ -2,7 +2,7 @@
 // Component for displaying empty states in the LibraryScreen
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { libraryStyles as styles } from '../styles/screens/LibraryScreen.styles';
+import { libraryStyles as styles } from './styles/LibraryScreen.styles';
 
 interface LibraryEmptyStateProps {
   loading: boolean;

@@ -1,10 +1,10 @@
 // src/services/deezer/deezerDataEnricher.ts
 // Fetch and enrich Deezer data with batch requests and caching
-import { DeezerTrack, DeezerAlbum, SearchOptions } from '../../types/music';
+import { DeezerTrack, DeezerAlbum, SearchOptions } from '../../types';
 import { DeezerApiClient } from './deezerApiClient';
 import { DeezerSortingUtils } from './deezerSortingUtils';
 import { CacheService } from './deezerCacheService';
-import { BatchRequestService } from '../batchRequestService';
+import { BatchRequestService } from './batchRequestService';
 import { safeParseDeezerTrack } from '../../utils/validators';
 
 export class DeezerDataEnricher {

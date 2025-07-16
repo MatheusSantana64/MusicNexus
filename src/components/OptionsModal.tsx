@@ -8,7 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import Modal from 'react-native-modal';
-import { optionsModalStyles as styles } from '../styles/components/OptionsModal.styles';
+import { optionsModalStyles as styles } from './styles/OptionsModal.styles';
 
 export interface ModalAction {
   text: string;

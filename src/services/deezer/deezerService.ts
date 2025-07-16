@@ -1,9 +1,11 @@
 // src/services/deezerService.ts
-import { DeezerTrack, SearchMode, SearchOptions } from '../../types/music';
+// DeezerService for managing Deezer-related operations
+// This service provides methods for searching tracks, getting track details, and managing caches
+import { DeezerTrack, SearchMode, SearchOptions } from '../../types';
 import { DeezerApiClient } from './deezerApiClient';
 import { DeezerSearchService } from './deezerSearchService';
 import { CacheService } from './deezerCacheService';
-import { BatchRequestService } from '../batchRequestService';
+import { BatchRequestService } from './batchRequestService';
 
 export class DeezerService {
   // === PUBLIC API METHODS ===

@@ -3,21 +3,21 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { DeezerTrack, SearchMode } from '../types/music';
-import { useSearch } from '../hooks/useSearch';
+import { DeezerTrack, SearchMode } from '../types';
+import { useSearch } from './useSearch';
 import { useMusicOperations } from '../hooks/useMusicOperations';
 import { useAlbumGrouping } from '../hooks/useAlbumGrouping';
 import { useModal } from '../hooks/useModal';
 import { MusicItem } from '../components/MusicItem';
-import { SearchBar } from '../components/SearchBar';
-import { AlbumHeader, AlbumGroup } from '../components/AlbumHeader';
-import { SearchEmptyState } from '../components/SearchEmptyState';
+import { SearchBar } from './SearchBar';
+import { AlbumHeader, AlbumGroup } from './AlbumHeader';
+import { SearchEmptyState } from './SearchEmptyState';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StarRatingModal } from '../components/StarRatingModal';
 import { OptionsModal } from '../components/OptionsModal';
-import { searchStyles as styles } from '../styles/screens/SearchScreen.styles';
+import { searchStyles as styles } from './styles/SearchScreen.styles';
 import { getTags } from '../services/tagService';
-import { Tag } from '../types/music';
+import { Tag } from '../types';
 
 const MIN_SEARCH_LENGTH = 3;
 

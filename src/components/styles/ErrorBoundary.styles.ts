@@ -1,7 +1,7 @@
 // src/styles/components/ErrorBoundary.styles.ts
 // Styles for the ErrorBoundary component
 import { StyleSheet } from 'react-native';
-import { theme } from '../theme';
+import { theme } from '../../styles/theme';
 
 export const errorBoundaryStyles = StyleSheet.create({
   container: {

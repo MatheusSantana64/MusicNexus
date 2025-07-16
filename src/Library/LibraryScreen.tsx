@@ -4,17 +4,17 @@ import React, { useCallback, useState } from 'react';
 import { RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SavedMusic } from '../types/music';
+import { SavedMusic } from '../types';
 import { MusicItem } from '../components/MusicItem';
-import { LibraryEmptyState } from '../components/LibraryEmptyState';
-import { LibraryHeader } from '../components/LibraryHeader';
+import { LibraryEmptyState } from '../Library/LibraryEmptyState';
+import { LibraryHeader } from '../Library/LibraryHeader';
 import { StarRatingModal } from '../components/StarRatingModal';
 import { OptionsModal } from '../components/OptionsModal';
-import { useLibrary } from '../hooks/useLibrary';
+import { useLibrary } from './useLibrary';
 import { useModal } from '../hooks/useModal';
-import { libraryStyles as styles } from '../styles/screens/LibraryScreen.styles';
-import { getTags } from '../services/tagService'; // Import getTags
-import { Tag } from '../types/music'; // Import Tag type
+import { libraryStyles as styles } from './styles/LibraryScreen.styles';
+import { getTags } from '../services/tagService';
+import { Tag } from '../types';
 
 export default function LibraryScreen() {
   // Add ratingFilter state

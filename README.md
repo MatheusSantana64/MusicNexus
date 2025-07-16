@@ -80,17 +80,17 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📱 Screens
 
+### 📚 Library Screen
+- View your saved music collection
+- Edit ratings and manage tags
+- Filter and sort your music
+
 ### 🔍 Search Screen
 - Search for music using Deezer API
 - View song details (title, artist, album, duration)
 - Rate and save songs to your library
 
-### 📚 Library Screen *(Coming Soon)*
-- View your saved music collection
-- Edit ratings and manage tags
-- Filter and sort your music
-
-### 🏷️ Tags Management *(Coming Soon)*
+### 🏷️ Tags Management
 - Create custom tags with colors
 - Organize your music collection
 - Filter music by tags

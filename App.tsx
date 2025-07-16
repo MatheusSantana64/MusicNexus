@@ -6,11 +6,11 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import SearchScreen from './src/screens/SearchScreen';
-import LibraryScreen from './src/screens/LibraryScreen';
+import SearchScreen from './src/Search/SearchScreen';
+import LibraryScreen from './src//Library/LibraryScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { theme } from './src/styles/theme';
-import TagsScreen from './src/screens/TagsScreen';
+import TagsScreen from './src/Tags/TagsScreen';
 
 const Tab = createBottomTabNavigator();
 

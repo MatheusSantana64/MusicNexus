@@ -1,3 +1,5 @@
+// src/Tags/TagColorPicker.tsx
+// TagColorPicker component for selecting colors for music tags
 import React from 'react';
 import { Modal, View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import ColorPicker, { Panel3, Preview, BrightnessSlider } from 'reanimated-color-picker';

@@ -1,10 +1,10 @@
 // src/hooks/useLibrary.ts
 // Hook for managing library operations and logic
 import React, { useState, useCallback, useMemo } from 'react';
-import { SavedMusic } from '../types/music';
+import { SavedMusic } from '../types';
 import { useMusicStore } from '../store/musicStore';
-import { SORT_OPTIONS, SortMode } from '../components/LibraryHeader';
-import { useModal } from './useModal';
+import { SORT_OPTIONS, SortMode } from '../Library/LibraryHeader';
+import { useModal } from '../hooks/useModal';
 
 export function useLibrary(ratingFilter?: [number, number]) {
   const [sortMode, setSortMode] = useState<SortMode>('release');

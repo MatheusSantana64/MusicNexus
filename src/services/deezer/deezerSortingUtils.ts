@@ -1,5 +1,7 @@
 // src/services/deezer/deezerSortingUtils.ts
-import { DeezerTrack, DeezerAlbum } from '../../types/music';
+// DeezerSortingUtils for sorting Deezer tracks and albums
+// This utility provides methods to sort albums by release date and tracks by album order
+import { DeezerTrack, DeezerAlbum } from '../../types';
 import { compareDates } from '../../utils/dateUtils';
 
 export class DeezerSortingUtils {

@@ -13,12 +13,11 @@ import {
   where 
 } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
-import { SavedMusic, DeezerTrack } from '../types/music';
+import { SavedMusic, DeezerTrack } from '../types';
 import { DeezerService } from './deezer/deezerService';
 import { 
   validateSavedMusicInput,
   safeParseFirebaseMusicDocument,
-  ValidatedSavedMusicInput 
 } from '../utils/validators';
 import { setSavedMusicMeta } from './firestoreMetaHelper';
 

@@ -3,7 +3,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
-import { SavedMusic, Tag } from '../types/music';
+import { SavedMusic, Tag } from '../types';
 import { safeParseFirebaseMusicDocument } from '../utils/validators';
 
 const CACHE_KEY_MUSIC = 'savedMusicCache';

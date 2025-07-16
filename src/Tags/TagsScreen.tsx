@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+// src/Tags/TagsScreen.tsx
+// TagsScreen component for managing music tags
+import React, { useState } from 'react';
 import { View, Text, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { theme } from '../styles/theme';
-import { TagColorPicker } from '../components/TagColorPicker';
+import { TagColorPicker } from './TagColorPicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { tagsScreenStyles as styles } from '../styles/screens/TagsScreen.styles';
-import { Tag } from '../types/music';
-import { useTagStore } from '../store/tagStore'; // <-- Use Zustand store
+import { tagsScreenStyles as styles } from './styles/TagsScreen.styles';
+import { Tag } from '../types';
+import { useTagStore } from '../store/tagStore';
 
 function TagRow({
   tag,

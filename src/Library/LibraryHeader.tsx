@@ -2,13 +2,12 @@
 // Component for the header section of LibraryScreen with search and sort
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import { SavedMusic } from '../types/music';
-import { libraryStyles as styles } from '../styles/screens/LibraryScreen.styles';
+import { SavedMusic } from '../types';
+import { libraryStyles as styles } from './styles/LibraryScreen.styles';
 import { LibrarySortingUtils } from '../utils/librarySortingUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
-import { getRatingText } from '../utils/ratingUtils';
 
 type SortMode = 'added' | 'rating' | 'release' | 'alphabetical' | 'album' | 'artist';
 

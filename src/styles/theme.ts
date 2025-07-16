@@ -1,4 +1,5 @@
 // src/styles/theme.ts
+// Global theme configuration for the app
 import { StyleSheet } from 'react-native';
 
 export const theme = {

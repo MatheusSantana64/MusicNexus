@@ -1,7 +1,7 @@
 // src/hooks/useSearch.ts
 // Hook for searching music tracks using the Deezer API
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { DeezerTrack, SearchMode } from '../types/music';
+import { DeezerTrack, SearchMode } from '../types';
 import { DeezerService } from '../services/deezer/deezerService';
 
 // Search configuration

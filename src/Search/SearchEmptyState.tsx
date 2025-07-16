@@ -2,8 +2,8 @@
 // Component for displaying empty state in the SearchScreen
 import React from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
-import { SearchMode } from '../types/music';
-import { searchStyles as styles } from '../styles/screens/SearchScreen.styles';
+import { SearchMode } from '../types';
+import { searchStyles as styles } from './styles/SearchScreen.styles';
 
 interface SearchEmptyStateProps {
   loading: boolean;

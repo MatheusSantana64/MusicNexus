@@ -2,9 +2,9 @@
 // This file defines the SearchBar component used in the music search feature of the application.
 import React from 'react';
 import { View, TextInput, ActivityIndicator, TouchableOpacity, Text } from 'react-native';
-import { SearchMode } from '../types/music';
+import { SearchMode } from '../types';
 import { SearchFilters } from './SearchFilters';
-import { searchStyles as styles } from '../styles/screens/SearchScreen.styles';
+import { searchStyles as styles } from './styles/SearchScreen.styles';
 
 interface SearchBarProps {
   searchQuery: string;

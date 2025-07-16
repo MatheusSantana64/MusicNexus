@@ -1,7 +1,7 @@
 // src/styles/components/SearchFilters.styles.ts
 // Styles for the Search Filters component
 import { StyleSheet } from 'react-native';
-import { theme } from '../theme';
+import { theme } from '../../styles/theme';
 
 export const searchFiltersStyles = StyleSheet.create({
   iconButtonsContainer: {

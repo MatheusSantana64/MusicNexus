@@ -1,5 +1,7 @@
 // src/services/deezer/deezerApiClient.ts
-import { DeezerTrack, DeezerAlbum, DeezerSearchResponse, DeezerAlbumSearchResponse } from '../../types/music';
+// Deezer API client for fetching tracks and albums
+// This client handles API requests, caching, and data validation
+import { DeezerTrack, DeezerAlbum, DeezerSearchResponse, DeezerAlbumSearchResponse } from '../../types';
 import { CacheService } from './deezerCacheService';
 import { 
   validateDeezerAlbumSearchResponse,

@@ -1,7 +1,7 @@
 // src/styles/components/MusicItem.styles.ts
 // Styles for the Music Item component
 import { StyleSheet } from 'react-native';
-import { theme } from '../theme';
+import { theme } from '../../styles/theme';
 
 const MARGIN_BOTTOM = 3;
 

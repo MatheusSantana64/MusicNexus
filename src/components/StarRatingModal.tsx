@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 import StarRating from 'react-native-star-rating-widget';
 import { getRatingColor, getRatingText } from '../utils/ratingUtils';
-import { starRatingModalStyles as styles } from '../styles/components/StarRatingModal.styles';
+import { starRatingModalStyles as styles } from './styles/StarRatingModal.styles';
 import { useTagStore } from '../store/tagStore';
+import { Tag } from '../types';
 
 interface StarRatingModalProps {
   visible: boolean;
@@ -19,6 +20,7 @@ interface StarRatingModalProps {
   itemName: string;
   initialRating?: number;
   initialSelectedTagIds?: string[];
+  tags: Tag[];
   onSave: (rating: number, selectedTagIds: string[]) => void;
   onCancel: () => void;
 }

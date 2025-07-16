@@ -1,7 +1,7 @@
 // src/hooks/useMusicOperations.ts
 // Custom hook for music operations like saving tracks and albums
 import { useCallback, useState } from 'react';
-import { DeezerTrack } from '../types/music';
+import { DeezerTrack } from '../types';
 import { MusicOperationsService, AlbumGroup } from '../services/musicOperationsService';
 import { useMusicStore } from '../store/musicStore';
 import { useModal } from './useModal';

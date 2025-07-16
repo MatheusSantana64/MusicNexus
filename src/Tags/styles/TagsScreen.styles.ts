@@ -1,7 +1,7 @@
 // src/styles/screens/TagsScreen.styles.ts
 // Styles for the Tags Screen
 import { StyleSheet } from 'react-native';
-import { theme } from '../theme';
+import { theme } from '../../styles/theme';
 
 export const tagsScreenStyles = StyleSheet.create({
     container: {

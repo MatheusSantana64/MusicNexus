@@ -1,6 +1,6 @@
 // src/services/musicOperationsService.ts
 // Handles music operations like saving tracks and albums, showing dialogs, etc.
-import { DeezerTrack, SavedMusic } from '../types/music';
+import { DeezerTrack, SavedMusic } from '../types';
 import { saveMusic, saveMusicBatch } from './musicService';
 import { useMusicStore } from '../store/musicStore';
 import { DeezerService } from './deezer/deezerService';

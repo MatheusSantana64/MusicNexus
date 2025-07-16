@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SearchMode } from '../types/music';
-import { searchFiltersStyles as styles } from '../styles/components/SearchFilters.styles';
+import { SearchMode } from '../types';
+import { searchFiltersStyles as styles } from './styles/SearchFilters.styles';
 
 interface SearchFiltersProps {
   currentMode: SearchMode;

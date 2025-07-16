@@ -8,11 +8,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { DeezerTrack, SavedMusic } from '../types/music';
+import { DeezerTrack, SavedMusic } from '../types';
 import { DeezerService } from '../services/deezer/deezerService';
 import { formatReleaseDate } from '../utils/dateUtils';
 import { useMusicStore } from '../store/musicStore';
-import { musicItemStyles as styles } from '../styles/components/MusicItem.styles';
+import { musicItemStyles as styles } from './styles/MusicItem.styles';
 import { getRatingColor, getRatingText } from '../utils/ratingUtils';
 
 // Use generic types for better type safety

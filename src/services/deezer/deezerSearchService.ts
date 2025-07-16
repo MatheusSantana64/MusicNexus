@@ -1,5 +1,7 @@
 // src/services/deezer/deezerSearchService.ts
-import { DeezerTrack, SearchOptions } from '../../types/music';
+// DeezerSearchService for searching tracks by album or quick search
+// This service handles both album-based searches and quick searches for tracks
+import { DeezerTrack, SearchOptions } from '../../types';
 import { DeezerApiClient } from './deezerApiClient';
 import { DeezerDataEnricher } from './deezerDataEnricher';
 import { DeezerSortingUtils } from './deezerSortingUtils';
