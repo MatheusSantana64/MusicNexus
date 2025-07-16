@@ -1,6 +1,7 @@
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 import { Tag } from '../types/music';
+import { setTagsMeta } from './firestoreMetaHelper'; // Add this import
 
 const COLLECTION_NAME = 'tags';
 
@@ -15,11 +16,13 @@ export async function getTags(): Promise<Tag[]> {
 
 export async function addTag(tag: Omit<Tag, 'id'>): Promise<string> {
   const docRef = await addDoc(collection(db, COLLECTION_NAME), tag);
+  await setTagsMeta();
   return docRef.id;
 }
 
 export async function updateTag(id: string, tag: Partial<Tag>): Promise<void> {
   await updateDoc(doc(db, COLLECTION_NAME, id), tag);
+  await setTagsMeta();
 }
 
 export async function deleteTag(id: string): Promise<void> {
@@ -37,4 +40,5 @@ export async function deleteTag(id: string): Promise<void> {
   });
 
   await Promise.all(updatePromises);
+  await setTagsMeta();
 }

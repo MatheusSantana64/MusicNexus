@@ -2,7 +2,13 @@
 // Music store for managing saved music, loading, and operations
 import { create } from 'zustand';
 import { SavedMusic } from '../types/music';
-import { getSavedMusic, updateMusicRating, updateMusicRatingAndTags, deleteMusic, SortMode } from '../services/musicService';
+import { 
+  getCachedMusic, 
+  setCachedMusic, 
+  getFirestoreLastModified, 
+  fetchMusicFromFirestore 
+} from '../services/firestoreCacheService';
+import { updateMusicRating, updateMusicRatingAndTags, deleteMusic, SortMode } from '../services/musicService';
 
 interface OperationState {
   savingTracks: Set<string>;
@@ -71,19 +77,58 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   // Core actions
   loadMusic: async (sortMode: SortMode = 'release') => {
     try {
+      console.log('[musicStore] loadMusic: Triggered with sortMode:', sortMode, '🎶');
       set({ loading: true, error: null });
-      
-      const musics = await getSavedMusic(sortMode);
-      
+
+      // 1. Get cached music and lastModified
+      const { music: cachedMusic, lastModified: cachedLastModified } = await getCachedMusic();
+      console.log('[musicStore] loadMusic: Cached music count:', cachedMusic.length, 'Cached lastModified:', cachedLastModified, '📦');
+
+      // 2. Get Firestore lastModified
+      const firestoreLastModified = await getFirestoreLastModified();
+      console.log('[musicStore] loadMusic: Firestore lastModified:', firestoreLastModified, '🔥');
+
+      // 3. Decide whether to use cache or fetch from Firestore
+      let useCache = false;
+      if (
+        firestoreLastModified === null ||
+        cachedLastModified === null ||
+        typeof cachedLastModified !== 'number'
+      ) {
+        useCache = false;
+        console.log('[musicStore] loadMusic: Cache is NOT valid (missing or invalid lastModified)', '📦⚠️');
+      } else if (cachedLastModified >= firestoreLastModified) {
+        useCache = true;
+        console.log('[musicStore] loadMusic: Cache is up-to-date, using cached music', '📦✅');
+      } else {
+        console.log('[musicStore] loadMusic: Firestore has newer data, will fetch from Firestore', '🔥⬇️');
+      }
+
+      let music: SavedMusic[] = [];
+      let lastModified = firestoreLastModified ?? Date.now();
+
+      if (useCache && cachedMusic.length > 0) {
+        music = cachedMusic;
+        console.log('[musicStore] loadMusic: Loaded music from cache', '📦');
+      } else {
+        // Fetch from Firestore and update cache
+        const result = await fetchMusicFromFirestore();
+        music = result.music;
+        lastModified = result.lastModified || Date.now();
+        await setCachedMusic(music, lastModified);
+        console.log('[musicStore] loadMusic: Loaded music from Firestore and updated cache', '🔥⬇️📦');
+      }
+
       set({ 
-        savedMusic: musics,
+        savedMusic: music,
         currentSortMode: sortMode,
         loading: false,
         refreshing: false,
         lastUpdated: Date.now()
       });
+      console.log('[musicStore] loadMusic: Store updated. Music count:', music.length, 'Last updated:', new Date().toISOString(), '🎶✅');
     } catch (error) {
-      console.error('Error loading music:', error);
+      console.error('[musicStore] loadMusic: Error loading music:', error, '🎶❌');
       set({ 
         error: error instanceof Error ? error.message : 'Failed to load music',
         loading: false,
@@ -101,10 +146,10 @@ export const useMusicStore = create<MusicState>((set, get) => ({
         savedMusic: [...savedMusic, music],
         lastUpdated: Date.now()
       });
-      console.log('➕ Music added to store:', music.title);
-      console.log('📊 Total music count:', savedMusic.length + 1);
+      console.log('[musicStore] Music added to store:', music.title, '➕🎶');
+      console.log('[musicStore] Total music count:', savedMusic.length + 1, '📊');
     } else {
-      console.log('⚠️ Music already exists in store:', music.title);
+      console.log('[musicStore] Music already exists in store:', music.title, '⚠️');
     }
   },
 
@@ -118,7 +163,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
         savedMusic: [...savedMusic, ...newMusics],
         lastUpdated: Date.now()
       });
-      console.log('➕ Batch added to store:', newMusics.length, 'songs');
+      console.log('[musicStore] Batch added to store:', newMusics.length, 'songs', '➕🎶');
     }
   },
 
@@ -126,7 +171,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     const { operations, isRatingUpdating } = get();
 
     if (isRatingUpdating(firebaseId)) {
-      console.warn('⚠️ Rating update already in progress for:', firebaseId);
+      console.warn('[musicStore] Rating update already in progress for:', firebaseId, '⚠️');
       return false;
     }
 
@@ -153,10 +198,10 @@ export const useMusicStore = create<MusicState>((set, get) => ({
         await updateMusicRating(firebaseId, rating);
       }
 
-      console.log('⭐ Rating/tags updated successfully');
+      console.log('[musicStore] Rating/tags updated successfully', '⭐✅');
       return true;
     } catch (error) {
-      console.error('Error updating rating/tags:', error);
+      console.error('[musicStore] Error updating rating/tags:', error, '⭐❌');
 
       // 3. Rollback on error
       await get().loadMusic();
@@ -170,7 +215,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     const { isMusicDeleting } = get();
     
     if (isMusicDeleting(firebaseId)) {
-      console.warn('⚠️ Delete operation already in progress for:', firebaseId);
+      console.warn('[musicStore] Delete operation already in progress for:', firebaseId, '⚠️');
       return false;
     }
 
@@ -188,10 +233,10 @@ export const useMusicStore = create<MusicState>((set, get) => ({
       // 2. Delete from database
       await deleteMusic(firebaseId);
       
-      console.log('✅ Music deleted successfully');
+      console.log('[musicStore] Music deleted successfully', '🗑️✅');
       return true;
     } catch (error) {
-      console.error('Error deleting music:', error);
+      console.error('[musicStore] Error deleting music:', error, '🗑️❌');
       
       // 3. Rollback on error
       await get().loadMusic();
@@ -221,7 +266,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
           savingTracks: new Set(operations.savingTracks).add(trackId)
         }
       });
-      console.log('🎵 Started saving track:', trackId);
+      console.log('[musicStore] Started saving track:', trackId, '🎵');
     }
   },
 
@@ -236,7 +281,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
           savingTracks: newSet
         }
       });
-      console.log('✅ Finished saving track:', trackId);
+      console.log('[musicStore] Finished saving track:', trackId, '🎵✅');
     }
   },
 
@@ -249,7 +294,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
           savingAlbums: new Set(operations.savingAlbums).add(albumId)
         }
       });
-      console.log('💿 Started saving album:', albumId);
+      console.log('[musicStore] Started saving album:', albumId, '💿');
     }
   },
 
@@ -264,7 +309,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
           savingAlbums: newSet
         }
       });
-      console.log('✅ Finished saving album:', albumId);
+      console.log('[musicStore] Finished saving album:', albumId, '💿✅');
     }
   },
 
@@ -277,7 +322,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
           updatingRatings: new Set(operations.updatingRatings).add(firebaseId)
         }
       });
-      console.log('⭐ Started updating rating:', firebaseId);
+      console.log('[musicStore] Started updating rating:', firebaseId, '⭐');
     }
   },
 
@@ -292,7 +337,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
           updatingRatings: newSet
         }
       });
-      console.log('✅ Finished updating rating:', firebaseId);
+      console.log('[musicStore] Finished updating rating:', firebaseId, '⭐✅');
     }
   },
 
@@ -305,7 +350,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
           deletingMusic: new Set(operations.deletingMusic).add(firebaseId)
         }
       });
-      console.log('🗑️ Started deleting music:', firebaseId);
+      console.log('[musicStore] Started deleting music:', firebaseId, '🗑️');
     }
   },
 
@@ -320,7 +365,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
           deletingMusic: newSet
         }
       });
-      console.log('✅ Finished deleting music:', firebaseId);
+      console.log('[musicStore] Finished deleting music:', firebaseId, '🗑️✅');
     }
   },
 

@@ -20,6 +20,7 @@ import {
   safeParseFirebaseMusicDocument,
   ValidatedSavedMusicInput 
 } from '../utils/validators';
+import { setSavedMusicMeta } from './firestoreMetaHelper';
 
 const COLLECTION_NAME = 'savedMusic';
 const DEFAULT_RELEASE_DATE = '1900-01-01';
@@ -151,6 +152,7 @@ export async function updateMusicRating(firebaseId: string, rating: number): Pro
 
   try {
     await updateDoc(doc(db, COLLECTION_NAME, firebaseId), { rating });
+    await setSavedMusicMeta();
     console.log(`✅ Rating updated for document ${firebaseId}: ${rating}`);
   } catch (error) {
     console.error('Error updating rating:', error);
@@ -165,6 +167,7 @@ export async function deleteMusic(firebaseId: string): Promise<void> {
 
   try {
     await deleteDoc(doc(db, COLLECTION_NAME, firebaseId));
+    await setSavedMusicMeta();
     console.log(`✅ Music deleted from Firebase: ${firebaseId}`);
   } catch (error) {
     console.error('Error deleting music:', error);
@@ -183,6 +186,7 @@ export async function updateMusicRatingAndTags(firebaseId: string, rating: numbe
 
   try {
     await updateDoc(doc(db, COLLECTION_NAME, firebaseId), { rating, tags });
+    await setSavedMusicMeta();
     console.log(`✅ Rating and tags updated for document ${firebaseId}: ${rating}, tags: ${tags.join(', ')}`);
   } catch (error) {
     console.error('Error updating rating/tags:', error);

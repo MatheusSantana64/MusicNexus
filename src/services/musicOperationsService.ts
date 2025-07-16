@@ -4,6 +4,7 @@ import { DeezerTrack, SavedMusic } from '../types/music';
 import { saveMusic, saveMusicBatch } from './musicService';
 import { useMusicStore } from '../store/musicStore';
 import { DeezerService } from './deezer/deezerService';
+import { setSavedMusicMeta } from './firestoreMetaHelper';
 
 export interface AlbumGroup {
   albumId: string;
@@ -59,6 +60,7 @@ export class MusicOperationsService {
 
       // OPTIMISTIC UPDATE TO STORE
       store.addMusic(savedMusic);
+      await setSavedMusicMeta();
 
       console.log('✅ Track saved successfully:', track.title);
     } catch (error) {
@@ -117,6 +119,7 @@ export class MusicOperationsService {
       })).filter((_, index) => firebaseIds[index]);
 
       store.addMusicBatch(savedMusics);
+      await setSavedMusicMeta();
       console.log(`✅ Album saved: ${firebaseIds.length} tracks`);
       return firebaseIds;
     } catch (error) {
