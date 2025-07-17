@@ -59,6 +59,9 @@ interface MusicState {
   isRatingUpdating: (firebaseId: string) => boolean;
   isMusicDeleting: (firebaseId: string) => boolean;
   isAnyOperationInProgress: () => boolean;
+
+  // Add this line:
+  updateRatingHistory: (firebaseId: string, entryIdx: number) => void;
 }
 
 export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWithFirestore?: () => Promise<void> }>((set, get) => ({
@@ -418,6 +421,20 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       });
       console.log('[musicStore] Finished deleting music:', firebaseId, '🗑️✅');
     }
+  },
+
+  updateRatingHistory: (firebaseId: string, entryIdx: number) => {
+    const { savedMusic } = get();
+    const updatedMusic = savedMusic.map(music => {
+      if (music.firebaseId === firebaseId && music.ratingHistory) {
+        const newHistory = music.ratingHistory.filter((_, idx) => idx !== entryIdx);
+        return { ...music, ratingHistory: newHistory };
+      }
+      return music;
+    });
+    set({ savedMusic: updatedMusic, _dirty: true });
+    setCachedMusic(updatedMusic, Date.now());
+    (get() as any).syncMusicWithFirestore();
   },
 
   // Helper functions

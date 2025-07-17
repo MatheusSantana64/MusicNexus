@@ -10,11 +10,20 @@ interface RatingHistoryModalProps {
   visible: boolean;
   music: SavedMusic;
   onClose: () => void;
+  onDeleteEntry?: (music: SavedMusic, entryIdx: number) => void;
 }
 
-export function RatingHistoryModal({ visible, music, onClose }: RatingHistoryModalProps) {
+export function RatingHistoryModal({ visible, music, onClose, onDeleteEntry }: RatingHistoryModalProps) {
   const history: RatingHistoryEntry[] = music.ratingHistory || [];
   const sortedHistory = [...history].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  // Helper to map sorted index to original index
+  const getOriginalIndex = (sortedIdx: number) => {
+    const entry = sortedHistory[sortedIdx];
+    return history.findIndex(
+      h => h.rating === entry.rating && h.timestamp === entry.timestamp
+    );
+  };
 
   return (
     <Modal
@@ -35,16 +44,28 @@ export function RatingHistoryModal({ visible, music, onClose }: RatingHistoryMod
             <FlatList
               data={sortedHistory}
               keyExtractor={(_, idx) => idx.toString()}
-              renderItem={({ item }) => (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <Text style={{ color: getRatingColor(item.rating), fontWeight: 'bold', width: 48 }}>
-                    {getRatingText(item.rating)}
-                  </Text>
-                  <Text style={{ color: '#bbb', marginLeft: 12 }}>
-                    {formatDateTimeDDMMYY_HHMM(item.timestamp)}
-                  </Text>
-                </View>
-              )}
+              renderItem={({ item, index }) => {
+                const originalIdx = getOriginalIndex(index);
+                return (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <Text style={{ color: getRatingColor(item.rating), fontWeight: 'bold', width: 48 }}>
+                      {getRatingText(item.rating)}
+                    </Text>
+                    <Text style={{ color: '#bbb', marginLeft: 12 }}>
+                      {formatDateTimeDDMMYY_HHMM(item.timestamp)}
+                    </Text>
+                    {/* Only show delete button for entries after the first (index > 0) */}
+                    {onDeleteEntry && index > 0 && (
+                      <TouchableOpacity
+                        style={{ marginLeft: 16, padding: 4 }}
+                        onPress={() => onDeleteEntry(music, originalIdx)}
+                      >
+                        <Text style={{ color: '#FF3B30', fontWeight: 'bold' }}>Delete</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              }}
               style={{ maxHeight: 220, marginBottom: 12 }}
             />
           )}

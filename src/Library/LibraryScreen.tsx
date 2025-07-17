@@ -17,6 +17,7 @@ import { libraryStyles as styles } from './styles/LibraryScreen.styles';
 import { getTags } from '../services/tagService';
 import { Tag } from '../types';
 import { Ionicons } from '@expo/vector-icons';
+import { useMusicStore } from '../store/musicStore';
 
 export default function LibraryScreen() {
   // Add ratingFilter state
@@ -134,6 +135,18 @@ export default function LibraryScreen() {
     return () => { mounted = false; };
   }, [ratingModalVisible]);
 
+  // Handler to delete a rating history entry
+  const handleDeleteHistoryEntry = useCallback((music: SavedMusic, entryIdx: number) => {
+    if (!music.firebaseId) return;
+    useMusicStore.getState().updateRatingHistory(music.firebaseId, entryIdx);
+    // Optionally update local modal state
+    setHistoryMusic(prev =>
+      prev && prev.firebaseId === music.firebaseId
+        ? { ...prev, ratingHistory: prev.ratingHistory?.filter((_, i) => i !== entryIdx) }
+        : prev
+    );
+  }, []);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {hasMusic && (
@@ -205,6 +218,7 @@ export default function LibraryScreen() {
           visible={historyModalVisible}
           music={historyMusic}
           onClose={() => setHistoryModalVisible(false)}
+          onDeleteEntry={handleDeleteHistoryEntry}
         />
       )}
     </SafeAreaView>
