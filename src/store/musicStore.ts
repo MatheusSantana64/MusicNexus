@@ -11,6 +11,7 @@ import {
 import { setSavedMusicMeta } from '../services/firestoreMetaHelper';
 import NetInfo from '@react-native-community/netinfo';
 import { updateMusicRating, updateMusicRatingAndTags, deleteMusic, SortMode } from '../services/musicService';
+import { doc, updateDoc } from 'firebase/firestore';
 
 interface OperationState {
   savingTracks: Set<string>;
@@ -61,7 +62,7 @@ interface MusicState {
   isAnyOperationInProgress: () => boolean;
 
   // Add this line:
-  updateRatingHistory: (firebaseId: string, entryIdx: number) => void;
+  updateRatingHistory: (firebaseId: string, entryIdx: number) => Promise<void>;
 }
 
 export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWithFirestore?: () => Promise<void> }>((set, get) => ({
@@ -423,7 +424,7 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
     }
   },
 
-  updateRatingHistory: (firebaseId: string, entryIdx: number) => {
+  updateRatingHistory: async (firebaseId: string, entryIdx: number) => {
     const { savedMusic } = get();
     const updatedMusic = savedMusic.map(music => {
       if (music.firebaseId === firebaseId && music.ratingHistory) {
@@ -434,6 +435,19 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
     });
     set({ savedMusic: updatedMusic, _dirty: true });
     setCachedMusic(updatedMusic, Date.now());
+
+    // Update Firestore
+    try {
+      const music = updatedMusic.find(m => m.firebaseId === firebaseId);
+      if (music) {
+        const docRef = doc(require('../config/firebaseConfig').db, 'savedMusic', firebaseId);
+        await updateDoc(docRef, { ratingHistory: music.ratingHistory ?? [] });
+        await setSavedMusicMeta();
+      }
+    } catch (err) {
+      console.error('[musicStore] Failed to update ratingHistory in Firestore:', err);
+    }
+
     (get() as any).syncMusicWithFirestore();
   },
 

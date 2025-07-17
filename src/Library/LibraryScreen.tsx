@@ -130,9 +130,9 @@ export default function LibraryScreen() {
   }, [ratingModalVisible]);
 
   // Handler to delete a rating history entry
-  const handleDeleteHistoryEntry = useCallback((music: SavedMusic, entryIdx: number) => {
+  const handleDeleteHistoryEntry = useCallback(async (music: SavedMusic, entryIdx: number) => {
     if (!music.firebaseId) return;
-    useMusicStore.getState().updateRatingHistory(music.firebaseId, entryIdx);
+    await useMusicStore.getState().updateRatingHistory(music.firebaseId, entryIdx);
     // Optionally update local modal state
     setHistoryMusic(prev =>
       prev && prev.firebaseId === music.firebaseId
