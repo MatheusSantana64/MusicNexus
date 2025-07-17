@@ -114,14 +114,16 @@ export default function TagsScreen() {
 
   // Move tag up by 1 position
   const handleMoveUp = async (id: string) => {
-    const idx = tags.findIndex(tag => tag.id === id);
+    // Always work with tags sorted by position
+    const sortedTags = [...tags].sort((a, b) => a.position - b.position);
+    const idx = sortedTags.findIndex(tag => tag.id === id);
     if (idx > 0) {
-      const newTags = [...tags];
-      [newTags[idx - 1], newTags[idx]] = [newTags[idx], newTags[idx - 1]];
-      // Update positions in Firestore
+      const tagAbove = sortedTags[idx - 1];
+      const tagCurrent = sortedTags[idx];
+      // Swap their positions
       await Promise.all([
-        updateTag(newTags[idx].id, { position: idx + 1 }),
-        updateTag(newTags[idx - 1].id, { position: idx }),
+        updateTag(tagCurrent.id, { position: tagAbove.position }),
+        updateTag(tagAbove.id, { position: tagCurrent.position }),
       ]);
       refresh();
     }

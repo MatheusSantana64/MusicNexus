@@ -28,8 +28,24 @@ export async function updateTag(id: string, tag: Partial<Tag>): Promise<void> {
 }
 
 export async function deleteTag(id: string): Promise<void> {
+  // Get the tag to delete (to know its position)
+  const tagDoc = await getDocs(query(collection(db, 'tags'), where('__name__', '==', id)));
+  if (tagDoc.empty) return;
+  const tagToDelete = tagDoc.docs[0].data() as Tag;
+  const deletedPosition = tagToDelete.position;
+
   // Delete the tag document
   await deleteDoc(doc(db, 'tags', id));
+
+  // Update positions of tags below the deleted one
+  const tagsToUpdate = await getDocs(
+    query(collection(db, 'tags'), where('position', '>', deletedPosition))
+  );
+  const updatePositionPromises = tagsToUpdate.docs.map(docSnap => {
+    const tagData = docSnap.data();
+    return updateDoc(doc(db, 'tags', docSnap.id), { position: tagData.position - 1 });
+  });
+  await Promise.all(updatePositionPromises);
 
   // Remove the tag from all songs
   const musicQuery = query(collection(db, 'savedMusic'), where('tags', 'array-contains', id));
