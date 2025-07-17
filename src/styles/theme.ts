@@ -32,7 +32,7 @@ export const theme = {
     },
     // BUTTON COLORS
     button: {
-      primary: '#004b9aff', // Blue for primary buttons
+      primary: '#003f82ff', // Blue for primary buttons
       success: '#00570dff', // Green for success actions
       delete: '#5a0f0bff', // Red for delete actions
       cancel: '#444444', // Dark gray for cancel actions

@@ -65,14 +65,8 @@ export default function LibraryScreen() {
       message: `Options for "${music.title}"`,
       actions: [
         {
-          text: 'Rate',
-          icon: { name: 'star-outline', color: '#FFD700' },
-          style: 'default',
-          onPress: () => handleMusicAction(music, 'rate'),
-        },
-        {
           text: 'Rating History',
-          icon: { name: 'time-outline', color: '#007AFF' },
+          icon: { name: 'time-outline', color: '#006effff' },
           style: 'default',
           onPress: () => handleShowHistory(music),
         },

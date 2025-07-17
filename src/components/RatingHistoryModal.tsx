@@ -1,10 +1,13 @@
 // src/components/RatingHistoryModal.tsx
 // Modal to display the rating history of a song
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Modal } from 'react-native';
 import { SavedMusic, RatingHistoryEntry } from '../types';
 import { getRatingColor, getRatingText } from '../utils/ratingUtils';
 import { formatDateTimeDDMMYY_HHMM } from '../utils/dateUtils';
+import { ratingHistoryModalStyles as styles } from './styles/RatingHistoryModal.styles';
+import { Ionicons } from '@expo/vector-icons';
+import { OptionsModal } from './OptionsModal';
 
 interface RatingHistoryModalProps {
   visible: boolean;
@@ -25,55 +28,119 @@ export function RatingHistoryModal({ visible, music, onClose, onDeleteEntry }: R
     );
   };
 
+  // State for confirmation modal
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [pendingDeleteIdx, setPendingDeleteIdx] = useState<number | null>(null);
+
+  const handleRequestDelete = (idx: number) => {
+    setPendingDeleteIdx(idx);
+    setConfirmVisible(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (pendingDeleteIdx !== null && onDeleteEntry) {
+      onDeleteEntry(music, pendingDeleteIdx);
+    }
+    setConfirmVisible(false);
+    setPendingDeleteIdx(null);
+  };
+
+  const handleCancelDelete = () => {
+    setConfirmVisible(false);
+    setPendingDeleteIdx(null);
+  };
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
-        <View style={{ backgroundColor: '#181818', borderRadius: 12, padding: 20, minWidth: 300, maxWidth: 350 }}>
-          <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 8 }}>
-            Rating History
-          </Text>
-          <Text style={{ color: '#aaa', marginBottom: 12 }}>{music.title} - {music.artist}</Text>
-          {sortedHistory.length === 0 ? (
-            <Text style={{ color: '#ccc', fontStyle: 'italic', marginBottom: 16 }}>No rating history.</Text>
-          ) : (
-            <FlatList
-              data={sortedHistory}
-              keyExtractor={(_, idx) => idx.toString()}
-              renderItem={({ item, index }) => {
-                const originalIdx = getOriginalIndex(index);
-                return (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                    <Text style={{ color: getRatingColor(item.rating), fontWeight: 'bold', width: 48 }}>
-                      {getRatingText(item.rating)}
-                    </Text>
-                    <Text style={{ color: '#bbb', marginLeft: 12 }}>
-                      {formatDateTimeDDMMYY_HHMM(item.timestamp)}
-                    </Text>
-                    {/* Only show delete button for entries after the first (index > 0) */}
-                    {onDeleteEntry && index > 0 && (
-                      <TouchableOpacity
-                        style={{ marginLeft: 16, padding: 4 }}
-                        onPress={() => onDeleteEntry(music, originalIdx)}
-                      >
-                        <Text style={{ color: '#FF3B30', fontWeight: 'bold' }}>Delete</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
-              }}
-              style={{ maxHeight: 220, marginBottom: 12 }}
-            />
-          )}
-          <TouchableOpacity onPress={onClose} style={{ alignSelf: 'flex-end', marginTop: 8 }}>
-            <Text style={{ color: '#4da6ff', fontWeight: 'bold', fontSize: 16 }}>Close</Text>
-          </TouchableOpacity>
+    <>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.title}>
+              Rating History
+            </Text>
+            <Text style={styles.musicTitle}>{music.title}</Text>
+            <Text style={styles.artist}>{music.artist}</Text>
+            {sortedHistory.length === 0 ? (
+              <Text style={styles.emptyText}>No rating history.</Text>
+            ) : (
+              <FlatList
+                data={sortedHistory}
+                keyExtractor={(_, idx) => idx.toString()}
+                renderItem={({ item, index }) => {
+                  const originalIdx = getOriginalIndex(index);
+                  return (
+                    <View style={styles.historyRow}>
+                      <Ionicons
+                        name="star"
+                        size={18}
+                        color={getRatingColor(item.rating)}
+                        style={styles.ratingIcon}
+                      />
+                      <Text style={[styles.rating, { color: getRatingColor(item.rating) }]}>
+                        {getRatingText(item.rating)}
+                      </Text>
+                      <Text style={styles.timestamp}>
+                        {formatDateTimeDDMMYY_HHMM(item.timestamp)}
+                      </Text>
+                      {/* Only show delete button for entries after the first (index > 0) */}
+                      {onDeleteEntry && index > 0 && (
+                        <TouchableOpacity
+                          style={styles.deleteButton}
+                          onPress={() => handleRequestDelete(originalIdx)}
+                          accessibilityLabel="Delete rating entry"
+                        >
+                          <Ionicons
+                            name="trash-outline"
+                            size={18}
+                            color={styles.deleteButton.color}
+                          />
+                        </TouchableOpacity>
+                      )}
+                      {index === 0 && (
+                        <Ionicons
+                          name="trash-outline"
+                          size={18}
+                          style={{ ...styles.deleteButton, color: 'gray' }}
+                        />
+                      )}
+                    </View>
+                  );
+                }}
+                style={styles.list}
+              />
+            )}
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Text style={styles.closeText}>Close</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+      {/* Confirmation Modal */}
+      <OptionsModal
+        visible={confirmVisible}
+        title="Delete Rating Entry"
+        message="Are you sure you want to delete this rating entry? This action cannot be undone."
+        actions={[
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: handleConfirmDelete,
+            icon: { name: 'trash-outline', color: '#FF3B30' },
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: handleCancelDelete,
+            icon: { name: 'close-outline', color: '#8E8E93' },
+          },
+        ]}
+        onBackdropPress={handleCancelDelete}
+      />
+    </>
   );
 }
