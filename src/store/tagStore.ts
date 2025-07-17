@@ -11,6 +11,7 @@ import {
 import { setTagsMeta } from '../services/firestoreMetaHelper';
 import NetInfo from '@react-native-community/netinfo';
 import { addTag, updateTag, deleteTag } from '../services/tagService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface TagState {
   tags: Tag[];
@@ -45,6 +46,23 @@ export const useTagStore = create<TagState & { _dirty?: boolean; syncTagsWithFir
       }
       const { tags: cachedTags, lastModified: cachedLastModified } = await getCachedTags();
       const firestoreLastModified = await getTagsFirestoreLastModified();
+
+      // --- NEW: Sync deleted tag IDs ---
+      const deletedIds = await getDeletedTagIds();
+      if (deletedIds.length > 0) {
+        const { db } = require('../config/firebaseConfig');
+        const { doc, deleteDoc } = require('firebase/firestore');
+        for (const id of deletedIds) {
+          try {
+            await deleteDoc(doc(db, 'tags', id));
+            console.log('[tagStore] Synced deleted tag from Firestore:', id);
+          } catch (err) {
+            console.warn('[tagStore] Failed to delete tag from Firestore during sync:', id, err);
+          }
+        }
+        await setDeletedTagIds([]); // Clear after syncing
+      }
+
       if (
         typeof cachedLastModified === 'number' &&
         (firestoreLastModified === null || cachedLastModified > firestoreLastModified)
@@ -154,21 +172,35 @@ export const useTagStore = create<TagState & { _dirty?: boolean; syncTagsWithFir
   },
 
   deleteTag: async (id: string) => {
-    set({ loading: true, error: null });
-    try {
-      // Optimistic update: remove from local state and cache
-      const { tags } = get();
-      const updatedTags = tags.filter(t => t.id !== id);
-      const newLastModified = Date.now();
-      set({ tags: updatedTags, lastUpdated: newLastModified, _dirty: true, loading: false });
-      setCachedTags(updatedTags, newLastModified);
-      (get() as any).syncTagsWithFirestore();
-      // Try to delete from Firestore if online (will be merged by sync)
-      try { await deleteTag(id); } catch {}
+    // Always update local state instantly for offline UX
+    const { tags } = get();
+    const updatedTags = tags.filter(t => t.id !== id);
+    const newLastModified = Date.now();
+    set({ tags: updatedTags, lastUpdated: newLastModified, _dirty: true, loading: false });
+    setCachedTags(updatedTags, newLastModified);
+
+    // Check network status
+    const state = await NetInfo.fetch();
+    if (state.isConnected) {
+      set({ loading: true });
+      try {
+        await deleteTag(id);
+        (get() as any).syncTagsWithFirestore();
+        set({ loading: false });
+        return true;
+      } catch (error) {
+        set({ error: error instanceof Error ? error.message : 'Failed to delete tag', loading: false });
+        return false;
+      }
+    } else {
+      // Offline: track for later sync, but don't set loading
+      const deletedIds = await getDeletedTagIds();
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        await setDeletedTagIds(deletedIds);
+      }
+      // No loading spinner for offline delete
       return true;
-    } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to delete tag', loading: false });
-      return false;
     }
   },
 
@@ -181,6 +213,16 @@ export const useTagStore = create<TagState & { _dirty?: boolean; syncTagsWithFir
     set({ error: null });
   },
 }));
+
+const DELETED_TAG_IDS_KEY = 'deletedTagIds';
+
+async function getDeletedTagIds(): Promise<string[]> {
+  const json = await AsyncStorage.getItem(DELETED_TAG_IDS_KEY);
+  return json ? JSON.parse(json) : [];
+}
+async function setDeletedTagIds(ids: string[]): Promise<void> {
+  await AsyncStorage.setItem(DELETED_TAG_IDS_KEY, JSON.stringify(ids));
+}
 
 // Optionally, initialize tags on app start
 useTagStore.getState().loadTags();

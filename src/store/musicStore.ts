@@ -12,6 +12,7 @@ import { setSavedMusicMeta } from '../services/firestoreMetaHelper';
 import NetInfo from '@react-native-community/netinfo';
 import { updateMusicRating, updateMusicRatingAndTags, deleteMusic, SortMode } from '../services/musicService';
 import { doc, updateDoc } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface OperationState {
   savingTracks: Set<string>;
@@ -64,6 +65,18 @@ interface MusicState {
   updateRatingHistory: (firebaseId: string, entryIdx: number) => Promise<void>;
 }
 
+const DELETED_MUSIC_IDS_KEY = 'deletedMusicIds';
+
+// Helper to get/set deleted IDs
+async function getDeletedMusicIds(): Promise<string[]> {
+  const json = await AsyncStorage.getItem(DELETED_MUSIC_IDS_KEY);
+  return json ? JSON.parse(json) : [];
+}
+async function setDeletedMusicIds(ids: string[]): Promise<void> {
+  await AsyncStorage.setItem(DELETED_MUSIC_IDS_KEY, JSON.stringify(ids));
+}
+
+// --- SYNC LOGIC ---
 export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWithFirestore?: () => Promise<void> }>((set, get) => ({
   // Initial state
   savedMusic: [],
@@ -92,6 +105,23 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       }
       const { music: cachedMusic, lastModified: cachedLastModified } = await getCachedMusic();
       const firestoreLastModified = await getFirestoreLastModified();
+
+      // --- NEW: Sync deleted IDs ---
+      const deletedIds = await getDeletedMusicIds();
+      if (deletedIds.length > 0) {
+        const { db } = require('../config/firebaseConfig');
+        const { doc, deleteDoc } = require('firebase/firestore');
+        for (const id of deletedIds) {
+          try {
+            await deleteDoc(doc(db, 'savedMusic', id));
+            console.log('[musicStore] Synced deleted music from Firestore:', id);
+          } catch (err) {
+            console.warn('[musicStore] Failed to delete music from Firestore during sync:', id, err);
+          }
+        }
+        await setDeletedMusicIds([]); // Clear after syncing
+      }
+
       if (
         typeof cachedLastModified === 'number' &&
         (firestoreLastModified === null || cachedLastModified > firestoreLastModified)
@@ -304,8 +334,18 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       setCachedMusic(updatedMusic, newLastModified);
       (get() as any).syncMusicWithFirestore();
       console.log('[musicStore] Music deleted locally:', firebaseId, '🗑️');
-      // 🔥 Actually delete from Firestore
-      await deleteMusic(firebaseId);
+
+      // 🔥 Actually delete from Firestore if online, else track for later
+      const state = await NetInfo.fetch();
+      if (state.isConnected) {
+        await deleteMusic(firebaseId);
+      } else {
+        const deletedIds = await getDeletedMusicIds();
+        if (!deletedIds.includes(firebaseId)) {
+          deletedIds.push(firebaseId);
+          await setDeletedMusicIds(deletedIds);
+        }
+      }
       return true;
     } catch (error) {
       console.error('[musicStore] Error deleting music:', error, '🗑️❌');
