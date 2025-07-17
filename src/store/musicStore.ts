@@ -291,6 +291,8 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       setCachedMusic(updatedMusic, newLastModified);
       (get() as any).syncMusicWithFirestore();
       console.log('[musicStore] Music deleted locally:', firebaseId, '🗑️');
+      // 🔥 Actually delete from Firestore
+      await deleteMusic(firebaseId);
       return true;
     } catch (error) {
       console.error('[musicStore] Error deleting music:', error, '🗑️❌');
