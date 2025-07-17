@@ -6,11 +6,13 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import SearchScreen from './src/Search/SearchScreen';
-import LibraryScreen from './src//Library/LibraryScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { theme } from './src/styles/theme';
+
+import LibraryScreen from './src//Library/LibraryScreen';
+import SearchScreen from './src/Search/SearchScreen';
 import TagsScreen from './src/Tags/TagsScreen';
+import HistoryScreen from './src/History/HistoryScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -77,7 +79,7 @@ function TabNavigator() {
       />
       <Tab.Screen 
         name="History" 
-        component={SearchScreen}
+        component={HistoryScreen}
         options={{ 
           title: 'History',
         }}

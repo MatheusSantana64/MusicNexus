@@ -1,6 +1,7 @@
 // src/styles/theme.ts
 // Global theme configuration for the app
 import { StyleSheet } from 'react-native';
+import { success } from 'zod';
 
 export const theme = {
   // 🎨 COLORS - AMOLED DARK MODE
@@ -14,6 +15,7 @@ export const theme = {
       black: '#000000', // Black text
       blue: '#007AFF', // Blue for links and interactive text
       success: '#32D74B', // Brighter green for dark mode
+      successDarker: '#0c912bff', // Darker green for success actions
       error: '#FF453A', // Brighter red for dark mode
       warning: '#FF9F0A', // Brighter orange for dark mode
     },
