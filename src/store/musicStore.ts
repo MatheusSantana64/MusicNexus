@@ -244,13 +244,14 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       // 1. Optimistic update
       const { savedMusic } = get();
       const now = new Date().toISOString();
+      let newRatingHistory: RatingHistoryEntry[] = [];
       const updatedMusic = savedMusic.map(music => {
         if (music.firebaseId === firebaseId) {
-          const newHistory: RatingHistoryEntry[] = [
+          newRatingHistory = [
             ...(music.ratingHistory || []),
             { rating, timestamp: now }
           ];
-          return { ...music, rating, tags: tags ?? music.tags, ratingHistory: newHistory };
+          return { ...music, rating, tags: tags ?? music.tags, ratingHistory: newRatingHistory };
         }
         return music;
       });
@@ -263,6 +264,18 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       setCachedMusic(updatedMusic, newLastModified);
       (get() as any).syncMusicWithFirestore();
       console.log('[musicStore] Rating/tags updated successfully, history appended', '⭐✅');
+
+      // 2. Update Firestore immediately if online
+      const state = await NetInfo.fetch();
+      if (state.isConnected) {
+        await updateDoc(
+          doc(require('../config/firebaseConfig').db, 'savedMusic', firebaseId),
+          { rating, tags: tags ?? [], ratingHistory: newRatingHistory }
+        );
+        await setSavedMusicMeta();
+        console.log('[musicStore] Firestore updated immediately for rating/tags/history', '⭐🔥');
+      }
+
       return true;
     } catch (error) {
       console.error('[musicStore] Error updating rating/tags:', error, '⭐❌');

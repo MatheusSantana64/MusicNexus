@@ -39,6 +39,7 @@ export class MusicOperationsService {
       const firebaseId = await saveMusic(track, { rating, tags });
 
       // Create SavedMusic object for optimistic update
+      const now = new Date().toISOString();
       const savedMusic: SavedMusic = {
         id: track.id,
         title: track.title,
@@ -56,6 +57,7 @@ export class MusicOperationsService {
         savedAt: new Date(),
         firebaseId,
         tags,
+        ratingHistory: rating > 0 ? [{ rating, timestamp: now }] : [],
       };
 
       // OPTIMISTIC UPDATE TO STORE

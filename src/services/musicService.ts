@@ -45,6 +45,7 @@ export async function saveMusic(track: DeezerTrack, options: SaveMusicOptions = 
   }
 
   try {
+    const now = new Date().toISOString();
     const musicData: Omit<SavedMusic, 'firebaseId'> = {
       id: track.id,
       title: track.title,
@@ -61,6 +62,7 @@ export async function saveMusic(track: DeezerTrack, options: SaveMusicOptions = 
       diskNumber: track.disk_number || 1,
       savedAt: new Date(),
       tags,
+      ratingHistory: rating > 0 ? [{ rating, timestamp: now }] : [],
     };
 
     // 🛡️ VALIDATE WITH ZOD BEFORE SAVING
