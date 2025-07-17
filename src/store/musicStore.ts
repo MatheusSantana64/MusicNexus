@@ -61,7 +61,6 @@ interface MusicState {
   isMusicDeleting: (firebaseId: string) => boolean;
   isAnyOperationInProgress: () => boolean;
 
-  // Add this line:
   updateRatingHistory: (firebaseId: string, entryIdx: number) => Promise<void>;
 }
 

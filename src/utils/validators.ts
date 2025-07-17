@@ -65,6 +65,12 @@ export const DeezerAlbumSearchResponseSchema = z.object({
 
 // === SAVED MUSIC VALIDATION SCHEMAS ===
 
+// Add this schema for rating history entries
+const RatingHistoryEntrySchema = z.object({
+  rating: z.number(),
+  timestamp: z.string(),
+});
+
 // Schema for validating saved music data before saving to Firebase
 export const SavedMusicInputSchema = z.object({
   id: IdSchema,
@@ -85,6 +91,7 @@ export const SavedMusicInputSchema = z.object({
   diskNumber: z.number().min(1),
   savedAt: z.date(),
   tags: z.array(z.string()).default([]),
+  ratingHistory: z.array(RatingHistoryEntrySchema).optional(),
 });
 
 // Schema for validating Firebase document data

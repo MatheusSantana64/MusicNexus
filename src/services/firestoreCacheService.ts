@@ -78,7 +78,12 @@ export async function fetchMusicFromFirestore(): Promise<{ music: SavedMusic[]; 
         if (typeof meta.lastModified === 'number') lastModified = meta.lastModified;
         console.log('[firestoreCacheService] fetchMusicFromFirestore: Found _meta doc:', meta, '🔥');
       } else {
-        const raw = { ...docSnap.data(), firebaseId: docSnap.id, savedAt: docSnap.data().savedAt?.toDate?.() ?? new Date() };
+        const raw = { 
+          ...docSnap.data(), 
+          firebaseId: docSnap.id, 
+          savedAt: docSnap.data().savedAt?.toDate?.() ?? new Date(),
+          ratingHistory: docSnap.data().ratingHistory ?? [],
+        };
         const validated = safeParseFirebaseMusicDocument(raw);
         if (validated) {
           music.push(validated);
