@@ -3,6 +3,18 @@
 export function formatReleaseDate(dateString: string): string {
   try {
     const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return dateString;
+  }
+}
+
+/*export function formatReleaseDateBR(dateString: string): string {
+  try {
+    const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', {
       year: 'numeric',
       month: 'short',
@@ -11,7 +23,7 @@ export function formatReleaseDate(dateString: string): string {
   } catch {
     return dateString;
   }
-}
+}*/
 
 export function compareDates(dateA: string, dateB: string): number {
   const timeA = new Date(dateA).getTime();

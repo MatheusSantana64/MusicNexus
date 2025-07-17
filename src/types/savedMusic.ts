@@ -15,11 +15,11 @@ export interface SavedMusic {
   coverUrl: string;
   preview: string;
   duration: number;
-  rating: number | null;
+  rating: number;
   releaseDate: string;
   trackPosition: number;
-  diskNumber: number | null;
-  savedAt: Date | null;
+  diskNumber: number;
+  savedAt: Date;
   tags: string[];
   firebaseId?: string;
   ratingHistory?: RatingHistoryEntry[];
