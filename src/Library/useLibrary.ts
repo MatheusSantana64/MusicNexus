@@ -102,6 +102,20 @@ export function useLibrary(ratingFilter?: [number, number]) {
   const handleRatingSave = useCallback(async (rating: number, tags: string[]) => {
     if (!selectedMusic) return;
 
+    // Prevent update if rating and tags are unchanged
+    const isSameRating = selectedMusic.rating === rating;
+    const areTagsSame =
+      Array.isArray(selectedMusic.tags) &&
+      Array.isArray(tags) &&
+      selectedMusic.tags.length === tags.length &&
+      selectedMusic.tags.every((tag) => tags.includes(tag));
+
+    if (isSameRating && areTagsSame) {
+      setRatingModalVisible(false);
+      setSelectedMusic(null);
+      return; // No update needed
+    }
+
     setRatingModalVisible(false);
     setSelectedMusic(null);
 

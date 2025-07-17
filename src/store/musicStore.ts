@@ -275,12 +275,19 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       const { savedMusic } = get();
       const now = new Date().toISOString();
       let newRatingHistory: RatingHistoryEntry[] = [];
+      let prevRating: number | undefined;
       const updatedMusic = savedMusic.map(music => {
         if (music.firebaseId === firebaseId) {
-          newRatingHistory = [
-            ...(music.ratingHistory || []),
-            { rating, timestamp: now }
-          ];
+          prevRating = music.rating;
+          // Only append to history if rating actually changed
+          if (music.rating !== rating) {
+            newRatingHistory = [
+              ...(music.ratingHistory || []),
+              { rating, timestamp: now }
+            ];
+          } else {
+            newRatingHistory = music.ratingHistory || [];
+          }
           return { ...music, rating, tags: tags ?? music.tags, ratingHistory: newRatingHistory };
         }
         return music;
@@ -293,14 +300,18 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       });
       setCachedMusic(updatedMusic, newLastModified);
       (get() as any).syncMusicWithFirestore();
-      console.log('[musicStore] Rating/tags updated successfully, history appended', '⭐✅');
+      console.log('[musicStore] Rating/tags updated successfully, history updated if rating changed', '⭐✅');
 
       // 2. Update Firestore immediately if online
       const state = await NetInfo.fetch();
       if (state.isConnected) {
+        const updateObj: any = { rating, tags: tags ?? [] };
+        if (prevRating !== undefined && prevRating !== rating) {
+          updateObj.ratingHistory = newRatingHistory;
+        }
         await updateDoc(
           doc(require('../config/firebaseConfig').db, 'savedMusic', firebaseId),
-          { rating, tags: tags ?? [], ratingHistory: newRatingHistory }
+          updateObj
         );
         await setSavedMusicMeta();
         console.log('[musicStore] Firestore updated immediately for rating/tags/history', '⭐🔥');
