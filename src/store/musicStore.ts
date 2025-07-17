@@ -1,7 +1,7 @@
 // src/store/musicStore.ts
 // Music store for managing saved music, loading, and operations
 import { create } from 'zustand';
-import { SavedMusic } from '../types';
+import { SavedMusic, RatingHistoryEntry } from '../types';
 import { 
   getCachedMusic, 
   setCachedMusic, 
@@ -240,11 +240,17 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       get().startRatingUpdate(firebaseId);
       // 1. Optimistic update
       const { savedMusic } = get();
-      const updatedMusic = savedMusic.map(music =>
-        music.firebaseId === firebaseId
-          ? { ...music, rating, tags: tags ?? music.tags }
-          : music
-      );
+      const now = new Date().toISOString();
+      const updatedMusic = savedMusic.map(music => {
+        if (music.firebaseId === firebaseId) {
+          const newHistory: RatingHistoryEntry[] = [
+            ...(music.ratingHistory || []),
+            { rating, timestamp: now }
+          ];
+          return { ...music, rating, tags: tags ?? music.tags, ratingHistory: newHistory };
+        }
+        return music;
+      });
       const newLastModified = Date.now();
       set({
         savedMusic: updatedMusic,
@@ -253,7 +259,7 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       });
       setCachedMusic(updatedMusic, newLastModified);
       (get() as any).syncMusicWithFirestore();
-      console.log('[musicStore] Rating/tags updated successfully', '⭐✅');
+      console.log('[musicStore] Rating/tags updated successfully, history appended', '⭐✅');
       return true;
     } catch (error) {
       console.error('[musicStore] Error updating rating/tags:', error, '⭐❌');

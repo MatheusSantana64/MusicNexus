@@ -1,5 +1,10 @@
 // src/types/savedMusic.ts
 // SavedMusic type for representing saved music items in the app
+export interface RatingHistoryEntry {
+  rating: number;
+  timestamp: string; // ISO string
+}
+
 export interface SavedMusic {
   id: string;
   title: string;
@@ -17,4 +22,5 @@ export interface SavedMusic {
   savedAt: Date;
   tags: string[];
   firebaseId?: string;
+  ratingHistory?: RatingHistoryEntry[];
 }

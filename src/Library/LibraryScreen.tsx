@@ -1,6 +1,7 @@
 // src/screens/LibraryScreen.tsx
 // Screen for displaying music library
 import React, { useCallback, useState } from 'react';
+import { RatingHistoryModal } from '../components/RatingHistoryModal';
 import { RefreshControl } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +16,7 @@ import { useModal } from '../hooks/useModal';
 import { libraryStyles as styles } from './styles/LibraryScreen.styles';
 import { getTags } from '../services/tagService';
 import { Tag } from '../types';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LibraryScreen() {
   // Add ratingFilter state
@@ -47,29 +49,47 @@ export default function LibraryScreen() {
   // Info modal for MusicItem fallback
   const { showModal: showInfoModal, modalProps: infoModalProps } = useModal();
 
+  // Rating history modal state
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
+  const [historyMusic, setHistoryMusic] = useState<SavedMusic | null>(null);
+
+  const handleShowHistory = useCallback((music: SavedMusic) => {
+    setHistoryMusic(music);
+    setHistoryModalVisible(true);
+  }, []);
+
   const handleLongPress = useCallback((music: SavedMusic) => {
     showOptionsModal({
       title: music.title,
       message: `Options for "${music.title}"`,
       actions: [
         {
-          text: '⭐ Rate',
+          text: 'Rate',
+          icon: { name: 'star-outline', color: '#FFD700' },
           style: 'default',
           onPress: () => handleMusicAction(music, 'rate'),
         },
         {
-          text: '🗑️ Delete',
+          text: 'Rating History',
+          icon: { name: 'time-outline', color: '#007AFF' },
+          style: 'default',
+          onPress: () => handleShowHistory(music),
+        },
+        {
+          text: 'Delete',
+          icon: { name: 'trash-outline', color: '#FF3B30' },
           style: 'destructive',
           onPress: () => handleMusicAction(music, 'delete'),
         },
         {
           text: 'Cancel',
+          icon: { name: 'close-outline', color: '#8E8E93' },
           style: 'cancel',
           onPress: () => {}, // Modal will auto-close
         },
       ],
     });
-  }, [showOptionsModal, handleMusicAction]);
+  }, [showOptionsModal, handleMusicAction, handleShowHistory]);
 
   const handleShowInfoModal = useCallback((title: string, message: string) => {
     showInfoModal({
@@ -178,6 +198,15 @@ export default function LibraryScreen() {
         onSave={handleRatingSave}
         onCancel={handleRatingCancel}
       />
+
+      {/* RATING HISTORY MODAL */}
+      {historyModalVisible && historyMusic && (
+        <RatingHistoryModal
+          visible={historyModalVisible}
+          music={historyMusic}
+          onClose={() => setHistoryModalVisible(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }

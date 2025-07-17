@@ -10,10 +10,17 @@ import {
 import Modal from 'react-native-modal';
 import { optionsModalStyles as styles } from './styles/OptionsModal.styles';
 
+import { Ionicons } from '@expo/vector-icons';
+
 export interface ModalAction {
   text: string;
   onPress: () => void;
   style?: 'default' | 'cancel' | 'destructive';
+  icon?: {
+    name: keyof typeof Ionicons.glyphMap;
+    color?: string;
+    size?: number;
+  };
 }
 
 interface OptionsModalProps {
@@ -91,9 +98,19 @@ export function OptionsModal({
               style={getButtonStyle(action.style)}
               onPress={action.onPress}
             >
-              <Text style={getButtonTextStyle(action.style)}>
-                {action.text}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                {action.icon && (
+                  <Ionicons
+                    name={action.icon.name}
+                    size={action.icon.size || 20}
+                    color={action.icon.color || '#333'}
+                    style={{ marginRight: 8 }}
+                  />
+                )}
+                <Text style={getButtonTextStyle(action.style)}>
+                  {action.text}
+                </Text>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
