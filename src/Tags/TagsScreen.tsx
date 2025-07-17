@@ -84,6 +84,10 @@ export default function TagsScreen() {
   // Save create or edit
   const handleSave = async () => {
     if (!inputName.trim()) return;
+    setInputVisible(false);
+    setEditingTag(null);
+    setInputName('');
+    setInputColor('#002a55');
     if (editingTag) {
       await updateTag(editingTag.id, { name: inputName, color: inputColor });
     } else {
@@ -93,10 +97,6 @@ export default function TagsScreen() {
         position: tags.length + 1,
       });
     }
-    setInputVisible(false);
-    setEditingTag(null);
-    setInputName('');
-    setInputColor('#002a55');
     refresh();
   };
 

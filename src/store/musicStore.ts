@@ -8,6 +8,8 @@ import {
   getFirestoreLastModified, 
   fetchMusicFromFirestore 
 } from '../services/firestoreCacheService';
+import { setSavedMusicMeta } from '../services/firestoreMetaHelper';
+import NetInfo from '@react-native-community/netinfo';
 import { updateMusicRating, updateMusicRatingAndTags, deleteMusic, SortMode } from '../services/musicService';
 
 interface OperationState {
@@ -59,7 +61,7 @@ interface MusicState {
   isAnyOperationInProgress: () => boolean;
 }
 
-export const useMusicStore = create<MusicState>((set, get) => ({
+export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWithFirestore?: () => Promise<void> }>((set, get) => ({
   // Initial state
   savedMusic: [],
   loading: true,
@@ -74,7 +76,43 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     deletingMusic: new Set(),
   },
 
-  // Core actions
+  // --- OFFLINE SYNC STATE ---
+  _dirty: false, // not exposed in MusicState, internal only
+
+  // --- SYNC LOGIC ---
+  syncMusicWithFirestore: async () => {
+    try {
+      const state = await NetInfo.fetch();
+      if (!state.isConnected) {
+        console.log('[musicStore] syncMusicWithFirestore: Offline, skipping sync');
+        return;
+      }
+      const { music: cachedMusic, lastModified: cachedLastModified } = await getCachedMusic();
+      const firestoreLastModified = await getFirestoreLastModified();
+      if (
+        typeof cachedLastModified === 'number' &&
+        (firestoreLastModified === null || cachedLastModified > firestoreLastModified)
+      ) {
+        // Push local cache to Firestore
+        console.log('[musicStore] syncMusicWithFirestore: Local cache is newer, pushing to Firestore');
+        const { db } = require('../config/firebaseConfig');
+        const { doc, setDoc } = require('firebase/firestore');
+        for (const music of cachedMusic) {
+          if (!music.firebaseId) continue;
+          const docRef = doc(db, 'savedMusic', music.firebaseId);
+          const { firebaseId, ...musicData } = music;
+          await setDoc(docRef, musicData, { merge: true });
+        }
+        await setSavedMusicMeta(cachedLastModified);
+        set({ _dirty: false });
+        console.log('[musicStore] syncMusicWithFirestore: Sync complete');
+      } else {
+        console.log('[musicStore] syncMusicWithFirestore: No sync needed');
+      }
+    } catch (err) {
+      console.error('[musicStore] syncMusicWithFirestore: Sync failed', err);
+    }
+  },
   loadMusic: async (sortMode: SortMode = 'release') => {
     try {
       console.log('[musicStore] loadMusic: Triggered with sortMode:', sortMode, '🎶');
@@ -84,11 +122,26 @@ export const useMusicStore = create<MusicState>((set, get) => ({
       const { music: cachedMusic, lastModified: cachedLastModified } = await getCachedMusic();
       console.log('[musicStore] loadMusic: Cached music count:', cachedMusic.length, 'Cached lastModified:', cachedLastModified, '📦');
 
-      // 2. Get Firestore lastModified
+      // 2. Check network status
+      const state = await NetInfo.fetch();
+      if (!state.isConnected) {
+        // Offline: use cache immediately if available
+        set({
+          savedMusic: cachedMusic,
+          currentSortMode: sortMode,
+          loading: false,
+          refreshing: false,
+          lastUpdated: Date.now()
+        });
+        console.log('[musicStore] loadMusic: Offline, loaded from cache', '📦🚫🌐');
+        return;
+      }
+
+      // 3. Get Firestore lastModified
       const firestoreLastModified = await getFirestoreLastModified();
       console.log('[musicStore] loadMusic: Firestore lastModified:', firestoreLastModified, '🔥');
 
-      // 3. Decide whether to use cache or fetch from Firestore
+      // 4. Decide whether to use cache or fetch from Firestore
       let useCache = false;
       if (
         firestoreLastModified === null ||
@@ -126,6 +179,8 @@ export const useMusicStore = create<MusicState>((set, get) => ({
         refreshing: false,
         lastUpdated: Date.now()
       });
+      // After loading, try to sync if needed
+      (get() as any).syncMusicWithFirestore();
       console.log('[musicStore] loadMusic: Store updated. Music count:', music.length, 'Last updated:', new Date().toISOString(), '🎶✅');
     } catch (error) {
       console.error('[musicStore] loadMusic: Error loading music:', error, '🎶❌');
@@ -140,14 +195,18 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   addMusic: (music: SavedMusic) => {
     const { savedMusic } = get();
     const exists = savedMusic.some(m => m.id === music.id);
-    
     if (!exists) {
+      const newMusic = [...savedMusic, music];
+      const newLastModified = Date.now();
       set({ 
-        savedMusic: [...savedMusic, music],
-        lastUpdated: Date.now()
+        savedMusic: newMusic,
+        lastUpdated: newLastModified,
+        _dirty: true
       });
+      setCachedMusic(newMusic, newLastModified);
       console.log('[musicStore] Music added to store:', music.title, '➕🎶');
       console.log('[musicStore] Total music count:', savedMusic.length + 1, '📊');
+      (get() as any).syncMusicWithFirestore();
     } else {
       console.log('[musicStore] Music already exists in store:', music.title, '⚠️');
     }
@@ -157,27 +216,28 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     const { savedMusic } = get();
     const existingIds = new Set(savedMusic.map(m => m.id));
     const newMusics = musics.filter(m => !existingIds.has(m.id));
-    
     if (newMusics.length > 0) {
+      const updatedMusic = [...savedMusic, ...newMusics];
+      const newLastModified = Date.now();
       set({ 
-        savedMusic: [...savedMusic, ...newMusics],
-        lastUpdated: Date.now()
+        savedMusic: updatedMusic,
+        lastUpdated: newLastModified,
+        _dirty: true
       });
+      setCachedMusic(updatedMusic, newLastModified);
       console.log('[musicStore] Batch added to store:', newMusics.length, 'songs', '➕🎶');
+      (get() as any).syncMusicWithFirestore();
     }
   },
 
   updateRating: async (firebaseId: string, rating: number, tags?: string[]): Promise<boolean> => {
     const { operations, isRatingUpdating } = get();
-
     if (isRatingUpdating(firebaseId)) {
       console.warn('[musicStore] Rating update already in progress for:', firebaseId, '⚠️');
       return false;
     }
-
     try {
       get().startRatingUpdate(firebaseId);
-
       // 1. Optimistic update
       const { savedMusic } = get();
       const updatedMusic = savedMusic.map(music =>
@@ -185,26 +245,18 @@ export const useMusicStore = create<MusicState>((set, get) => ({
           ? { ...music, rating, tags: tags ?? music.tags }
           : music
       );
-
+      const newLastModified = Date.now();
       set({
         savedMusic: updatedMusic,
-        lastUpdated: Date.now()
+        lastUpdated: newLastModified,
+        _dirty: true
       });
-
-      // 2. Update database
-      if (tags) {
-        await updateMusicRatingAndTags(firebaseId, rating, tags);
-      } else {
-        await updateMusicRating(firebaseId, rating);
-      }
-
+      setCachedMusic(updatedMusic, newLastModified);
+      (get() as any).syncMusicWithFirestore();
       console.log('[musicStore] Rating/tags updated successfully', '⭐✅');
       return true;
     } catch (error) {
       console.error('[musicStore] Error updating rating/tags:', error, '⭐❌');
-
-      // 3. Rollback on error
-      await get().loadMusic();
       return false;
     } finally {
       get().finishRatingUpdate(firebaseId);
@@ -212,34 +264,27 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   },
 
   deleteMusic: async (firebaseId: string): Promise<boolean> => {
-    const { isMusicDeleting } = get();
-    
+    const { isMusicDeleting, savedMusic } = get();
     if (isMusicDeleting(firebaseId)) {
-      console.warn('[musicStore] Delete operation already in progress for:', firebaseId, '⚠️');
+      console.warn('[musicStore] Delete already in progress for:', firebaseId, '⚠️');
       return false;
     }
-
     try {
       get().startMusicDelete(firebaseId);
-
-      // 1. Optimistic removal
-      const { savedMusic } = get();
-      const filteredMusic = savedMusic.filter(music => music.firebaseId !== firebaseId);
-      set({ 
-        savedMusic: filteredMusic,
-        lastUpdated: Date.now()
+      // Optimistic update: remove from local state and cache
+      const updatedMusic = savedMusic.filter(music => music.firebaseId !== firebaseId);
+      const newLastModified = Date.now();
+      set({
+        savedMusic: updatedMusic,
+        lastUpdated: newLastModified,
+        _dirty: true
       });
-      
-      // 2. Delete from database
-      await deleteMusic(firebaseId);
-      
-      console.log('[musicStore] Music deleted successfully', '🗑️✅');
+      setCachedMusic(updatedMusic, newLastModified);
+      (get() as any).syncMusicWithFirestore();
+      console.log('[musicStore] Music deleted locally:', firebaseId, '🗑️');
       return true;
     } catch (error) {
       console.error('[musicStore] Error deleting music:', error, '🗑️❌');
-      
-      // 3. Rollback on error
-      await get().loadMusic();
       return false;
     } finally {
       get().finishMusicDelete(firebaseId);

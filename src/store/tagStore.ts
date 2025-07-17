@@ -8,6 +8,8 @@ import {
   getTagsFirestoreLastModified, 
   fetchTagsFromFirestore 
 } from '../services/firestoreCacheService';
+import { setTagsMeta } from '../services/firestoreMetaHelper';
+import NetInfo from '@react-native-community/netinfo';
 import { addTag, updateTag, deleteTag } from '../services/tagService';
 
 interface TagState {
@@ -25,11 +27,48 @@ interface TagState {
   clearError: () => void;
 }
 
-export const useTagStore = create<TagState>((set, get) => ({
+export const useTagStore = create<TagState & { _dirty?: boolean; syncTagsWithFirestore?: () => Promise<void> }>((set, get) => ({
   tags: [],
   loading: true,
   error: null,
   lastUpdated: 0,
+  // --- OFFLINE SYNC STATE ---
+  _dirty: false, // not exposed in TagState, internal only
+
+  // --- SYNC LOGIC ---
+  syncTagsWithFirestore: async () => {
+    try {
+      const state = await NetInfo.fetch();
+      if (!state.isConnected) {
+        console.log('[tagStore] syncTagsWithFirestore: Offline, skipping sync');
+        return;
+      }
+      const { tags: cachedTags, lastModified: cachedLastModified } = await getCachedTags();
+      const firestoreLastModified = await getTagsFirestoreLastModified();
+      if (
+        typeof cachedLastModified === 'number' &&
+        (firestoreLastModified === null || cachedLastModified > firestoreLastModified)
+      ) {
+        // Push local cache to Firestore
+        console.log('[tagStore] syncTagsWithFirestore: Local cache is newer, pushing to Firestore');
+        const { db } = require('../config/firebaseConfig');
+        const { doc, setDoc } = require('firebase/firestore');
+        for (const tag of cachedTags) {
+          if (!tag.id) continue;
+          const docRef = doc(db, 'tags', tag.id);
+          const { id, ...tagData } = tag;
+          await setDoc(docRef, tagData, { merge: true });
+        }
+        await setTagsMeta(cachedLastModified);
+        set({ _dirty: false });
+        console.log('[tagStore] syncTagsWithFirestore: Sync complete');
+      } else {
+        console.log('[tagStore] syncTagsWithFirestore: No sync needed');
+      }
+    } catch (err) {
+      console.error('[tagStore] syncTagsWithFirestore: Sync failed', err);
+    }
+  },
 
   loadTags: async () => {
     try {
@@ -65,6 +104,7 @@ export const useTagStore = create<TagState>((set, get) => ({
         loading: false,
         lastUpdated: Date.now(),
       });
+      (get() as any).syncTagsWithFirestore();
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to load tags',
@@ -76,8 +116,17 @@ export const useTagStore = create<TagState>((set, get) => ({
   addTag: async (tag: Omit<Tag, 'id'>) => {
     try {
       set({ loading: true, error: null });
-      const id = await addTag(tag);
-      await get().loadTags();
+      // Optimistic update: add to local state and cache
+      const id = Math.random().toString(36).substr(2, 9); // temp id for offline
+      const newTag = { ...tag, id };
+      const { tags } = get();
+      const updatedTags = [...tags, newTag];
+      const newLastModified = Date.now();
+      set({ tags: updatedTags, lastUpdated: newLastModified, _dirty: true, loading: false });
+      setCachedTags(updatedTags, newLastModified);
+      (get() as any).syncTagsWithFirestore();
+      // Try to add to Firestore if online (will be merged by sync)
+      try { await addTag(tag); } catch {}
       return id;
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to add tag', loading: false });
@@ -86,10 +135,17 @@ export const useTagStore = create<TagState>((set, get) => ({
   },
 
   updateTag: async (id: string, tag: Partial<Tag>) => {
+    set({ loading: true, error: null });
     try {
-      set({ loading: true, error: null });
-      await updateTag(id, tag);
-      await get().loadTags();
+      // Optimistic update: update in local state and cache
+      const { tags } = get();
+      const updatedTags = tags.map(t => t.id === id ? { ...t, ...tag } : t);
+      const newLastModified = Date.now();
+      set({ tags: updatedTags, lastUpdated: newLastModified, _dirty: true, loading: false });
+      setCachedTags(updatedTags, newLastModified);
+      (get() as any).syncTagsWithFirestore();
+      // Try to update in Firestore if online (will be merged by sync)
+      try { await updateTag(id, tag); } catch {}
       return true;
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to update tag', loading: false });
@@ -98,10 +154,17 @@ export const useTagStore = create<TagState>((set, get) => ({
   },
 
   deleteTag: async (id: string) => {
+    set({ loading: true, error: null });
     try {
-      set({ loading: true, error: null });
-      await deleteTag(id);
-      await get().loadTags();
+      // Optimistic update: remove from local state and cache
+      const { tags } = get();
+      const updatedTags = tags.filter(t => t.id !== id);
+      const newLastModified = Date.now();
+      set({ tags: updatedTags, lastUpdated: newLastModified, _dirty: true, loading: false });
+      setCachedTags(updatedTags, newLastModified);
+      (get() as any).syncTagsWithFirestore();
+      // Try to delete from Firestore if online (will be merged by sync)
+      try { await deleteTag(id); } catch {}
       return true;
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to delete tag', loading: false });
