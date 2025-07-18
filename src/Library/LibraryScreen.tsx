@@ -45,7 +45,9 @@ export default function LibraryScreen() {
     handleRatingSave,
     handleRatingCancel,
     modalProps: libraryModalProps,
-  } = useLibrary(ratingFilter); // Pass ratingFilter to useLibrary
+    selectedTagIds,
+    setSelectedTagIds,
+  } = useLibrary(ratingFilter);
 
   // Options modal for long press actions
   const { showModal: showOptionsModal, modalProps: optionsModalProps } = useModal();
@@ -165,6 +167,9 @@ export default function LibraryScreen() {
           totalCount={savedMusic.length}
           ratingFilter={ratingFilter}
           onRatingFilterChange={setRatingFilter}
+          tags={tags}
+          selectedTagIds={selectedTagIds}
+          onTagFilterChange={setSelectedTagIds}
         />
       )}
       

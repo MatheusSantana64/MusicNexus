@@ -1,8 +1,8 @@
 // src/components/LibraryHeader.tsx
 // Component for the header section of LibraryScreen with search and sort
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import { SavedMusic } from '../types';
+import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { SavedMusic, Tag } from '../types';
 import { libraryStyles as styles } from './styles/LibraryScreen.styles';
 import { LibrarySortingUtils } from '../utils/librarySortingUtils';
 import { Ionicons } from '@expo/vector-icons';
@@ -61,6 +61,9 @@ interface LibraryHeaderProps {
   totalCount: number;
   ratingFilter?: [number, number];
   onRatingFilterChange?: (range: [number, number]) => void;
+  tags: Tag[];
+  selectedTagIds?: string[];
+  onTagFilterChange?: (tagIds: string[]) => void;
 }
 
 export function LibraryHeader({
@@ -73,9 +76,13 @@ export function LibraryHeader({
   totalCount,
   ratingFilter = [0, 10],
   onRatingFilterChange,
+  tags,
+  selectedTagIds = [],
+  onTagFilterChange,
 }: LibraryHeaderProps) {
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showRatingSlider, setShowRatingSlider] = useState(false);
+  const [showTagsModal, setShowTagsModal] = useState(false);
   const [sliderValues, setSliderValues] = useState<[number, number]>(ratingFilter);
   const sliderValuesRef = useRef(sliderValues);
 
@@ -128,6 +135,17 @@ export function LibraryHeader({
     });
   };
 
+  const isTagFilterActive = selectedTagIds.length > 0;
+
+  const handleTagPress = (tagId: string) => {
+    if (!onTagFilterChange) return;
+    if (selectedTagIds.includes(tagId)) {
+      onTagFilterChange(selectedTagIds.filter(id => id !== tagId));
+    } else {
+      onTagFilterChange([...selectedTagIds, tagId]);
+    }
+  };
+
   return (
     <>
       <View style={[styles.searchContainer, { position: 'relative' }]}>
@@ -162,6 +180,7 @@ export function LibraryHeader({
       <View style={styles.sortContainer}>
         <View style={[styles.sortHeader, { justifyContent: 'space-between' }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+
             <TouchableOpacity // Sort button
               onPress={() => setShowSortOptions((v) => !v)}
               style={[
@@ -173,6 +192,7 @@ export function LibraryHeader({
                 Sort by {SORT_OPTIONS[sortMode].label}{getSortIndicator(sortMode)}
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity // Rating filter button
               onPress={handleRatingButton}
               style={[
@@ -188,10 +208,26 @@ export function LibraryHeader({
                   : `Rating: ${sliderValues[0] === 10 ? '10' : sliderValues[0].toFixed(1)} - ${sliderValues[1] === 10 ? '10' : sliderValues[1].toFixed(1)}`}
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity // Tags filter button
+              onPress={() => setShowTagsModal(true)}
+              style={[
+                styles.sortLabelButton,
+                isTagFilterActive && { backgroundColor: theme.colors.button.primary }
+              ]}
+            >
+              <Text style={styles.sortLabel}>
+                Tags{isTagFilterActive ? ` (${selectedTagIds.length})` : ''}
+              </Text>
+            </TouchableOpacity>
+
           </View>
+
+          {/* Shows total count of music in library
           <Text style={styles.resultCount}>
             {resultCount} songs
-          </Text>
+          </Text>*/}
+
         </View>
         {showSortOptions && (
           <View style={styles.sortButtons}>
@@ -254,6 +290,75 @@ export function LibraryHeader({
           </View>
         )}
       </View>
+
+      {/* TAGS FILTER MODAL */}
+      <Modal
+        visible={showTagsModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTagsModal(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <View style={{
+            backgroundColor: theme.colors.background.surface,
+            borderRadius: 16,
+            padding: 20,
+            minWidth: 300,
+            maxWidth: '90%',
+            maxHeight: '80%',
+          }}>
+            <Text style={[styles.sortLabel, { marginBottom: 12, fontWeight: 'bold', fontSize: 18 }]}>
+              Filter by Tags
+            </Text>
+            <ScrollView style={{ maxHeight: 300 }}>
+              {tags.map(tag => (
+                <TouchableOpacity
+                  key={tag.id}
+                  onPress={() => handleTagPress(tag.id)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 8,
+                    padding: 8,
+                    borderRadius: 12,
+                    backgroundColor: selectedTagIds.includes(tag.id) ? tag.color : theme.colors.background.surface,
+                    borderWidth: 1,
+                    borderColor: tag.color,
+                  }}
+                >
+                  <Text style={{
+                    color: theme.colors.text.primary,
+                    fontWeight: selectedTagIds.includes(tag.id) ? 'bold' : 'normal',
+                    flex: 1,
+                  }}>
+                    {tag.name}
+                  </Text>
+                  {selectedTagIds.includes(tag.id) && (
+                    <Ionicons name="checkmark" size={18} color={theme.colors.text.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              onPress={() => setShowTagsModal(false)}
+              style={{
+                marginTop: 16,
+                backgroundColor: theme.colors.button.cancel,
+                padding: 10,
+                borderRadius: 8,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: theme.colors.text.primary, fontWeight: 'bold' }}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
