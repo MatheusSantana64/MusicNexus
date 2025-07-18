@@ -27,7 +27,7 @@ export const libraryStyles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: theme.colors.divider,
   },
   sortLabelButton: {
     paddingHorizontal: 6,

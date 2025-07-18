@@ -44,13 +44,14 @@ export const theme = {
     // OTHER COLORS
     blue: '#007AFF', // Blue for buttons
     border: '#333333', // Dark gray borders
-    divider: '#222222', // Subtle dividers
+    divider: '#111111', // Subtle dividers
     gold: '#FFD700', // Gold color for stars
   },
   
   // 🔤 TYPOGRAPHY
   sizes: {
     xsmall: 10,
+    smaller: 11,
     small: 12,
     body: 14,
     medium: 16,
@@ -58,6 +59,7 @@ export const theme = {
     title: 20,
   },
   weights: {
+    thin: '200' as const,
     normal: '400' as const,
     medium: '500' as const,
     semibold: '600' as const,

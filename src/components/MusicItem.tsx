@@ -14,6 +14,7 @@ import { formatReleaseDate } from '../utils/dateUtils';
 import { useMusicStore } from '../store/musicStore';
 import { musicItemStyles as styles } from './styles/MusicItem.styles';
 import { getRatingColor, getRatingText } from '../utils/ratingUtils';
+import { Tag } from '../types/tag'; // Import Tag type
 
 // Use generic types for better type safety
 interface MusicItemProps<T extends DeezerTrack | SavedMusic> {
@@ -22,14 +23,16 @@ interface MusicItemProps<T extends DeezerTrack | SavedMusic> {
   onLongPress?: (music: T) => void;
   isLoading?: boolean;
   showInfoModal?: (title: string, message: string) => void;
+  tags?: Tag[];
 }
 
-export function MusicItem<T extends DeezerTrack | SavedMusic>({ 
-  music, 
-  onPress, 
+export function MusicItem<T extends DeezerTrack | SavedMusic>({
+  music,
+  onPress,
   onLongPress,
   isLoading = false,
   showInfoModal,
+  tags = [],
 }: MusicItemProps<T>) {
   const { 
     getSavedMusicById, 
@@ -135,6 +138,27 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
     }
   };
 
+  // Helper to get tags array (only for SavedMusic)
+  const getTagIds = () => {
+    if (isSavedMusic(music) && Array.isArray(music.tags)) {
+      return music.tags;
+    }
+    return [];
+  };
+
+  // Helper to get tag objects for this music
+  const getTagObjects = () => {
+    const tagIds = getTagIds();
+    if (tagIds.length > 0 && tags.length > 0) {
+      return tagIds
+        .map(tagId => tags.find(tag => tag.id === tagId))
+        .filter((tag): tag is Tag => !!tag);
+    }
+    return [];
+  };
+
+  const tagObjects = getTagObjects();
+
   return (
     <TouchableOpacity
       style={[styles.container, isOperationInProgress() && { opacity: 0.6 }]}
@@ -173,10 +197,29 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
             </Text>
           )}
           
-          {data.savedAt && (
+          {/*data.savedAt && (
             <Text style={styles.savedDate} numberOfLines={1} ellipsizeMode="tail">
               Added {formatSavedDate(data.savedAt)}
             </Text>
+          )*/}
+
+          {/* --- TAGS SECTION --- */}
+          {tagObjects.length > 0 && (
+            <View style={styles.tagContainer}>
+              {tagObjects.map(tag => (
+                <View
+                  key={tag.id}
+                  style={[
+                    styles.tagContainer,
+                    { backgroundColor: tag.color }
+                  ]}
+                >
+                  <Text style={styles.tagText}>
+                    {tag.name}
+                  </Text>
+                </View>
+              ))}
+            </View>
           )}
         </View>
         

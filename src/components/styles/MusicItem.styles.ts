@@ -3,24 +3,26 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '../../styles/theme';
 
-const MARGIN_BOTTOM = 3;
-
 export const musicItemStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    padding: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 2,
     backgroundColor: theme.colors.background.amoled,
     borderBottomWidth: 1,
+    borderBottomColor: theme.colors.divider,
     alignItems: 'center',
   },
 
+  // === Album Cover ===
   albumCover: {
     width: 64,
     height: 64,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.borderRadius.sm,
     backgroundColor: theme.colors.background.amoled,
   },
 
+  // === Content ===
   contentContainer: {
     flex: 1,
     flexDirection: 'row',
@@ -33,60 +35,55 @@ export const musicItemStyles = StyleSheet.create({
     paddingRight: 8,
   },
 
+  // === Title Row ===
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: MARGIN_BOTTOM,
   },
   trackNumber: {
-    fontSize: 10,
+    fontSize: theme.sizes.xsmall,
     fontWeight: theme.weights.normal,
     color: theme.colors.text.muted,
+    marginTop: 3, // Align with title text
   },
   title: {
     fontSize: theme.sizes.body,
     fontWeight: theme.weights.semibold,
     color: theme.colors.text.primary,
-    lineHeight: 16,
-    flexShrink: 1,
+    flexShrink: 1, // Allow title to shrink if needed (When overflowing to the rating section)
   },
   duration: {
-    fontSize: theme.sizes.small,
+    fontSize: theme.sizes.xsmall,
     color: theme.colors.text.muted,
-    lineHeight: 12,
     marginLeft: 4,
     fontWeight: theme.weights.normal,
   },
 
+  // === Info ===
   artist: {
-    fontSize: 11,
+    fontSize: theme.sizes.small,
     color: theme.colors.text.primary,
     fontWeight: theme.weights.medium,
-    marginBottom: MARGIN_BOTTOM,
-    lineHeight: 14,
   },
   album: {
-    fontSize: 11,
-    color: theme.colors.text.secondary,
-    fontWeight: theme.weights.normal,
-    flex: 1,
-    lineHeight: 13,
-  },
-  releaseDate: {
     fontSize: theme.sizes.small,
     color: theme.colors.text.secondary,
-    marginBottom: MARGIN_BOTTOM,
     fontWeight: theme.weights.normal,
-    lineHeight: 11,
+  },
+  releaseDate: {
+    fontSize: theme.sizes.smaller,
+    color: theme.colors.text.secondary,
+    fontWeight: theme.weights.normal,
   },
 
+  // === Saved Date (Hidden by default) ===
   savedDate: {
     fontSize: theme.sizes.xsmall,
     color: theme.colors.text.successDarker,
     fontStyle: 'italic',
-    lineHeight: 11,
   },
 
+  // === Rating ===
   ratingSection: {
     flex: 0.2,
     alignItems: 'center',
@@ -101,8 +98,24 @@ export const musicItemStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   rating: {
-    fontSize: theme.sizes.medium,
-    fontWeight: 'bold',
-    lineHeight: 12,
+    fontSize: theme.sizes.large,
+    fontWeight: theme.weights.bold,
+  },
+
+  // === Tags ===
+  tagContainer: {
+    borderRadius: theme.borderRadius.md,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignContent: 'center',
+    justifyContent: 'flex-start',
+    marginRight: 3,
+    marginTop: 1,
+  },
+  tagText: {
+    color: theme.colors.text.primary,
+    fontSize: theme.sizes.smaller,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
   },
 });

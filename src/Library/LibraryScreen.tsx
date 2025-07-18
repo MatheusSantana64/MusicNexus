@@ -23,6 +23,9 @@ export default function LibraryScreen() {
   // Add ratingFilter state
   const [ratingFilter, setRatingFilter] = useState<[number, number]>([0, 10]);
 
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [tagsLoading, setTagsLoading] = useState(true);
+
   const {
     sortMode,
     isReversed,
@@ -106,27 +109,35 @@ export default function LibraryScreen() {
       onPress={(music) => handleMusicAction(music as SavedMusic, 'rate')}
       onLongPress={handleLongPress}
       showInfoModal={handleShowInfoModal}
+      tags={tags}
     />
-  ), [handleMusicAction, handleLongPress, handleShowInfoModal]);
+  ), [handleMusicAction, handleLongPress, handleShowInfoModal, tags]);
 
   const hasMusic = savedMusic.length > 0;
   const shouldShowList = hasMusic && !loading && !error && !(searchQuery.trim() && processedMusic.length === 0);
 
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [tagsLoading, setTagsLoading] = useState(true);
-
   // Fetch tags on mount and whenever the rating modal is opened
   React.useEffect(() => {
     let mounted = true;
+    setTagsLoading(true);
+    getTags().then(tagList => {
+      if (mounted) setTags(tagList);
+    }).finally(() => {
+      if (mounted) setTagsLoading(false);
+    });
+    return () => { mounted = false; };
+  }, []);
+
+  // Optionally, keep the ratingModalVisible effect if you want to refresh tags when rating modal opens
+  React.useEffect(() => {
     if (ratingModalVisible) {
       setTagsLoading(true);
       getTags().then(tagList => {
-        if (mounted) setTags(tagList);
+        setTags(tagList);
       }).finally(() => {
-        if (mounted) setTagsLoading(false);
+        setTagsLoading(false);
       });
     }
-    return () => { mounted = false; };
   }, [ratingModalVisible]);
 
   // Handler to delete a rating history entry
@@ -172,6 +183,7 @@ export default function LibraryScreen() {
             />
           }
           removeClippedSubviews
+          extraData={tags}
         />
       ) : (
         <LibraryEmptyState

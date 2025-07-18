@@ -65,7 +65,7 @@ export const DeezerAlbumSearchResponseSchema = z.object({
 
 // === SAVED MUSIC VALIDATION SCHEMAS ===
 
-// Add this schema for rating history entries
+// Schema for rating history entries
 const RatingHistoryEntrySchema = z.object({
   rating: z.number(),
   timestamp: z.string(),
