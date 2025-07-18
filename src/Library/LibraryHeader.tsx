@@ -64,6 +64,7 @@ interface LibraryHeaderProps {
   tags: Tag[];
   selectedTagIds?: string[];
   onTagFilterChange?: (tagIds: string[]) => void;
+  searchInputRef?: React.RefObject<TextInput | null>;
 }
 
 export function LibraryHeader({
@@ -79,6 +80,7 @@ export function LibraryHeader({
   tags,
   selectedTagIds = [],
   onTagFilterChange,
+  searchInputRef,
 }: LibraryHeaderProps) {
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showRatingSlider, setShowRatingSlider] = useState(false);
@@ -150,6 +152,7 @@ export function LibraryHeader({
     <>
       <View style={[styles.searchContainer, { position: 'relative' }]}>
         <TextInput
+          ref={searchInputRef}
           style={[styles.searchInput, { paddingRight: 48 }]} // Right padding so text doesn't go under the X
           placeholder="Search in library..."
           placeholderTextColor={styles.placeholderText.color}

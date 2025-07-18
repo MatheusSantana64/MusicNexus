@@ -1,8 +1,9 @@
 // src/screens/SearchScreen.tsx
 // Screen for searching music online (Deezer API)
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { TextInput } from 'react-native';
 import { DeezerTrack, SearchMode } from '../types';
 import { useSearch } from './useSearch';
 import { useMusicOperations } from '../hooks/useMusicOperations';
@@ -21,7 +22,7 @@ import { Tag } from '../types';
 
 const MIN_SEARCH_LENGTH = 3;
 
-export default function SearchScreen() {
+export default function SearchScreen({ navigation }: { navigation?: any }) {
   const [searchQuery, setSearchQuery] = useState('');
   const { tracks, loading, error, searchMode, searchTracks, setSearchMode } = useSearch();
   const { 
@@ -45,6 +46,7 @@ export default function SearchScreen() {
   const albumGroups = useAlbumGrouping(tracks, searchMode);
   const [tags, setTags] = useState<Tag[]>([]);
   const [tagsLoading, setTagsLoading] = useState(true);
+  const searchInputRef = useRef<TextInput>(null);
 
   // Fetch tags on mount
   React.useEffect(() => {
@@ -60,6 +62,16 @@ export default function SearchScreen() {
     })();
     return () => { mounted = false; };
   }, []);
+
+  React.useEffect(() => {
+    if (!navigation) return;
+    const unsubscribe = navigation.addListener('tabPress', (e: any) => {
+      if (navigation.isFocused()) {
+        searchInputRef.current?.focus();
+      }
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const handleSearch = useCallback(async (text: string) => {
     setSearchQuery(text);
@@ -158,6 +170,7 @@ export default function SearchScreen() {
           loading={loading}
           searchMode={searchMode}
           onModeChange={handleModeChange}
+          searchInputRef={searchInputRef} // Pass ref
         />
         <FlashList
           data={memoizedFlatData}

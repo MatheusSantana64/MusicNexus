@@ -58,14 +58,14 @@ function TabNavigator() {
     >
       <Tab.Screen 
         name="Library" 
-        component={LibraryScreen}
+        children={({ navigation }) => <LibraryScreen navigation={navigation} />}
         options={{ 
           title: 'Library',
         }}
       />
       <Tab.Screen 
         name="Search" 
-        component={SearchScreen}
+        children={({ navigation }) => <SearchScreen navigation={navigation} />}
         options={{ 
           title: 'Search',
         }}

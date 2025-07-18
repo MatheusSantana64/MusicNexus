@@ -1,8 +1,8 @@
 // src/screens/LibraryScreen.tsx
 // Screen for displaying music library
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import { RatingHistoryModal } from '../components/RatingHistoryModal';
-import { RefreshControl } from 'react-native';
+import { RefreshControl, TextInput } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SavedMusic } from '../types';
@@ -19,7 +19,7 @@ import { Tag } from '../types';
 import { Ionicons } from '@expo/vector-icons';
 import { useMusicStore } from '../store/musicStore';
 
-export default function LibraryScreen() {
+export default function LibraryScreen({ navigation }: { navigation?: any }) {
   // Add ratingFilter state
   const [ratingFilter, setRatingFilter] = useState<[number, number]>([0, 10]);
 
@@ -154,6 +154,20 @@ export default function LibraryScreen() {
     );
   }, []);
 
+  const searchInputRef = useRef<TextInput>(null);
+
+  // Focus handler for nav bar
+  React.useEffect(() => {
+    if (!navigation) return;
+    const unsubscribe = navigation.addListener('tabPress', (e: any) => {
+      // Only focus if already on this tab
+      if (navigation.isFocused()) {
+        searchInputRef.current?.focus();
+      }
+    });
+    return unsubscribe;
+  }, [navigation]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {hasMusic && (
@@ -170,6 +184,7 @@ export default function LibraryScreen() {
           tags={tags}
           selectedTagIds={selectedTagIds}
           onTagFilterChange={setSelectedTagIds}
+          searchInputRef={searchInputRef} // Pass ref to header
         />
       )}
       

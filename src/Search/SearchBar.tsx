@@ -12,6 +12,7 @@ interface SearchBarProps {
   loading: boolean;
   searchMode: SearchMode;
   onModeChange: (mode: SearchMode) => void;
+  searchInputRef?: React.RefObject<TextInput | null>;
 }
 
 export function SearchBar({ 
@@ -19,7 +20,8 @@ export function SearchBar({
   onSearchChange, 
   loading, 
   searchMode, 
-  onModeChange 
+  onModeChange,
+  searchInputRef
 }: SearchBarProps) {
   return (
     <View style={[styles.searchContainer, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
@@ -31,6 +33,7 @@ export function SearchBar({
         flex: 1,
       }}>
         <TextInput
+          ref={searchInputRef}
           style={[styles.searchInput, { flex: 1, borderWidth: 0, backgroundColor: 'transparent' }]}
           placeholder="Search music..."
           placeholderTextColor={styles.placeholderText.color}
