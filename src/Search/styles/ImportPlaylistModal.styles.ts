@@ -1,3 +1,5 @@
+// src/Search/ImportPlaylistModal.tsx
+// Styles for the ImportPlaylistModal component
 import { StyleSheet } from 'react-native';
 import { theme } from '../../styles/theme';
 
@@ -30,7 +32,7 @@ export const importPlaylistModalStyles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: 8,
     padding: 10,
-    paddingRight: 36, // Add this line for extra space on the right
+    paddingRight: 36,
     marginBottom: 12,
   },
   ratingContainer: {

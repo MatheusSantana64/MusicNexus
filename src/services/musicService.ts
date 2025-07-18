@@ -84,7 +84,7 @@ export async function getSavedMusic(
   try {
     const constraints: QueryConstraint[] = [];
     
-    // Add database-level sorting for supported fields
+    // Database-level sorting for supported fields
     switch (sortMode) {
       case 'added':
         constraints.push(orderBy('savedAt', 'desc'));

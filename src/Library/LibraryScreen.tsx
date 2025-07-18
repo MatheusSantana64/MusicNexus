@@ -16,11 +16,9 @@ import { useModal } from '../hooks/useModal';
 import { libraryStyles as styles } from './styles/LibraryScreen.styles';
 import { getTags } from '../services/tagService';
 import { Tag } from '../types';
-import { Ionicons } from '@expo/vector-icons';
 import { useMusicStore } from '../store/musicStore';
 
 export default function LibraryScreen({ navigation }: { navigation?: any }) {
-  // Add ratingFilter state
   const [ratingFilter, setRatingFilter] = useState<[number, number]>([0, 10]);
 
   const [tags, setTags] = useState<Tag[]>([]);

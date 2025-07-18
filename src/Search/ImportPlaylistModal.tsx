@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+// src/Search/ImportPlaylistModal.tsx
+// Modal for importing playlists from Deezer
+import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TextInput, Button, TouchableOpacity } from 'react-native';
 import StarRating from 'react-native-star-rating-widget';
 import { importPlaylistModalStyles as styles } from './styles/ImportPlaylistModal.styles';
 import { MusicItem } from '../components/MusicItem';
-import { SavedMusic } from '../types/savedMusic'; // Add this import at the top
+import { SavedMusic } from '../types/savedMusic';
 import { FlashList } from '@shopify/flash-list';
-import { DeezerDataEnricher } from '../services/deezer/deezerDataEnricher'; // Add this import
+import { DeezerDataEnricher } from '../services/deezer/deezerDataEnricher';
 
 interface ImportPlaylistModalProps {
   visible: boolean;
@@ -41,6 +43,15 @@ export function ImportPlaylistModal({
   }[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+
+  // Clear preview when modal is closed
+  useEffect(() => {
+    if (!visible) {
+      setPreviewTracks([]);
+      setPreviewError(null);
+      setPreviewLoading(false);
+    }
+  }, [visible]);
 
   const handlePreview = async () => {
     setPreviewLoading(true);
@@ -169,22 +180,19 @@ export function ImportPlaylistModal({
           {importError && <Text style={styles.errorText}>{importError}</Text>}
           <View style={styles.modalButtonRow}>
             <Button
+                title="Cancel"
+                onPress={onCancel}
+                color="#444444"
+            />
+            <Button
               title={previewLoading ? "Loading..." : "Preview"}
               onPress={handlePreview}
               disabled={previewLoading || !playlistLink}
               color="#007AFF"
             />
             <Button
-              title="Cancel"
-              onPress={onCancel}
-              color="#444444"
-            />
-            <Button
               title={importLoading ? "Importing..." : "Import Playlist"}
-              onPress={() => {
-                onImport();
-                setPreviewTracks([]); // Close the preview after importing
-              }}
+              onPress={onImport}
               disabled={importLoading || !playlistLink}
               color="#003f82ff"
             />

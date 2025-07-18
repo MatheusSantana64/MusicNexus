@@ -11,7 +11,7 @@ interface SearchEmptyStateProps {
   searchQuery: string;
   tracksLength: number;
   searchMode: SearchMode;
-  onImportPlaylist?: () => void; // Add prop
+  onImportPlaylist?: () => void;
 }
 
 export function SearchEmptyState({ loading, error, searchQuery, tracksLength, searchMode, onImportPlaylist }: SearchEmptyStateProps) {

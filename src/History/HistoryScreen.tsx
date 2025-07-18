@@ -24,7 +24,7 @@ export default function HistoryScreen() {
     savedMusic.forEach(music => {
       const history = music.ratingHistory || [];
       if (history.length > 0) {
-        // Add initial rating event if first rating is not 0
+        // Initial rating event if first rating is not 0
         if (history[0].rating !== 0) {
           entries.push({
             music,
@@ -33,7 +33,7 @@ export default function HistoryScreen() {
             timestamp: history[0].timestamp,
           });
         }
-        // Add subsequent rating changes
+        // Subsequent rating changes
         for (let i = 1; i < history.length; i++) {
           entries.push({
             music,
