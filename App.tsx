@@ -13,6 +13,7 @@ import LibraryScreen from './src//Library/LibraryScreen';
 import SearchScreen from './src/Search/SearchScreen';
 import TagsScreen from './src/Tags/TagsScreen';
 import HistoryScreen from './src/History/HistoryScreen';
+import ProfileScreen from './src/Profile/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -33,6 +34,8 @@ function TabNavigator() {
             iconName = focused ? 'pricetag' : 'pricetag-outline';
           } else if (route.name === 'History') {
             iconName = focused ? 'time' : 'time-outline';
+          } else if (route.name === 'Profile') {
+            iconName = focused ? 'person' : 'person-outline';
           } else {
             iconName = 'help-circle-outline'; // Fallback icon
           }
@@ -82,6 +85,13 @@ function TabNavigator() {
         component={HistoryScreen}
         options={{ 
           title: 'History',
+        }}
+      />
+      <Tab.Screen 
+        name="Profile" 
+        component={ProfileScreen}
+        options={{ 
+          title: 'Profile',
         }}
       />
     </Tab.Navigator>
