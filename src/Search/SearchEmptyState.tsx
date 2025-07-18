@@ -1,7 +1,7 @@
 // src/components/SearchEmptyState.tsx
 // Component for displaying empty state in the SearchScreen
 import React from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SearchMode } from '../types';
 import { searchStyles as styles } from './styles/SearchScreen.styles';
 
@@ -11,9 +11,10 @@ interface SearchEmptyStateProps {
   searchQuery: string;
   tracksLength: number;
   searchMode: SearchMode;
+  onImportPlaylist?: () => void; // Add prop
 }
 
-export function SearchEmptyState({ loading, error, searchQuery, tracksLength, searchMode }: SearchEmptyStateProps) {
+export function SearchEmptyState({ loading, error, searchQuery, tracksLength, searchMode, onImportPlaylist }: SearchEmptyStateProps) {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -42,6 +43,9 @@ export function SearchEmptyState({ loading, error, searchQuery, tracksLength, se
         <Text style={styles.hintText}>
           💡 Use the filters above to choose the search type
         </Text>
+        <TouchableOpacity style={styles.importButton} onPress={onImportPlaylist}>
+          <Text style={styles.importButtonText}>Import Deezer Playlist</Text>
+        </TouchableOpacity>
       </View>
     );
   }

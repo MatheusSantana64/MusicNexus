@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TextInput } from 'react-native';
+import { TextInput, Modal, View, Text, Button } from 'react-native';
 import { DeezerTrack, SearchMode } from '../types';
 import { useSearch } from './useSearch';
 import { useMusicOperations } from '../hooks/useMusicOperations';
@@ -19,6 +19,11 @@ import { OptionsModal } from '../components/OptionsModal';
 import { searchStyles as styles } from './styles/SearchScreen.styles';
 import { getTags } from '../services/tagService';
 import { Tag } from '../types';
+import { saveMusicBatch } from '../services/musicService'; // Import batch save
+import { DeezerApiClient } from '../services/deezer/deezerApiClient'; // Import Deezer API client
+import { useMusicStore } from '../store/musicStore';
+import StarRating from 'react-native-star-rating-widget';
+import { ImportPlaylistModal } from './ImportPlaylistModal';
 
 const MIN_SEARCH_LENGTH = 3;
 
@@ -47,6 +52,13 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
   const [tags, setTags] = useState<Tag[]>([]);
   const [tagsLoading, setTagsLoading] = useState(true);
   const searchInputRef = useRef<TextInput>(null);
+
+  // Import playlist modal state
+  const [importModalVisible, setImportModalVisible] = useState(false);
+  const [playlistLink, setPlaylistLink] = useState('');
+  const [importRating, setImportRating] = useState(0);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   // Fetch tags on mount
   React.useEffect(() => {
@@ -161,6 +173,84 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
       : `track-${item.data.id}`;
   }, []);
 
+  // Handler to open modal
+  const handleOpenImportModal = () => {
+    setImportModalVisible(true);
+    setPlaylistLink('');
+    setImportRating(0);
+    setImportError(null);
+  };
+
+  // Handler to import playlist
+  const handleImportPlaylist = async () => {
+    setImportLoading(true);
+    setImportError(null);
+    try {
+      // Accept either a full link or just the ID
+      let playlistId = '';
+      const match = playlistLink.match(/playlist\/(\d+)/);
+      if (match) {
+        playlistId = match[1];
+      } else if (/^\d+$/.test(playlistLink.trim())) {
+        playlistId = playlistLink.trim();
+      } else {
+        throw new Error('Please enter a valid Deezer playlist link or ID');
+      }
+
+      // Fetch playlist tracks from Deezer API
+      const response = await fetch(`https://api.deezer.com/playlist/${playlistId}`);
+      const playlistData = await response.json();
+      if (!playlistData.tracks || !playlistData.tracks.data) throw new Error('No tracks found in playlist');
+      const tracks = playlistData.tracks.data;
+
+      // Validate and filter tracks
+      const validTracks = tracks
+        .map((track: DeezerTrack) => DeezerApiClient.getTrackById(track.id))
+        .filter(Boolean);
+
+      // Wait for all track fetches
+      const resolvedTracks = (await Promise.all(validTracks)).filter(Boolean);
+
+      // Filter out tracks already in the library
+      const existingIds = new Set(useMusicStore.getState().savedMusic.map(m => m.id));
+      const newTracks = resolvedTracks.filter(track => !existingIds.has(track.id));
+
+      // Save only new tracks in batch
+      const firebaseIds = await saveMusicBatch(newTracks, importRating);
+
+      // Build SavedMusic objects for local store
+      const now = new Date();
+      const savedMusics = newTracks.map((track, idx) => ({
+        id: track.id,
+        title: track.title,
+        artist: track.artist.name,
+        artistId: track.artist.id,
+        album: track.album.title,
+        albumId: track.album.id,
+        coverUrl: track.album.cover_medium,
+        preview: track.preview,
+        duration: track.duration,
+        rating: importRating,
+        releaseDate: track.album.release_date,
+        trackPosition: track.track_position || 1,
+        diskNumber: track.disk_number || 1,
+        savedAt: now,
+        firebaseId: firebaseIds[idx],
+        tags: [],
+        ratingHistory: importRating > 0 ? [{ rating: importRating, timestamp: now.toISOString() }] : [],
+      }));
+
+      // Update local store with only new tracks
+      useMusicStore.getState().addMusicBatch(savedMusics);
+
+      setImportModalVisible(false);
+    } catch (err: any) {
+      setImportError(err.message || 'Failed to import playlist');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   return (
     <ErrorBoundary>
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -185,6 +275,7 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
               searchQuery={searchQuery}
               tracksLength={tracks.length}
               searchMode={searchMode}
+              onImportPlaylist={handleOpenImportModal}
             />
           )}
           showsVerticalScrollIndicator={false}
@@ -209,6 +300,19 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
           initialSelectedTagIds={[]} // No tags for new tracks
           onSave={handleRatingSave}
           onCancel={handleRatingCancel}
+        />
+
+        {/* Import Playlist Modal */}
+        <ImportPlaylistModal
+          visible={importModalVisible}
+          playlistLink={playlistLink}
+          importRating={importRating}
+          importLoading={importLoading}
+          importError={importError}
+          onChangeLink={setPlaylistLink}
+          onChangeRating={setImportRating}
+          onCancel={() => setImportModalVisible(false)}
+          onImport={handleImportPlaylist}
         />
       </SafeAreaView>
     </ErrorBoundary>

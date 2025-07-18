@@ -102,4 +102,64 @@ export const searchStyles = StyleSheet.create({
     fontSize: theme.sizes.small,
     fontWeight: theme.weights.medium,
   },
+  importButton: {
+    marginTop: 16,
+    backgroundColor: theme.colors.button.primary,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  importButtonText: {
+    color: theme.colors.text.primary,
+    fontWeight: theme.weights.bold,
+    fontSize: 16,
+  },
+
+  // === Import Modal ===
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: theme.colors.background.amoled,
+    borderRadius: theme.borderRadius.lg,
+    borderColor: theme.colors.border,
+    borderWidth: 1,
+    padding: 24,
+    width: '95%',
+    alignItems: 'stretch',
+  },
+  modalTitle: {
+    fontSize: 20,
+    color: theme.colors.text.primary,
+    fontWeight: theme.weights.bold,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+
+  modalInput: {
+    color: theme.colors.text.primary,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+
+  ratingContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 0,
+  },
+
+  modalButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
 });
