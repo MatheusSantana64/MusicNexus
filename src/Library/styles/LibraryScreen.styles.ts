@@ -30,7 +30,7 @@ export const libraryStyles = StyleSheet.create({
     borderBottomColor: theme.colors.divider,
   },
   sortLabelButton: {
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
@@ -38,13 +38,13 @@ export const libraryStyles = StyleSheet.create({
     backgroundColor: theme.colors.button.disabled,
     marginRight: 8,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-evenly',
     flexDirection: 'row',
   },
   sortHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-evenly',
   },
   sortLabel: {
     fontSize: theme.sizes.body,
@@ -61,7 +61,10 @@ export const libraryStyles = StyleSheet.create({
     marginTop: 8,
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
     gap: 8,
+    width: '100%',
   },
   sortButton: {
     paddingHorizontal: 12,

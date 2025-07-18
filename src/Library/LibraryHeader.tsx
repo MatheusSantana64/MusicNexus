@@ -150,6 +150,7 @@ export function LibraryHeader({
 
   return (
     <>
+      {/* SEARCH BAR */}
       <View style={[styles.searchContainer, { position: 'relative' }]}>
         <TextInput
           ref={searchInputRef}
@@ -180,8 +181,9 @@ export function LibraryHeader({
         )}
       </View>
       
+      {/* SORTING AND FILTERING CONTROLS */}
       <View style={styles.sortContainer}>
-        <View style={[styles.sortHeader, { justifyContent: 'space-between' }]}>
+        <View style={styles.sortHeader}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
 
             <TouchableOpacity // Sort button

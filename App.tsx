@@ -28,7 +28,7 @@ function TabNavigator() {
           if (route.name === 'Search') {
             iconName = focused ? 'search' : 'search-outline';
           } else if (route.name === 'Library') {
-            iconName = focused ? 'library' : 'library-outline';
+            iconName = focused ? 'musical-notes' : 'musical-notes-outline';
           } else if (route.name === 'Tags') {
             iconName = focused ? 'pricetag' : 'pricetag-outline';
           } else if (route.name === 'History') {
