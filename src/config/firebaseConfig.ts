@@ -3,7 +3,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-// Import AsyncStorage for Firebase to use it automatically
 import '@react-native-async-storage/async-storage';
 
 // Firebase configuration object using Expo environment variables

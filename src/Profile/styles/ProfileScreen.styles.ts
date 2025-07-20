@@ -1,3 +1,5 @@
+// src/Profile/styles/ProfileScreen.styles.ts
+// Styles for the Profile Screen
 import { StyleSheet } from 'react-native';
 import { theme } from '../../styles/theme';
 

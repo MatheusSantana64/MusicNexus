@@ -1,8 +1,8 @@
 // src/types/album.ts
-// Album types for Deezer API responses
-import { DeezerTrack } from './track';
+// Album types for music API responses (Spotify/Deezer)
+import { MusicTrack } from './track';
 
-export interface DeezerAlbum {
+export interface MusicAlbum {
   id: string;
   title: string;
   cover: string;
@@ -18,12 +18,12 @@ export interface DeezerAlbum {
     picture_medium: string;
   };
   tracks?: {
-    data: DeezerTrack[];
+    data: MusicTrack[];
   };
 }
 
-export interface DeezerAlbumSearchResponse {
-  data: DeezerAlbum[];
+export interface MusicAlbumSearchResponse {
+  data: MusicAlbum[];
   total: number;
   next?: string;
 }

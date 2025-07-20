@@ -1,3 +1,5 @@
+// src/Profile/ProfileConfigModal.tsx
+// ProfileConfigModal for configuring profile settings
 import React from 'react';
 import { View, Text, Button, Modal, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

@@ -1,3 +1,5 @@
+// src/History/HistoryScreen.styles.ts
+// Styles for the History Screen
 import { StyleSheet } from 'react-native';
 import { theme } from '../styles/theme';
 

@@ -1,6 +1,6 @@
 // src/types/track.ts
-// Track types for Deezer API responses
-export interface DeezerTrack {
+// Track types for music API responses (Spotify/Deezer)
+export interface MusicTrack {
   id: string;
   title: string;
   title_short: string;
@@ -21,15 +21,14 @@ export interface DeezerTrack {
     release_date: string;
   };
   duration: number;
-  preview: string;
   rank: number;
   track_position?: number;
   disk_number?: number;
   release_date?: string;
 }
 
-export interface DeezerSearchResponse {
-  data: DeezerTrack[];
+export interface MusicSearchResponse {
+  data: MusicTrack[];
   total: number;
   next?: string;
 }

@@ -1,4 +1,4 @@
-// src/components/LibraryEmptyState.tsx
+// src/Library/LibraryEmptyState.tsx
 // Component for displaying empty states in the LibraryScreen
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';

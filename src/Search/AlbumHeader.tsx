@@ -1,8 +1,8 @@
-// src/components/AlbumHeader.tsx
+// src/Search/AlbumHeader.tsx
 // Defines the AlbumHeader component which displays album information
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { DeezerTrack } from '../types';
+import { MusicTrack } from '../types';
 import { useMusicStore } from '../store/musicStore';
 import { searchStyles as styles } from './styles/SearchScreen.styles';
 import { theme } from '../styles/theme';
@@ -11,7 +11,7 @@ export interface AlbumGroup {
   albumId: string;
   album: any;
   artist: any;
-  tracks: DeezerTrack[];
+  tracks: MusicTrack[];
   releaseDate: string;
 }
 

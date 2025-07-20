@@ -1,15 +1,11 @@
-// src/utils/validators.ts
-// Zod validation schemas for API responses and data validation
+// src/utils/validators/deezerValidators.ts
+// This file contains validation schemas and utility functions for Deezer API responses using Zod.
 import { z } from 'zod';
 
 // === HELPER SCHEMAS ===
-
-// ID schema that accepts both string and number, converts to string
 const IdSchema = z.union([z.string(), z.number()]).transform(val => String(val));
 
 // === DEEZER API VALIDATION SCHEMAS ===
-
-// Artist schema for Deezer API responses
 export const DeezerArtistSchema = z.object({
   id: IdSchema,
   name: z.string(),
@@ -18,8 +14,7 @@ export const DeezerArtistSchema = z.object({
   picture_medium: z.string(),
 });
 
-// Album schema for Deezer API responses
-export const DeezerAlbumSchema = z.object({
+export const MusicAlbumSchema = z.object({
   id: IdSchema,
   title: z.string(),
   cover: z.string(),
@@ -29,13 +24,12 @@ export const DeezerAlbumSchema = z.object({
   release_date: z.string(),
 });
 
-// Track schema for Deezer API responses
-export const DeezerTrackSchema = z.object({
+export const MusicTrackSchema = z.object({
   id: IdSchema,
   title: z.string(),
   title_short: z.string(),
   artist: DeezerArtistSchema,
-  album: DeezerAlbumSchema,
+  album: MusicAlbumSchema,
   duration: z.number().min(0),
   preview: z.string(),
   rank: z.number(),
@@ -44,64 +38,24 @@ export const DeezerTrackSchema = z.object({
   release_date: z.string().optional(),
 });
 
-// Search response schema
-export const DeezerSearchResponseSchema = z.object({
-  data: z.array(DeezerTrackSchema),
+export const MusicSearchResponseSchema = z.object({
+  data: z.array(MusicTrackSchema),
   total: z.number(),
   next: z.string().optional(),
 });
 
-// Album search response schema
-export const DeezerAlbumSearchResponseSchema = z.object({
-  data: z.array(DeezerAlbumSchema.extend({
+export const MusicAlbumSearchResponseSchema = z.object({
+  data: z.array(MusicAlbumSchema.extend({
     artist: DeezerArtistSchema,
     tracks: z.object({
-      data: z.array(DeezerTrackSchema),
+      data: z.array(MusicTrackSchema),
     }).optional(),
   })),
   total: z.number(),
   next: z.string().optional(),
 });
 
-// === SAVED MUSIC VALIDATION SCHEMAS ===
-
-// Schema for rating history entries
-const RatingHistoryEntrySchema = z.object({
-  rating: z.number(),
-  timestamp: z.string(),
-});
-
-// Schema for validating saved music data before saving to Firebase
-export const SavedMusicInputSchema = z.object({
-  id: IdSchema,
-  title: z.string().min(1, 'Title is required'),
-  artist: z.string().min(1, 'Artist is required'),
-  artistId: IdSchema,
-  album: z.string().min(1, 'Album is required'),
-  albumId: IdSchema,
-  coverUrl: z.string(),
-  preview: z.string(),
-  duration: z.number().min(1, 'Duration must be greater than 0'),
-  rating: z.number().min(0).max(10).refine(
-    (val) => val % 0.5 === 0, 
-    'Rating must be in 0.5 increments (0, 0.5, 1, 1.5, ..., 10)'
-  ),
-  releaseDate: z.string(),
-  trackPosition: z.number().min(0),
-  diskNumber: z.number().min(1),
-  savedAt: z.date(),
-  tags: z.array(z.string()).default([]),
-  ratingHistory: z.array(RatingHistoryEntrySchema).optional(),
-});
-
-// Schema for validating Firebase document data
-export const FirebaseMusicDocumentSchema = SavedMusicInputSchema.extend({
-  firebaseId: z.string().optional(),
-});
-
 // === FLEXIBLE SCHEMAS FOR API RESPONSES ===
-// These schemas handle the reality that some API fields might be missing
-
 export const FlexibleDeezerArtistSchema = z.object({
   id: IdSchema,
   name: z.string(),
@@ -110,7 +64,7 @@ export const FlexibleDeezerArtistSchema = z.object({
   picture_medium: z.string().default(''),
 });
 
-export const FlexibleDeezerAlbumSchema = z.object({
+export const FlexibleMusicAlbumSchema = z.object({
   id: IdSchema,
   title: z.string(),
   cover: z.string().default(''),
@@ -120,12 +74,12 @@ export const FlexibleDeezerAlbumSchema = z.object({
   release_date: z.string().default(''),
 });
 
-export const FlexibleDeezerTrackSchema = z.object({
+export const FlexibleMusicTrackSchema = z.object({
   id: IdSchema,
   title: z.string(),
   title_short: z.string().default('').transform(val => val || ''),
   artist: FlexibleDeezerArtistSchema,
-  album: FlexibleDeezerAlbumSchema.optional(), // 🔧 MAKE ALBUM OPTIONAL
+  album: FlexibleMusicAlbumSchema.optional(),
   duration: z.number().min(0),
   preview: z.string(),
   rank: z.number().default(0),
@@ -135,14 +89,9 @@ export const FlexibleDeezerTrackSchema = z.object({
 });
 
 // === UTILITY VALIDATION FUNCTIONS ===
-
-// Validate and parse Deezer track response with flexible schema
-export function validateDeezerTrack(data: unknown): z.infer<typeof DeezerTrackSchema> {
+export function validateMusicTrack(data: unknown): z.infer<typeof MusicTrackSchema> {
   try {
-    // Use flexible schema for parsing, but return as strict type
-    const flexibleResult = FlexibleDeezerTrackSchema.parse(data);
-    
-    // 🔧 CREATE DEFAULT ALBUM IF MISSING
+    const flexibleResult = FlexibleMusicTrackSchema.parse(data);
     const defaultAlbum = {
       id: 'unknown',
       title: 'Unknown Album',
@@ -152,10 +101,7 @@ export function validateDeezerTrack(data: unknown): z.infer<typeof DeezerTrackSc
       cover_big: '',
       release_date: '',
     };
-    
     const album = flexibleResult.album || defaultAlbum;
-    
-    // Transform to match strict interface
     return {
       id: flexibleResult.id,
       title: flexibleResult.title,
@@ -189,24 +135,19 @@ export function validateDeezerTrack(data: unknown): z.infer<typeof DeezerTrackSc
   }
 }
 
-// Validate and parse Deezer search response
-export function validateDeezerSearchResponse(data: unknown): z.infer<typeof DeezerSearchResponseSchema> {
+export function validateMusicSearchResponse(data: unknown): z.infer<typeof MusicSearchResponseSchema> {
   try {
-    // Parse with flexible schema first
     const rawData = data as any;
-    
-    // 🔧 FILTER OUT TRACKS WITH MISSING ESSENTIAL DATA
     const validTracks = (rawData.data || [])
       .map((track: unknown) => {
         try {
-          return validateDeezerTrack(track);
+          return validateMusicTrack(track);
         } catch (error) {
           console.warn('Skipping invalid track:', error);
           return null;
         }
       })
-      .filter((track: any): track is z.infer<typeof DeezerTrackSchema> => track !== null);
-    
+      .filter((track: any): track is z.infer<typeof MusicTrackSchema> => track !== null);
     return {
       data: validTracks,
       total: rawData.total || 0,
@@ -218,16 +159,13 @@ export function validateDeezerSearchResponse(data: unknown): z.infer<typeof Deez
   }
 }
 
-// Validate and parse Deezer album search response
-export function validateDeezerAlbumSearchResponse(data: unknown): z.infer<typeof DeezerAlbumSearchResponseSchema> {
+export function validateMusicAlbumSearchResponse(data: unknown): z.infer<typeof MusicAlbumSearchResponseSchema> {
   try {
     const rawData = data as any;
-    
-    // 🔧 IMPROVED ERROR HANDLING FOR ALBUMS
     const validAlbums = (rawData.data || [])
       .map((album: any) => {
         try {
-          const flexibleAlbum = FlexibleDeezerAlbumSchema.parse(album);
+          const flexibleAlbum = FlexibleMusicAlbumSchema.parse(album);
           const flexibleArtist = FlexibleDeezerArtistSchema.parse(album.artist || {
             id: 'unknown',
             name: 'Unknown Artist',
@@ -235,7 +173,6 @@ export function validateDeezerAlbumSearchResponse(data: unknown): z.infer<typeof
             picture_small: '',
             picture_medium: '',
           });
-          
           return {
             id: flexibleAlbum.id,
             title: flexibleAlbum.title,
@@ -259,7 +196,6 @@ export function validateDeezerAlbumSearchResponse(data: unknown): z.infer<typeof
         }
       })
       .filter((album: any): album is any => album !== null);
-    
     return {
       data: validAlbums,
       total: rawData.total || 0,
@@ -271,60 +207,25 @@ export function validateDeezerAlbumSearchResponse(data: unknown): z.infer<typeof
   }
 }
 
-// Validate saved music input before saving to Firebase
-export function validateSavedMusicInput(data: unknown): z.infer<typeof SavedMusicInputSchema> {
+export function safeParseMusicTrack(data: unknown): z.infer<typeof MusicTrackSchema> | null {
   try {
-    return SavedMusicInputSchema.parse(data);
-  } catch (error) {
-    console.error('Invalid saved music data:', error);
-    throw new Error(`Invalid music data: ${error instanceof z.ZodError ? error.message : 'Unknown validation error'}`);
-  }
-}
-
-// Validate Firebase document data
-export function validateFirebaseMusicDocument(data: unknown): z.infer<typeof FirebaseMusicDocumentSchema> {
-  try {
-    return FirebaseMusicDocumentSchema.parse(data);
-  } catch (error) {
-    console.error('Invalid Firebase document data:', error);
-    throw new Error(`Invalid document data: ${error instanceof z.ZodError ? error.message : 'Unknown validation error'}`);
-  }
-}
-
-// === SAFE PARSING FUNCTIONS (returns null on error) ===
-
-export function safeParseDeezerTrack(data: unknown): z.infer<typeof DeezerTrackSchema> | null {
-  try {
-    return validateDeezerTrack(data);
+    return validateMusicTrack(data);
   } catch (error) {
     console.warn('Failed to parse Deezer track:', error);
     return null;
   }
 }
 
-export function safeParseDeezerSearchResponse(data: unknown): z.infer<typeof DeezerSearchResponseSchema> | null {
+export function safeParseMusicSearchResponse(data: unknown): z.infer<typeof MusicSearchResponseSchema> | null {
   try {
-    return validateDeezerSearchResponse(data);
+    return validateMusicSearchResponse(data);
   } catch (error) {
     console.warn('Failed to parse Deezer search response:', error);
     return null;
   }
 }
 
-export function safeParseFirebaseMusicDocument(data: unknown): z.infer<typeof FirebaseMusicDocumentSchema> | null {
-  const result = FirebaseMusicDocumentSchema.safeParse(data);
-  if (result.success) {
-    return result.data;
-  }
-  console.warn('Failed to parse Firebase document:', result.error);
-  return null;
-}
-
 // === TYPE EXPORTS ===
-
-// Export inferred types for use throughout the app
-export type ValidatedDeezerTrack = z.infer<typeof DeezerTrackSchema>;
-export type ValidatedDeezerSearchResponse = z.infer<typeof DeezerSearchResponseSchema>;
-export type ValidatedDeezerAlbumSearchResponse = z.infer<typeof DeezerAlbumSearchResponseSchema>;
-export type ValidatedSavedMusicInput = z.infer<typeof SavedMusicInputSchema>;
-export type ValidatedFirebaseMusicDocument = z.infer<typeof FirebaseMusicDocumentSchema>;
+export type ValidatedMusicTrack = z.infer<typeof MusicTrackSchema>;
+export type ValidatedMusicSearchResponse = z.infer<typeof MusicSearchResponseSchema>;
+export type ValidatedMusicAlbumSearchResponse = z.infer<typeof MusicAlbumSearchResponseSchema>;

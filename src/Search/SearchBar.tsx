@@ -1,7 +1,7 @@
-// src/components/SearchBar.tsx
-// This file defines the SearchBar component used in the music search feature of the application.
+// src/Search/SearchBar.tsx
+// SearchBar component for the music search feature
 import React from 'react';
-import { View, TextInput, ActivityIndicator, TouchableOpacity, Text } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text } from 'react-native';
 import { SearchMode } from '../types';
 import { SearchFilters } from './SearchFilters';
 import { searchStyles as styles } from './styles/SearchScreen.styles';
