@@ -22,10 +22,10 @@ import { Tag } from '../types';
 import { saveMusicBatch } from '../services/musicService'; // Import batch save
 import { DeezerApiClient } from '../services/deezer/deezerApiClient'; // Import Deezer API client
 import { useMusicStore } from '../store/musicStore';
-import StarRating from 'react-native-star-rating-widget';
 import { ImportPlaylistModal } from './ImportPlaylistModal';
 
-const MIN_SEARCH_LENGTH = 3;
+const BATCH_SIZE = 50;
+const BATCH_DELAY_MS = 1500;
 
 export default function SearchScreen({ navigation }: { navigation?: any }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,9 +92,7 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
 
   const handleModeChange = useCallback(async (mode: SearchMode) => {
     setSearchMode(mode);
-    if (searchQuery.length >= MIN_SEARCH_LENGTH) {
-      await searchTracks(searchQuery, mode);
-    }
+    await searchTracks(searchQuery, mode);
   }, [setSearchMode, searchTracks, searchQuery]);
 
   const handleShowInfoModal = useCallback((title: string, message: string) => {
@@ -181,6 +179,22 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
     setImportError(null);
   };
 
+  async function fetchTracksInBatches(trackIds: string[]): Promise<DeezerTrack[]> {
+    const allTracks: DeezerTrack[] = [];
+    for (let i = 0; i < trackIds.length; i += BATCH_SIZE) {
+      const batchIds = trackIds.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batchIds.map(id => DeezerApiClient.getTrackById(id))
+      );
+      // Filter out nulls
+      allTracks.push(...batchResults.filter((track): track is DeezerTrack => track !== null));
+      if (i + BATCH_SIZE < trackIds.length) {
+        await new Promise(res => setTimeout(res, BATCH_DELAY_MS));
+      }
+    }
+    return allTracks;
+  }
+
   // Handler to import playlist
   const handleImportPlaylist = async () => {
     setImportLoading(true);
@@ -202,14 +216,10 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
       const playlistData = await response.json();
       if (!playlistData.tracks || !playlistData.tracks.data) throw new Error('No tracks found in playlist');
       const tracks = playlistData.tracks.data;
+      const trackIds = tracks.map((track: DeezerTrack) => track.id);
 
-      // Validate and filter tracks
-      const validTracks = tracks
-        .map((track: DeezerTrack) => DeezerApiClient.getTrackById(track.id))
-        .filter(Boolean);
-
-      // Wait for all track fetches
-      const resolvedTracks = (await Promise.all(validTracks)).filter(Boolean);
+      // Fetch all tracks in batches to avoid quota errors
+      const resolvedTracks = await fetchTracksInBatches(trackIds);
 
       // Filter out tracks already in the library
       const existingIds = new Set(useMusicStore.getState().savedMusic.map(m => m.id));
