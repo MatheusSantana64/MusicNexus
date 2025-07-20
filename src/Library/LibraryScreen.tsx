@@ -45,6 +45,8 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
     modalProps: libraryModalProps,
     selectedTagIds,
     setSelectedTagIds,
+    excludedTagIds,
+    setExcludedTagIds,
   } = useLibrary(ratingFilter);
 
   // Options modal for long press actions
@@ -182,6 +184,8 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
           tags={tags}
           selectedTagIds={selectedTagIds}
           onTagFilterChange={setSelectedTagIds}
+          excludedTagIds={excludedTagIds}
+          onExcludedTagChange={setExcludedTagIds}
           searchInputRef={searchInputRef} // Pass ref to header
         />
       )}

@@ -15,6 +15,7 @@ export function useLibrary(ratingFilter?: [number, number]) {
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [selectedMusic, setSelectedMusic] = useState<SavedMusic | null>(null);
   const [selectedTagIds, setSelectedTagIds] = React.useState<string[]>([]);
+  const [excludedTagIds, setExcludedTagIds] = React.useState<string[]>([]);
 
   // Modal hook for confirmations
   const { showModal, modalProps } = useModal();
@@ -57,6 +58,14 @@ export function useLibrary(ratingFilter?: [number, number]) {
       );
     }
 
+    // Exclude songs with any excluded tag
+    if (excludedTagIds.length > 0) {
+      filtered = filtered.filter(item =>
+        Array.isArray(item.tags) &&
+        excludedTagIds.every(tagId => !item.tags.includes(tagId))
+      );
+    }
+
     // Filter by search query
     if (searchQuery.trim()) {
       const searchTerm = searchQuery.toLowerCase().trim();
@@ -73,7 +82,7 @@ export function useLibrary(ratingFilter?: [number, number]) {
       : SORT_OPTIONS[sortMode].sortFn;
 
     return [...filtered].sort(sortFunction);
-  }, [savedMusic, searchQuery, sortMode, isReversed, ratingFilter, selectedTagIds]);
+  }, [savedMusic, searchQuery, sortMode, isReversed, ratingFilter, selectedTagIds, excludedTagIds]);
 
   // Unified handler for music actions
   const handleMusicAction = useCallback((music: SavedMusic, action: 'rate' | 'delete') => {
@@ -171,6 +180,7 @@ export function useLibrary(ratingFilter?: [number, number]) {
     ratingModalVisible,
     selectedMusic,
     selectedTagIds,
+    excludedTagIds,
     
     // MODAL PROPS FOR OPTIONS/CONFIRMATIONS
     modalProps,
@@ -182,6 +192,7 @@ export function useLibrary(ratingFilter?: [number, number]) {
     refresh,
     clearSearch,
     setSelectedTagIds,
+    setExcludedTagIds,
     // RATING HANDLERS TO RETURN
     handleRatingSave,
     handleRatingCancel,

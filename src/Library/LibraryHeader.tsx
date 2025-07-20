@@ -64,6 +64,8 @@ interface LibraryHeaderProps {
   tags: Tag[];
   selectedTagIds?: string[];
   onTagFilterChange?: (tagIds: string[]) => void;
+  excludedTagIds?: string[];
+  onExcludedTagChange?: (tagIds: string[]) => void;
   searchInputRef?: React.RefObject<TextInput | null>;
 }
 
@@ -80,6 +82,8 @@ export function LibraryHeader({
   tags,
   selectedTagIds = [],
   onTagFilterChange,
+  excludedTagIds = [],
+  onExcludedTagChange,
   searchInputRef,
 }: LibraryHeaderProps) {
   const [showSortOptions, setShowSortOptions] = useState(false);
@@ -140,10 +144,16 @@ export function LibraryHeader({
   const isTagFilterActive = selectedTagIds.length > 0;
 
   const handleTagPress = (tagId: string) => {
-    if (!onTagFilterChange) return;
+    if (!onTagFilterChange || !onExcludedTagChange) return;
     if (selectedTagIds.includes(tagId)) {
+      // Move to excluded
       onTagFilterChange(selectedTagIds.filter(id => id !== tagId));
+      onExcludedTagChange([...excludedTagIds, tagId]);
+    } else if (excludedTagIds.includes(tagId)) {
+      // Remove from excluded
+      onExcludedTagChange(excludedTagIds.filter(id => id !== tagId));
     } else {
+      // Add to selected
       onTagFilterChange([...selectedTagIds, tagId]);
     }
   };
@@ -321,33 +331,45 @@ export function LibraryHeader({
               Filter by Tags
             </Text>
             <ScrollView style={{ maxHeight: 300 }}>
-              {tags.map(tag => (
-                <TouchableOpacity
-                  key={tag.id}
-                  onPress={() => handleTagPress(tag.id)}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginBottom: 8,
-                    padding: 8,
-                    borderRadius: 12,
-                    backgroundColor: selectedTagIds.includes(tag.id) ? tag.color : theme.colors.background.surface,
-                    borderWidth: 1,
-                    borderColor: tag.color,
-                  }}
-                >
-                  <Text style={{
-                    color: theme.colors.text.primary,
-                    fontWeight: selectedTagIds.includes(tag.id) ? 'bold' : 'normal',
-                    flex: 1,
-                  }}>
-                    {tag.name}
-                  </Text>
-                  {selectedTagIds.includes(tag.id) && (
-                    <Ionicons name="checkmark" size={18} color={theme.colors.text.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
+              {tags.map(tag => {
+                const isSelected = selectedTagIds.includes(tag.id);
+                const isExcluded = excludedTagIds.includes(tag.id);
+                return (
+                  <TouchableOpacity
+                    key={tag.id}
+                    onPress={() => handleTagPress(tag.id)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 8,
+                      padding: 8,
+                      borderRadius: 12,
+                      backgroundColor: isSelected
+                        ? tag.color
+                        : isExcluded
+                          ? theme.colors.button.cancel // Use a "cancel" color for excluded
+                          : theme.colors.background.surface,
+                      borderWidth: 1,
+                      borderColor: tag.color,
+                      opacity: isExcluded ? 0.7 : 1, // Slightly faded for excluded
+                    }}
+                  >
+                    <Text style={{
+                      color: isExcluded ? theme.colors.text.error : theme.colors.text.primary,
+                      fontWeight: isSelected ? 'bold' : 'normal',
+                      flex: 1,
+                    }}>
+                      {tag.name}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={18} color={theme.colors.text.primary} />
+                    )}
+                    {isExcluded && (
+                      <Ionicons name="remove-circle-outline" size={18} color={theme.colors.text.error} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
             <TouchableOpacity
               onPress={() => setShowTagsModal(false)}

@@ -7,7 +7,7 @@ import { useTagStore } from '../store/tagStore';
 import { getDocs, collection, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context'; // <-- Add this import
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 async function deleteAllSongs() {
   try {
@@ -28,7 +28,7 @@ async function deleteAllTags() {
     const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, 'tags', d.id)));
     await Promise.all(deletePromises);
     Alert.alert('Success', 'All tags have been deleted.');
-    useTagStore.getState().loadTags(); // <-- reload tags in Zustand store
+    useTagStore.getState().loadTags();
   } catch (error) {
     Alert.alert('Error', 'Failed to delete all tags.');
   }
@@ -36,7 +36,7 @@ async function deleteAllTags() {
 
 export default function ProfileScreen() {
   const { savedMusic } = useMusicStore();
-  const { tags } = useTagStore(); // <-- Get tags from store
+  const { tags } = useTagStore();
   const [modalVisible, setModalVisible] = useState(false);
 
   // Notes state
