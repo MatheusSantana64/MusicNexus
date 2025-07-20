@@ -17,6 +17,7 @@ import { libraryStyles as styles } from './styles/LibraryScreen.styles';
 import { getTags } from '../services/tagService';
 import { Tag } from '../types';
 import { useMusicStore } from '../store/musicStore';
+import { formatDateTimeDDMMYY_HHMM } from '../utils/dateUtils';
 
 export default function LibraryScreen({ navigation }: { navigation?: any }) {
   const [ratingFilter, setRatingFilter] = useState<[number, number]>([0, 10]);
@@ -65,9 +66,12 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
   }, []);
 
   const handleLongPress = useCallback((music: SavedMusic) => {
+    const savedAtText = music.savedAt
+      ? `\nSaved on: ${formatDateTimeDDMMYY_HHMM(music.savedAt.toISOString())}`
+      : '';
     showOptionsModal({
       title: music.title,
-      message: `Options for "${music.title}"`,
+      message: `${music.artist} - ${music.album}${savedAtText}`,
       actions: [
         {
           text: 'Rating History',
