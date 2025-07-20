@@ -53,7 +53,7 @@ export async function saveMusic(track: MusicTrack, options: SaveMusicOptions = {
       artistId: track.artist.id,
       album: track.album.title,
       albumId: track.album.id,
-      coverUrl: track.album.cover_medium,
+      coverUrl: track.album.cover_small,
       preview: track.preview,
       duration: track.duration,
       rating,
