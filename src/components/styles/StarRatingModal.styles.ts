@@ -92,7 +92,7 @@ export const starRatingModalStyles = StyleSheet.create({
     alignItems: 'center',
   },
   tagButtonText: {
-    color: '#fff',
+    color: theme.colors.text.primary,
     fontWeight: 'bold',
     textAlign: 'center',
   },
