@@ -1,19 +1,19 @@
 // src/services/deezer/deezerApiClient.ts
 // Deezer API client for fetching tracks and albums
 // This client handles API requests, caching, and data validation
-import { DeezerTrack, DeezerAlbum, DeezerSearchResponse, DeezerAlbumSearchResponse } from '../../types';
+import { MusicTrack, MusicAlbum, MusicSearchResponse, MusicAlbumSearchResponse } from '../../types';
 import { CacheService } from './deezerCacheService';
 import { 
-  validateDeezerAlbumSearchResponse,
-  safeParseDeezerTrack,
-  safeParseDeezerSearchResponse
+  validateMusicAlbumSearchResponse,
+  safeParseMusicTrack,
+  safeParseMusicSearchResponse
 } from '../../utils/validators';
 import { searchSpotifyTrack } from '../spotify/spotifyApiClient';
 
 const DEEZER_API_URL = 'https://api.deezer.com';
 
 export class DeezerApiClient {
-  static async getTrackById(trackId: string): Promise<DeezerTrack | null> {
+  static async getTrackById(trackId: string): Promise<MusicTrack | null> {
     try {
       // Check cache first
       const cached = CacheService.getTrack(trackId);
@@ -31,7 +31,7 @@ export class DeezerApiClient {
       const rawData = await response.json();
       
       // 🛡️ VALIDATE WITH ZOD
-      const validatedTrack = safeParseDeezerTrack(rawData);
+      const validatedTrack = safeParseMusicTrack(rawData);
       if (!validatedTrack) {
         console.error('Invalid track data received from API:', rawData);
         // 🔥 Fallback to Spotify
@@ -52,7 +52,7 @@ export class DeezerApiClient {
     }
   }
 
-  static async searchTracksRaw(query: string, limit: number): Promise<DeezerSearchResponse | null> {
+  static async searchTracksRaw(query: string, limit: number): Promise<MusicSearchResponse | null> {
     const encodedQuery = encodeURIComponent(query.trim());
     const response = await fetch(`${DEEZER_API_URL}/search?q=${encodedQuery}&limit=${limit}`);
 
@@ -63,7 +63,7 @@ export class DeezerApiClient {
     const rawData = await response.json();
 
     // 🛡️ VALIDATE WITH ZOD
-    const validatedResponse = safeParseDeezerSearchResponse(rawData);
+    const validatedResponse = safeParseMusicSearchResponse(rawData);
     if (!validatedResponse) {
       console.error('Invalid search response from API:', rawData);
       return null;
@@ -72,7 +72,7 @@ export class DeezerApiClient {
     return validatedResponse;
   }
 
-  static async searchAlbumsRaw(query: string, limit: number): Promise<DeezerAlbumSearchResponse> {
+  static async searchAlbumsRaw(query: string, limit: number): Promise<MusicAlbumSearchResponse> {
     const encodedQuery = encodeURIComponent(query.trim());
     const albumResponse = await fetch(
       `${DEEZER_API_URL}/search/album?q=${encodedQuery}&limit=${Math.min(limit, 15)}`
@@ -85,10 +85,10 @@ export class DeezerApiClient {
     const rawData = await albumResponse.json();
     
     // 🛡️ VALIDATE WITH ZOD
-    return validateDeezerAlbumSearchResponse(rawData);
+    return validateMusicAlbumSearchResponse(rawData);
   }
 
-  static async getAlbumTracks(albumId: string): Promise<DeezerTrack[]> {
+  static async getAlbumTracks(albumId: string): Promise<MusicTrack[]> {
     const albumTracksResponse = await fetch(`${DEEZER_API_URL}/album/${albumId}/tracks`);
     
     if (!albumTracksResponse.ok) {
@@ -99,7 +99,7 @@ export class DeezerApiClient {
     
     // 🛡️ VALIDATE EACH TRACK
     return (rawData.data || [])
-      .map((track: unknown) => safeParseDeezerTrack(track))
-      .filter((track: DeezerTrack | null): track is DeezerTrack => track !== null);
+      .map((track: unknown) => safeParseMusicTrack(track))
+      .filter((track: MusicTrack | null): track is MusicTrack => track !== null);
   }
 }

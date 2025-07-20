@@ -1,7 +1,7 @@
 // src/services/deezerService.ts
 // DeezerService for managing Deezer-related operations
 // This service provides methods for searching tracks, getting track details, and managing caches
-import { DeezerTrack, SearchMode, SearchOptions } from '../../types';
+import { MusicTrack, SearchMode, SearchOptions } from '../../types';
 import { DeezerApiClient } from './deezerApiClient';
 import { DeezerSearchService } from './deezerSearchService';
 import { CacheService } from './deezerCacheService';
@@ -9,7 +9,7 @@ import { BatchRequestService } from './batchRequestService';
 import { searchSpotifyTrack, searchSpotifyArtistTracks, spotifyUnifiedSearch, getSpotifyAccessToken } from '../spotify/spotifyApiClient';
 
 // 🚀 NEW: Fetch tracks for a Spotify album
-async function fetchSpotifyAlbumTracks(albumId: string): Promise<DeezerTrack[]> {
+async function fetchSpotifyAlbumTracks(albumId: string): Promise<MusicTrack[]> {
   const token = await getSpotifyAccessToken();
   const response = await fetch(`https://api.spotify.com/v1/albums/${albumId}/tracks?limit=50`, {
     headers: { 'Authorization': `Bearer ${token}` },
@@ -19,7 +19,7 @@ async function fetchSpotifyAlbumTracks(albumId: string): Promise<DeezerTrack[]> 
     return [];
   }
   const data = await response.json();
-  // Map Spotify tracks to DeezerTrack-like objects
+  // Map Spotify tracks to MusicTrack-like objects
   return (data.items || []).map((track: any) => ({
     id: track.id,
     title: track.name,
@@ -52,7 +52,7 @@ async function fetchSpotifyAlbumTracks(albumId: string): Promise<DeezerTrack[]> 
 export class DeezerService {
   // === PUBLIC API METHODS ===
   
-  static async searchTracks(query: string, mode: SearchMode = 'spotify_album', limit: number = 25): Promise<DeezerTrack[]> {
+  static async searchTracks(query: string, mode: SearchMode = 'spotify_album', limit: number = 25): Promise<MusicTrack[]> {
     let formattedQuery = query;
     if (mode === 'spotify_album' || mode === 'deezer_album') {
       // Only search for artist or album, never track title
@@ -73,7 +73,7 @@ export class DeezerService {
           // Spotify album search (use unified search, filter albums)
           const result = await spotifyUnifiedSearch(opts.query, ['album'], opts.limit || 10);
           // Fetch tracks from albums
-          const allTracks: DeezerTrack[] = [];
+          const allTracks: MusicTrack[] = [];
           const albumTrackPromises = result.albums.map(async (album) => {
             const albumTracks = await fetchSpotifyAlbumTracks(album.id);
             albumTracks.forEach(track => {
@@ -112,17 +112,17 @@ export class DeezerService {
     return (searchMethods[mode] || searchMethods.spotify_album).call(null, options);
   }
 
-  static async getTrackById(trackId: string): Promise<DeezerTrack | null> {
+  static async getTrackById(trackId: string): Promise<MusicTrack | null> {
     return DeezerApiClient.getTrackById(trackId);
   }
 
   // === PUBLIC UTILITIES ===
 
-  static getTrackReleaseDate(track: DeezerTrack): string | null {
+  static getTrackReleaseDate(track: MusicTrack): string | null {
     return track.album?.release_date || track.release_date || null;
   }
 
-  static getTrackPosition(track: DeezerTrack): string | null {
+  static getTrackPosition(track: MusicTrack): string | null {
     if (!track.track_position && track.track_position !== 0) return null;
     
     const position = track.track_position.toString();
@@ -131,7 +131,7 @@ export class DeezerService {
       : position;
   }
 
-  static getReleaseYear(track: DeezerTrack): string | null {
+  static getReleaseYear(track: MusicTrack): string | null {
     const releaseDate = this.getTrackReleaseDate(track);
     if (!releaseDate) return null;
     

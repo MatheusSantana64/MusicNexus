@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons'; // Add this import
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SearchMode } from '../types';
 import { searchFiltersStyles as styles } from './styles/SearchFilters.styles';
 

@@ -3,8 +3,8 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TextInput, Modal, View, Text, Button } from 'react-native';
-import { DeezerTrack, SearchMode } from '../types';
+import { TextInput } from 'react-native';
+import { MusicTrack, SearchMode } from '../types';
 import { useSearch } from './useSearch';
 import { useMusicOperations } from '../hooks/useMusicOperations';
 import { useAlbumGrouping } from '../hooks/useAlbumGrouping';
@@ -87,7 +87,7 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
 
   const handleSearch = useCallback(async (text: string) => {
     setSearchQuery(text);
-    clearResults(); // <-- Clear results immediately
+    clearResults();
     await searchTracks(text);
   }, [searchTracks, clearResults]);
 
@@ -110,7 +110,7 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
     });
   }, [showInfoModal]);
 
-  const renderTrackItem = useCallback(({ item }: { item: DeezerTrack }) => (
+  const renderTrackItem = useCallback(({ item }: { item: MusicTrack }) => (
     <MusicItem 
       music={item} 
       onPress={handleTrackPress}
@@ -184,15 +184,15 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
     setImportError(null);
   };
 
-  async function fetchTracksInBatches(trackIds: string[]): Promise<DeezerTrack[]> {
-    const allTracks: DeezerTrack[] = [];
+  async function fetchTracksInBatches(trackIds: string[]): Promise<MusicTrack[]> {
+    const allTracks: MusicTrack[] = [];
     for (let i = 0; i < trackIds.length; i += BATCH_SIZE) {
       const batchIds = trackIds.slice(i, i + BATCH_SIZE);
       const batchResults = await Promise.all(
         batchIds.map(id => DeezerApiClient.getTrackById(id))
       );
       // Filter out nulls
-      allTracks.push(...batchResults.filter((track): track is DeezerTrack => track !== null));
+      allTracks.push(...batchResults.filter((track): track is MusicTrack => track !== null));
       if (i + BATCH_SIZE < trackIds.length) {
         await new Promise(res => setTimeout(res, BATCH_DELAY_MS));
       }
@@ -221,7 +221,7 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
       const playlistData = await response.json();
       if (!playlistData.tracks || !playlistData.tracks.data) throw new Error('No tracks found in playlist');
       const tracks = playlistData.tracks.data;
-      const trackIds = tracks.map((track: DeezerTrack) => track.id);
+      const trackIds = tracks.map((track: MusicTrack) => track.id);
 
       // Fetch all tracks in batches to avoid quota errors
       const resolvedTracks = await fetchTracksInBatches(trackIds);
@@ -291,7 +291,7 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
               tracksLength={tracks.length}
               searchMode={searchMode}
               onImportPlaylist={handleOpenImportModal}
-              hasSearched={hasSearched} // <-- Pass this
+              hasSearched={hasSearched}
             />
           )}
           showsVerticalScrollIndicator={false}

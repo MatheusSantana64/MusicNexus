@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { DeezerTrack, SavedMusic } from '../types';
+import { MusicTrack, SavedMusic } from '../types';
 import { DeezerService } from '../services/deezer/deezerService';
 import { formatReleaseDate } from '../utils/dateUtils';
 import { useMusicStore } from '../store/musicStore';
@@ -17,7 +17,7 @@ import { getRatingColor, getRatingText } from '../utils/ratingUtils';
 import { Tag } from '../types/tag'; // Import Tag type
 
 // Use generic types for better type safety
-interface MusicItemProps<T extends DeezerTrack | SavedMusic> {
+interface MusicItemProps<T extends MusicTrack | SavedMusic> {
   music: T;
   onPress: (music: T) => void;
   onLongPress?: (music: T) => void;
@@ -26,7 +26,7 @@ interface MusicItemProps<T extends DeezerTrack | SavedMusic> {
   tags?: Tag[];
 }
 
-export function MusicItem<T extends DeezerTrack | SavedMusic>({
+export function MusicItem<T extends MusicTrack | SavedMusic>({
   music,
   onPress,
   onLongPress,
@@ -41,7 +41,7 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
     isMusicDeleting 
   } = useMusicStore();
   
-  const isSavedMusic = (item: DeezerTrack | SavedMusic): item is SavedMusic => {
+  const isSavedMusic = (item: MusicTrack | SavedMusic): item is SavedMusic => {
     return 'rating' in item && 'savedAt' in item;
   };
 

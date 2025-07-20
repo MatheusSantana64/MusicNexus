@@ -1,13 +1,13 @@
 // src/services/deezer/deezerSearchService.ts
 // DeezerSearchService for searching tracks by album or quick search
 // This service handles both album-based searches and quick searches for tracks
-import { DeezerTrack, SearchOptions } from '../../types';
+import { MusicTrack, SearchOptions } from '../../types';
 import { DeezerApiClient } from './deezerApiClient';
 import { DeezerDataEnricher } from './deezerDataEnricher';
 import { DeezerSortingUtils } from './deezerSortingUtils';
 
 export class DeezerSearchService {
-  static async searchTracksByAlbum(options: SearchOptions): Promise<DeezerTrack[]> {
+  static async searchTracksByAlbum(options: SearchOptions): Promise<MusicTrack[]> {
     try {
       if (!options.query?.trim()) return [];
 
@@ -34,7 +34,7 @@ export class DeezerSearchService {
     }
   }
 
-  static async searchTracksQuick(options: SearchOptions): Promise<DeezerTrack[]> {
+  static async searchTracksQuick(options: SearchOptions): Promise<MusicTrack[]> {
     try {
       if (!options.query?.trim()) return [];
 

@@ -1,7 +1,7 @@
 // src/hooks/useSearch.ts
 // Hook for searching music tracks using the Deezer API
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { DeezerTrack, SearchMode } from '../types';
+import { MusicTrack, SearchMode } from '../types';
 import { DeezerService } from '../services/deezer/deezerService';
 
 // Search configuration
@@ -10,18 +10,18 @@ const SEARCH_CONFIG = {
 } as const;
 
 interface UseSearchResult {
-  tracks: DeezerTrack[];
+  tracks: MusicTrack[];
   loading: boolean;
   error: string | null;
   searchMode: SearchMode;
   searchTracks: (query: string, mode?: SearchMode) => Promise<void>;
   setSearchMode: (mode: SearchMode) => void;
   clearResults: () => void;
-  hasSearched: boolean; // <-- Add this
+  hasSearched: boolean;
 }
 
 export function useSearch(): UseSearchResult {
-  const [tracks, setTracks] = useState<DeezerTrack[]>([]);
+  const [tracks, setTracks] = useState<MusicTrack[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>('spotify_album'); // Use Spotify Album as default
@@ -58,7 +58,7 @@ export function useSearch(): UseSearchResult {
 
     setLoading(true);
     setError(null);
-    setHasSearched(true); // <-- Set to true when search is triggered
+    setHasSearched(true);
 
     try {
       console.log(`[${searchId}] Starting ${mode} search for:`, query);
@@ -106,7 +106,7 @@ export function useSearch(): UseSearchResult {
       setTracks([]);
       setError(null);
       setLoading(false);
-      setHasSearched(false); // <-- Reset when cleared
+      setHasSearched(false);
       currentSearchRef.current = '';
       return;
     }
@@ -136,7 +136,7 @@ export function useSearch(): UseSearchResult {
     setTracks([]);
     setError(null);
     setLoading(false);
-    setHasSearched(false); // <-- Reset when cleared
+    setHasSearched(false);
     currentSearchRef.current = '';
   }, []);
 
@@ -148,6 +148,6 @@ export function useSearch(): UseSearchResult {
     searchTracks,
     setSearchMode: handleSetSearchMode,
     clearResults,
-    hasSearched, // <-- Return this
+    hasSearched,
   };
 }

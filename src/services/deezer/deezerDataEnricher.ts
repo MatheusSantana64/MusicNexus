@@ -1,14 +1,14 @@
 // src/services/deezer/deezerDataEnricher.ts
 // Fetch and enrich Deezer data with batch requests and caching
-import { DeezerTrack, DeezerAlbum, SearchOptions } from '../../types';
+import { MusicTrack, MusicAlbum, SearchOptions } from '../../types';
 import { DeezerApiClient } from './deezerApiClient';
 import { DeezerSortingUtils } from './deezerSortingUtils';
 import { CacheService } from './deezerCacheService';
 import { BatchRequestService } from './batchRequestService';
-import { safeParseDeezerTrack } from '../../utils/validators';
+import { safeParseMusicTrack } from '../../utils/validators';
 
 export class DeezerDataEnricher {
-  static async fetchAndSortAlbums(options: SearchOptions): Promise<DeezerAlbum[]> {
+  static async fetchAndSortAlbums(options: SearchOptions): Promise<MusicAlbum[]> {
     const validatedResponse = await DeezerApiClient.searchAlbumsRaw(options.query.trim(), options.limit || 25);
     let albums = validatedResponse.data || [];
 
@@ -18,8 +18,8 @@ export class DeezerDataEnricher {
   }
 
   // Fetch tracks using batch requests and smart caching
-  static async fetchTracksFromAlbums(albums: DeezerAlbum[]): Promise<DeezerTrack[]> {
-    const allTracks: DeezerTrack[] = [];
+  static async fetchTracksFromAlbums(albums: MusicAlbum[]): Promise<MusicTrack[]> {
+    const allTracks: MusicTrack[] = [];
     
     console.log(`📦 Starting track fetching for ${albums.length} albums`);
     
@@ -30,7 +30,7 @@ export class DeezerDataEnricher {
       const batchPromises = batch.map(async (album) => {
         try {
           const validTracks = await DeezerApiClient.getAlbumTracks(album.id);
-          return validTracks.map((track: DeezerTrack) => this.enrichTrackWithAlbumData(track, album));
+          return validTracks.map((track: MusicTrack) => this.enrichTrackWithAlbumData(track, album));
         } catch (error) {
           console.warn(`Failed to fetch tracks for album ${album.id}:`, error);
           return [];
@@ -51,7 +51,7 @@ export class DeezerDataEnricher {
   }
 
   // Use batch requests for album data enrichment
-  static async enrichAlbumsWithReleaseData(albums: DeezerAlbum[]): Promise<DeezerAlbum[]> {
+  static async enrichAlbumsWithReleaseData(albums: MusicAlbum[]): Promise<MusicAlbum[]> {
     const albumsToEnrich = albums.filter(album => !album.release_date);
     const albumsWithData = albums.filter(album => album.release_date);
     
@@ -80,7 +80,7 @@ export class DeezerDataEnricher {
   }
 
   // Enrich tracks with album position data
-  static async enrichTracksWithAlbumData(tracks: DeezerTrack[]): Promise<DeezerTrack[]> {
+  static async enrichTracksWithAlbumData(tracks: MusicTrack[]): Promise<MusicTrack[]> {
     console.log(`📦 Enriching ${tracks.length} tracks with position data`);
 
     const enrichedTracks = await Promise.all(
@@ -130,7 +130,7 @@ export class DeezerDataEnricher {
   }
 
   // === DATA ENRICHMENT ===
-  static enrichTrackWithAlbumData(track: any, album: DeezerAlbum): DeezerTrack {
+  static enrichTrackWithAlbumData(track: any, album: MusicAlbum): MusicTrack {
     return {
       ...track,
       album: {

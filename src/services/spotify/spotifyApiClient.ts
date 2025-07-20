@@ -1,4 +1,4 @@
-import { DeezerTrack, DeezerAlbum } from '../../types';
+import { MusicTrack, MusicAlbum } from '../../types';
 
 const SPOTIFY_API_URL = 'https://api.spotify.com/v1';
 const TOKEN_URL = 'https://accounts.spotify.com/api/token';
@@ -26,7 +26,7 @@ export async function getSpotifyAccessToken(): Promise<string> {
   return spotifyAccessToken!;
 }
 
-export async function searchSpotifyTrack(title: string, artist?: string): Promise<DeezerTrack | null> {
+export async function searchSpotifyTrack(title: string, artist?: string): Promise<MusicTrack | null> {
   if (/^\d+$/.test(title.trim())) {
     return null;
   }
@@ -53,7 +53,7 @@ export async function searchSpotifyTrack(title: string, artist?: string): Promis
   const track = data.tracks?.items?.[0];
   if (!track) return null;
 
-  // Map Spotify track to DeezerTrack-like object
+  // Map Spotify track to MusicTrack-like object
   return {
     id: track.id,
     title: track.name,
@@ -83,7 +83,7 @@ export async function searchSpotifyTrack(title: string, artist?: string): Promis
   };
 }
 
-export async function searchSpotifyArtistTracks(artistName: string, limit: number = 10): Promise<DeezerTrack[]> {
+export async function searchSpotifyArtistTracks(artistName: string, limit: number = 10): Promise<MusicTrack[]> {
   const token = await getSpotifyAccessToken();
   // Step 1: Search for artist ID
   const artistRes = await fetch(`${SPOTIFY_API_URL}/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
@@ -128,8 +128,8 @@ export async function searchSpotifyArtistTracks(artistName: string, limit: numbe
 }
 
 export interface SpotifyUnifiedSearchResult {
-  tracks: DeezerTrack[];
-  albums: DeezerAlbum[];
+  tracks: MusicTrack[];
+  albums: MusicAlbum[];
   artists: {
     id: string;
     name: string;
@@ -156,7 +156,7 @@ export async function spotifyUnifiedSearch(
   const data = await response.json();
 
   // Map tracks
-  const tracks: DeezerTrack[] = (data.tracks?.items || []).map((track: any) => ({
+  const tracks: MusicTrack[] = (data.tracks?.items || []).map((track: any) => ({
     id: track.id,
     title: track.name,
     title_short: track.name,
@@ -185,7 +185,7 @@ export async function spotifyUnifiedSearch(
   }));
 
   // Map albums
-  const albums: DeezerAlbum[] = (data.albums?.items || []).map((album: any) => ({
+  const albums: MusicAlbum[] = (data.albums?.items || []).map((album: any) => ({
     id: album.id,
     title: album.name,
     cover: album.images[0]?.url || '',

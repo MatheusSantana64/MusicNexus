@@ -13,7 +13,7 @@ import {
   where 
 } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
-import { SavedMusic, DeezerTrack } from '../types';
+import { SavedMusic, MusicTrack } from '../types';
 import { DeezerService } from './deezer/deezerService';
 import { 
   validateSavedMusicInput,
@@ -33,7 +33,7 @@ interface SaveMusicOptions {
 
 // === CORE FUNCTIONS ===
 
-export async function saveMusic(track: DeezerTrack, options: SaveMusicOptions = {}): Promise<string> {
+export async function saveMusic(track: MusicTrack, options: SaveMusicOptions = {}): Promise<string> {
   const { rating = 0, tags = [] } = options;
   
   if (!track?.id || !track?.title || !track?.artist?.name) {
@@ -196,7 +196,7 @@ export async function updateMusicRatingAndTags(firebaseId: string, rating: numbe
 }
 
 // === BATCH OPERATIONS ===
-export async function saveMusicBatch(tracks: DeezerTrack[], rating: number = 0, tags: string[] = []): Promise<string[]> {
+export async function saveMusicBatch(tracks: MusicTrack[], rating: number = 0, tags: string[] = []): Promise<string[]> {
   console.log(`📦 Starting batch save of ${tracks.length} tracks with rating ${rating}`);
   
   const results = await Promise.allSettled(
