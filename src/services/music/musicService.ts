@@ -1,4 +1,4 @@
-// src/services/musicService.ts
+// src/services/music/musicService.ts
 // Music service for saving, updating, and deleting music with validation
 import { 
   collection, 
@@ -12,14 +12,14 @@ import {
   QueryConstraint,
   where 
 } from 'firebase/firestore';
-import { db } from '../config/firebaseConfig';
-import { SavedMusic, MusicTrack } from '../types';
-import { DeezerService } from './deezer/deezerService';
+import { db } from '../../config/firebaseConfig';
+import { SavedMusic, MusicTrack } from '../../types';
+import { MusicSearchService } from './musicSearchService';
 import { 
   validateSavedMusicInput,
   safeParseFirebaseMusicDocument,
-} from '../utils/validators';
-import { setSavedMusicMeta } from './firestoreMetaHelper';
+} from '../../utils/validators';
+import { setSavedMusicMeta } from '../firestoreMetaHelper';
 
 const COLLECTION_NAME = 'savedMusic';
 const DEFAULT_RELEASE_DATE = '1900-01-01';
@@ -57,7 +57,7 @@ export async function saveMusic(track: MusicTrack, options: SaveMusicOptions = {
       preview: track.preview,
       duration: track.duration,
       rating,
-      releaseDate: DeezerService.getTrackReleaseDate(track) || DEFAULT_RELEASE_DATE,
+      releaseDate: MusicSearchService.getTrackReleaseDate(track) || DEFAULT_RELEASE_DATE,
       trackPosition: track.track_position || 0,
       diskNumber: track.disk_number || 1,
       savedAt: new Date(),

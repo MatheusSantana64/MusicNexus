@@ -1,4 +1,4 @@
-// src/components/SearchFilters.tsx
+// src/Search/SearchFilters.tsx
 // Component for search mode filters in the SearchScreen
 import React from 'react';
 import {

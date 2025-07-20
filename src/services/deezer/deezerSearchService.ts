@@ -4,7 +4,7 @@
 import { MusicTrack, SearchOptions } from '../../types';
 import { DeezerApiClient } from './deezerApiClient';
 import { DeezerDataEnricher } from './deezerDataEnricher';
-import { DeezerSortingUtils } from './deezerSortingUtils';
+import { MusicSortingUtils } from '../../utils/musicSortingUtils';
 
 export class DeezerSearchService {
   static async searchTracksByAlbum(options: SearchOptions): Promise<MusicTrack[]> {
@@ -22,7 +22,7 @@ export class DeezerSearchService {
 
       // Step 2: Get tracks with batching (much fewer API calls)
       const allTracks = await DeezerDataEnricher.fetchTracksFromAlbums(albums);
-      const sortedTracks = DeezerSortingUtils.sortTracksByAlbumOrder(allTracks);
+      const sortedTracks = MusicSortingUtils.sortTracksByAlbumOrder(allTracks);
 
       const endTime = Date.now();
       console.log(`✅ [ALBUM MODE] Completed in ${endTime - startTime}ms: ${sortedTracks.length} tracks`);
@@ -51,7 +51,7 @@ export class DeezerSearchService {
       
       // Step 3: Enrich tracks with album data fetching
       tracks = await DeezerDataEnricher.enrichTracksWithAlbumData(tracks);
-      tracks = DeezerSortingUtils.sortTracksByAlbumOrder(tracks);
+      tracks = MusicSortingUtils.sortTracksByAlbumOrder(tracks);
       
       const endTime = Date.now();
       console.log(`✅ [QUICK MODE] Completed in ${endTime - startTime}ms: ${tracks.length} tracks`);

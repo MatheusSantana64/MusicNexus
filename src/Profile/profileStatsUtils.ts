@@ -1,3 +1,5 @@
+// src/Profile/profileStatsUtils.ts
+// Utility functions for calculating profile statistics
 import { SavedMusic, Tag } from '../types';
 
 export interface ProfileStats {

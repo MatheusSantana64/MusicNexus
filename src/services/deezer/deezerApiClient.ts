@@ -2,7 +2,7 @@
 // Deezer API client for fetching tracks and albums
 // This client handles API requests, caching, and data validation
 import { MusicTrack, MusicAlbum, MusicSearchResponse, MusicAlbumSearchResponse } from '../../types';
-import { CacheService } from './deezerCacheService';
+import { CacheService } from '../music/musicCacheService';
 import { 
   validateMusicAlbumSearchResponse,
   safeParseMusicTrack,

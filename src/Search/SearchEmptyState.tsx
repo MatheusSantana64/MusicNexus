@@ -1,5 +1,5 @@
-// src/components/SearchEmptyState.tsx
-// Component for displaying empty state in the SearchScreen
+// src/Search/SearchEmptyState.tsx
+// SearchEmptyState component for displaying empty states in the SearchScreen
 import React from 'react';
 import { View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SearchMode } from '../types';

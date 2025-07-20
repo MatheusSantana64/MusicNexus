@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { MusicTrack, SavedMusic } from '../types';
-import { DeezerService } from '../services/deezer/deezerService';
+import { MusicSearchService } from '../services/music/musicSearchService';
 import { formatReleaseDate } from '../utils/dateUtils';
 import { useMusicStore } from '../store/musicStore';
 import { musicItemStyles as styles } from './styles/MusicItem.styles';
@@ -88,8 +88,8 @@ export function MusicItem<T extends MusicTrack | SavedMusic>({
           album: music.album.title,
           coverUrl: music.album.cover_medium,
           duration: music.duration,
-          releaseDate: DeezerService.getTrackReleaseDate(music),
-          trackPosition: DeezerService.getTrackPosition(music),
+          releaseDate: MusicSearchService.getTrackReleaseDate(music),
+          trackPosition: MusicSearchService.getTrackPosition(music),
           rating: savedMusicData.rating,
           savedAt: savedMusicData.savedAt,
           isSaved: true,
@@ -102,8 +102,8 @@ export function MusicItem<T extends MusicTrack | SavedMusic>({
           album: music.album.title,
           coverUrl: music.album.cover_medium,
           duration: music.duration,
-          releaseDate: DeezerService.getTrackReleaseDate(music),
-          trackPosition: DeezerService.getTrackPosition(music),
+          releaseDate: MusicSearchService.getTrackReleaseDate(music),
+          trackPosition: MusicSearchService.getTrackPosition(music),
           rating: null,
           savedAt: null,
           isSaved: false,

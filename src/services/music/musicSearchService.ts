@@ -1,11 +1,10 @@
-// src/services/deezerService.ts
-// DeezerService for managing Deezer-related operations
-// This service provides methods for searching tracks, getting track details, and managing caches
+// src/services/music/musicSearchService.ts
+// MusicSearchService for searching tracks across multiple APIs (Spotify/Deezer)
 import { MusicTrack, SearchMode, SearchOptions } from '../../types';
-import { DeezerApiClient } from './deezerApiClient';
-import { DeezerSearchService } from './deezerSearchService';
-import { CacheService } from './deezerCacheService';
-import { BatchRequestService } from './batchRequestService';
+import { DeezerApiClient } from '../deezer/deezerApiClient';
+import { DeezerSearchService } from '../deezer/deezerSearchService';
+import { CacheService } from './musicCacheService';
+import { DeezerBatchRequestService } from '../deezer/deezerBatchRequestService';
 import { searchSpotifyTrack, searchSpotifyArtistTracks, spotifyUnifiedSearch, getSpotifyAccessToken } from '../spotify/spotifyApiClient';
 
 // 🚀 NEW: Fetch tracks for a Spotify album
@@ -49,9 +48,8 @@ async function fetchSpotifyAlbumTracks(albumId: string): Promise<MusicTrack[]> {
   }));
 }
 
-export class DeezerService {
+export class MusicSearchService {
   // === PUBLIC API METHODS ===
-  
   static async searchTracks(query: string, mode: SearchMode = 'spotify_album', limit: number = 25): Promise<MusicTrack[]> {
     let formattedQuery = query;
     if (mode === 'spotify_album' || mode === 'deezer_album') {
@@ -156,13 +154,13 @@ export class DeezerService {
 
   static clearCaches(): void {
     CacheService.clearAll();
-    BatchRequestService.clearQueue();
+    DeezerBatchRequestService.clearQueue();
   }
 
   static getCacheStats() {
     return {
       cache: CacheService.getStats(),
-      queue: BatchRequestService.getQueueStatus(),
+      queue: DeezerBatchRequestService.getQueueStatus(),
     };
   }
 }

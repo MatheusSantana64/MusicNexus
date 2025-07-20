@@ -1,4 +1,4 @@
-// src/styles/screens/TagsScreen.styles.ts
+// src/Tags/styles/TagsScreen.styles.ts
 // Styles for the Tags Screen
 import { StyleSheet } from 'react-native';
 import { theme } from '../../styles/theme';

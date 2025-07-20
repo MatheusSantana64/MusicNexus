@@ -1,5 +1,5 @@
-// src/screens/SearchScreen.tsx
-// Screen for searching music online (Deezer API)
+// src/Search/SearchScreen.tsx
+// SearchScreen for searching music online (Spotify/Deezer) and displaying results
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,7 +19,7 @@ import { OptionsModal } from '../components/OptionsModal';
 import { searchStyles as styles } from './styles/SearchScreen.styles';
 import { getTags } from '../services/tagService';
 import { Tag } from '../types';
-import { saveMusicBatch } from '../services/musicService'; // Import batch save
+import { saveMusicBatch } from '../services/music/musicService'; // Import batch save
 import { DeezerApiClient } from '../services/deezer/deezerApiClient'; // Import Deezer API client
 import { useMusicStore } from '../store/musicStore';
 import { ImportPlaylistModal } from './ImportPlaylistModal';

@@ -2,7 +2,7 @@
 // Custom hook for music operations like saving tracks and albums
 import { useCallback, useState } from 'react';
 import { MusicTrack } from '../types';
-import { MusicOperationsService, AlbumGroup } from '../services/musicOperationsService';
+import { MusicOperationsService, AlbumGroup } from '../services/music/musicOperationsService';
 import { useMusicStore } from '../store/musicStore';
 import { useModal } from './useModal';
 

@@ -1,8 +1,8 @@
-// src/hooks/useSearch.ts
-// Hook for searching music tracks using the Deezer API
+// src/Search/useSearch.ts
+// useSearch hook for managing music search functionality
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { MusicTrack, SearchMode } from '../types';
-import { DeezerService } from '../services/deezer/deezerService';
+import { MusicSearchService } from '../services/music/musicSearchService';
 
 // Search configuration
 const SEARCH_CONFIG = {
@@ -63,7 +63,7 @@ export function useSearch(): UseSearchResult {
     try {
       console.log(`[${searchId}] Starting ${mode} search for:`, query);
       
-      const results = await DeezerService.searchTracks(query, mode);
+      const results = await MusicSearchService.searchTracks(query, mode);
 
       // Verify if this is still the most recent search
       if (currentSearchRef.current === searchId) {

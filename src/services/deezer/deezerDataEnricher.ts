@@ -2,9 +2,9 @@
 // Fetch and enrich Deezer data with batch requests and caching
 import { MusicTrack, MusicAlbum, SearchOptions } from '../../types';
 import { DeezerApiClient } from './deezerApiClient';
-import { DeezerSortingUtils } from './deezerSortingUtils';
-import { CacheService } from './deezerCacheService';
-import { BatchRequestService } from './batchRequestService';
+import { MusicSortingUtils } from '../../utils/musicSortingUtils';
+import { CacheService } from '../music/musicCacheService';
+import { DeezerBatchRequestService } from './deezerBatchRequestService';
 import { safeParseMusicTrack } from '../../utils/validators';
 
 export class DeezerDataEnricher {
@@ -14,7 +14,7 @@ export class DeezerDataEnricher {
 
     // Enrich and sort albums with batching
     albums = await this.enrichAlbumsWithReleaseData(albums);
-    return DeezerSortingUtils.sortAlbumsByReleaseDate(albums);
+    return MusicSortingUtils.sortAlbumsByReleaseDate(albums);
   }
 
   // Fetch tracks using batch requests and smart caching
@@ -65,7 +65,7 @@ export class DeezerDataEnricher {
     // Use batch requests to get album data
     const enrichmentPromises = albumsToEnrich.map(async (album) => {
       try {
-        const albumData = await BatchRequestService.requestAlbum(album.id);
+        const albumData = await DeezerBatchRequestService.requestAlbum(album.id);
         return { ...album, release_date: albumData.release_date || '' };
       } catch (error) {
         console.warn(`Failed to fetch detailed data for album ${album.id}:`, error);
@@ -91,7 +91,7 @@ export class DeezerDataEnricher {
           const matchingTrack = albumTracks.find((albumTrack: any) => albumTrack.id === track.id);
           
           // Also get full album data to ensure we have release_date
-          const albumData = await BatchRequestService.requestAlbum(track.album.id);
+          const albumData = await DeezerBatchRequestService.requestAlbum(track.album.id);
           
           if (matchingTrack) {
             // Use album track data for position info (this fixes Quick Search)

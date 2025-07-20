@@ -1,4 +1,4 @@
-// src/components/AlbumHeader.tsx
+// src/Search/AlbumHeader.tsx
 // Defines the AlbumHeader component which displays album information
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';

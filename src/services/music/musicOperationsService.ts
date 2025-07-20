@@ -1,10 +1,10 @@
-// src/services/musicOperationsService.ts
+// src/services/music/musicOperationsService.ts
 // Handles music operations like saving tracks and albums, showing dialogs, etc.
-import { MusicTrack, SavedMusic } from '../types';
+import { MusicTrack, SavedMusic } from '../../types';
 import { saveMusic, saveMusicBatch } from './musicService';
-import { useMusicStore } from '../store/musicStore';
-import { DeezerService } from './deezer/deezerService';
-import { setSavedMusicMeta } from './firestoreMetaHelper';
+import { useMusicStore } from '../../store/musicStore';
+import { MusicSearchService } from './musicSearchService';
+import { setSavedMusicMeta } from '../firestoreMetaHelper';
 
 export interface AlbumGroup {
   albumId: string;
@@ -51,7 +51,7 @@ export class MusicOperationsService {
         preview: track.preview,
         duration: track.duration,
         rating,
-        releaseDate: track.album.release_date,
+        releaseDate: MusicSearchService.getTrackReleaseDate(track) || '1900-01-01',
         trackPosition: track.track_position || 1,
         diskNumber: track.disk_number || 1,
         savedAt: new Date(),
@@ -112,7 +112,7 @@ export class MusicOperationsService {
         preview: track.preview,
         duration: track.duration,
         rating,
-        releaseDate: DeezerService.getTrackReleaseDate(track) || '1900-01-01',
+        releaseDate: MusicSearchService.getTrackReleaseDate(track) || '1900-01-01',
         trackPosition: track.track_position || 0,
         diskNumber: track.disk_number || 1,
         savedAt: new Date(),
