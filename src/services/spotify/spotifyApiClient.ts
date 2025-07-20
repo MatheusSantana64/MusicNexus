@@ -1,6 +1,10 @@
 // src/services/spotify/spotifyApiClient.ts
 // Spotify API client for fetching tracks and albums
 import { MusicTrack, MusicAlbum } from '../../types';
+import {
+  safeParseSpotifyTrack,
+  safeParseSpotifySearchResponse,
+} from '../../utils/validators/spotifyValidators';
 
 const SPOTIFY_API_URL = 'https://api.spotify.com/v1';
 const TOKEN_URL = 'https://accounts.spotify.com/api/token';
@@ -55,8 +59,8 @@ export async function searchSpotifyTrack(title: string, artist?: string): Promis
   const track = data.tracks?.items?.[0];
   if (!track) return null;
 
-  // Map Spotify track to MusicTrack-like object
-  return {
+  // Validate and parse track using spotifyValidators
+  const validatedTrack = safeParseSpotifyTrack({
     id: track.id,
     title: track.name,
     title_short: track.name,
@@ -75,6 +79,14 @@ export async function searchSpotifyTrack(title: string, artist?: string): Promis
       cover_medium: track.album.images[1]?.url || '',
       cover_big: track.album.images[0]?.url || '',
       release_date: track.album.release_date,
+      artist: {
+        id: track.artists[0].id,
+        name: track.artists[0].name,
+        picture: '',
+        picture_small: '',
+        picture_medium: '',
+      },
+      tracks: undefined,
     },
     duration: Math.floor(track.duration_ms / 1000),
     preview: track.preview_url || '',
@@ -82,7 +94,9 @@ export async function searchSpotifyTrack(title: string, artist?: string): Promis
     track_position: track.track_number,
     disk_number: track.disc_number,
     release_date: track.album.release_date,
-  };
+  });
+  if (!validatedTrack) return null;
+  return validatedTrack;
 }
 
 export async function searchSpotifyArtistTracks(artistName: string, limit: number = 10): Promise<MusicTrack[]> {
@@ -157,60 +171,72 @@ export async function spotifyUnifiedSearch(
   }
   const data = await response.json();
 
-  // Map tracks
-  const tracks: MusicTrack[] = (data.tracks?.items || []).map((track: any) => ({
-    id: track.id,
-    title: track.name,
-    title_short: track.name,
-    artist: {
-      id: track.artists[0].id,
-      name: track.artists[0].name,
-      picture: '',
-      picture_small: '',
-      picture_medium: '',
-    },
-    album: {
-      id: track.album.id,
-      title: track.album.name,
-      cover: track.album.images[0]?.url || '',
-      cover_small: track.album.images[2]?.url || '',
-      cover_medium: track.album.images[1]?.url || '',
-      cover_big: track.album.images[0]?.url || '',
+  // Validate and parse unified search response using spotifyValidators
+  const validatedResponse = safeParseSpotifySearchResponse({
+    tracks: (data.tracks?.items || []).map((track: any) => ({
+      id: track.id,
+      title: track.name,
+      title_short: track.name,
+      artist: {
+        id: track.artists[0].id,
+        name: track.artists[0].name,
+        picture: '',
+        picture_small: '',
+        picture_medium: '',
+      },
+      album: {
+        id: track.album.id,
+        title: track.album.name,
+        cover: track.album.images[0]?.url || '',
+        cover_small: track.album.images[2]?.url || '',
+        cover_medium: track.album.images[1]?.url || '',
+        cover_big: track.album.images[0]?.url || '',
+        release_date: track.album.release_date,
+        artist: {
+          id: track.artists[0].id,
+          name: track.artists[0].name,
+          picture: '',
+          picture_small: '',
+          picture_medium: '',
+        },
+        tracks: undefined,
+      },
+      duration: Math.floor(track.duration_ms / 1000),
+      preview: track.preview_url || '',
+      rank: 0,
+      track_position: track.track_number,
+      disk_number: track.disc_number,
       release_date: track.album.release_date,
-    },
-    duration: Math.floor(track.duration_ms / 1000),
-    preview: track.preview_url || '',
-    rank: 0,
-    track_position: track.track_number,
-    disk_number: track.disc_number,
-    release_date: track.album.release_date,
-  }));
+    })),
+    albums: (data.albums?.items || []).map((album: any) => ({
+      id: album.id,
+      title: album.name,
+      cover: album.images[0]?.url || '',
+      cover_small: album.images[2]?.url || '',
+      cover_medium: album.images[1]?.url || '',
+      cover_big: album.images[0]?.url || '',
+      release_date: album.release_date,
+      artist: {
+        id: album.artists[0]?.id || '',
+        name: album.artists[0]?.name || '',
+        picture: '',
+        picture_small: '',
+        picture_medium: '',
+      },
+      tracks: undefined,
+    })),
+    artists: (data.artists?.items || []).map((artist: any) => ({
+      id: artist.id,
+      name: artist.name,
+      picture: artist.images?.[0]?.url || '',
+      picture_small: artist.images?.[2]?.url || '',
+      picture_medium: artist.images?.[1]?.url || '',
+    })),
+  });
 
-  // Map albums
-  const albums: MusicAlbum[] = (data.albums?.items || []).map((album: any) => ({
-    id: album.id,
-    title: album.name,
-    cover: album.images[0]?.url || '',
-    cover_small: album.images[2]?.url || '',
-    cover_medium: album.images[1]?.url || '',
-    cover_big: album.images[0]?.url || '',
-    release_date: album.release_date,
-    artist: {
-      id: album.artists[0]?.id || '',
-      name: album.artists[0]?.name || '',
-      picture: '',
-      picture_small: '',
-      picture_medium: '',
-    },
-    tracks: undefined,
-  }));
+  if (!validatedResponse) {
+    throw new Error('Spotify unified search response validation failed');
+  }
 
-  // Map artists
-  const artists = (data.artists?.items || []).map((artist: any) => ({
-    id: artist.id,
-    name: artist.name,
-    picture: artist.images?.[0]?.url || '',
-  }));
-
-  return { tracks, albums, artists };
+  return validatedResponse;
 }
