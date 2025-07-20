@@ -8,8 +8,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { DeezerTrack, SavedMusic } from '../types';
-import { DeezerService } from '../services/deezer/deezerService';
+import { MusicTrack, SavedMusic } from '../types';
+import { MusicSearchService } from '../services/music/musicSearchService';
 import { formatReleaseDate } from '../utils/dateUtils';
 import { useMusicStore } from '../store/musicStore';
 import { musicItemStyles as styles } from './styles/MusicItem.styles';
@@ -17,7 +17,7 @@ import { getRatingColor, getRatingText } from '../utils/ratingUtils';
 import { Tag } from '../types/tag'; // Import Tag type
 
 // Use generic types for better type safety
-interface MusicItemProps<T extends DeezerTrack | SavedMusic> {
+interface MusicItemProps<T extends MusicTrack | SavedMusic> {
   music: T;
   onPress: (music: T) => void;
   onLongPress?: (music: T) => void;
@@ -26,7 +26,7 @@ interface MusicItemProps<T extends DeezerTrack | SavedMusic> {
   tags?: Tag[];
 }
 
-export function MusicItem<T extends DeezerTrack | SavedMusic>({
+export function MusicItem<T extends MusicTrack | SavedMusic>({
   music,
   onPress,
   onLongPress,
@@ -41,7 +41,7 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
     isMusicDeleting 
   } = useMusicStore();
   
-  const isSavedMusic = (item: DeezerTrack | SavedMusic): item is SavedMusic => {
+  const isSavedMusic = (item: MusicTrack | SavedMusic): item is SavedMusic => {
     return 'rating' in item && 'savedAt' in item;
   };
 
@@ -88,8 +88,8 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
           album: music.album.title,
           coverUrl: music.album.cover_medium,
           duration: music.duration,
-          releaseDate: DeezerService.getTrackReleaseDate(music),
-          trackPosition: DeezerService.getTrackPosition(music),
+          releaseDate: MusicSearchService.getTrackReleaseDate(music),
+          trackPosition: MusicSearchService.getTrackPosition(music),
           rating: savedMusicData.rating,
           savedAt: savedMusicData.savedAt,
           isSaved: true,
@@ -102,8 +102,8 @@ export function MusicItem<T extends DeezerTrack | SavedMusic>({
           album: music.album.title,
           coverUrl: music.album.cover_medium,
           duration: music.duration,
-          releaseDate: DeezerService.getTrackReleaseDate(music),
-          trackPosition: DeezerService.getTrackPosition(music),
+          releaseDate: MusicSearchService.getTrackReleaseDate(music),
+          trackPosition: MusicSearchService.getTrackPosition(music),
           rating: null,
           savedAt: null,
           isSaved: false,

@@ -1,4 +1,4 @@
-// src/styles/components/SearchFilters.styles.ts
+// src/Search/styles/SearchFilters.styles.ts
 // Styles for the Search Filters component
 import { StyleSheet } from 'react-native';
 import { theme } from '../../styles/theme';

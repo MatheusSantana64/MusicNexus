@@ -1,16 +1,16 @@
-// src/services/musicOperationsService.ts
+// src/services/music/musicOperationsService.ts
 // Handles music operations like saving tracks and albums, showing dialogs, etc.
-import { DeezerTrack, SavedMusic } from '../types';
+import { MusicTrack, SavedMusic } from '../../types';
 import { saveMusic, saveMusicBatch } from './musicService';
-import { useMusicStore } from '../store/musicStore';
-import { DeezerService } from './deezer/deezerService';
-import { setSavedMusicMeta } from './firestoreMetaHelper';
+import { useMusicStore } from '../../store/musicStore';
+import { MusicSearchService } from './musicSearchService';
+import { setSavedMusicMeta } from '../firestoreMetaHelper';
 
 export interface AlbumGroup {
   albumId: string;
   album: any;
   artist: any;
-  tracks: DeezerTrack[];
+  tracks: MusicTrack[];
   releaseDate: string;
 }
 
@@ -29,7 +29,7 @@ interface ShowModalFunction {
 
 export class MusicOperationsService {
   // === TRACK OPERATIONS ===
-  static async saveTrack(track: DeezerTrack, rating: number, tags: string[] = []): Promise<void> {
+  static async saveTrack(track: MusicTrack, rating: number, tags: string[] = []): Promise<void> {
     const store = useMusicStore.getState();
 
     try {
@@ -48,10 +48,9 @@ export class MusicOperationsService {
         album: track.album.title,
         albumId: track.album.id,
         coverUrl: track.album.cover_medium,
-        preview: track.preview,
         duration: track.duration,
         rating,
-        releaseDate: track.album.release_date,
+        releaseDate: MusicSearchService.getTrackReleaseDate(track) || '1900-01-01',
         trackPosition: track.track_position || 1,
         diskNumber: track.disk_number || 1,
         savedAt: new Date(),
@@ -77,7 +76,7 @@ export class MusicOperationsService {
   static async saveAlbumTracks(
     albumGroup: AlbumGroup, 
     rating: number, 
-    unsavedTracks: DeezerTrack[],
+    unsavedTracks: MusicTrack[],
     showModal?: ShowModalFunction,
     tags: string[] = []
   ): Promise<string[]> {
@@ -109,10 +108,9 @@ export class MusicOperationsService {
         album: track.album.title,
         albumId: track.album.id,
         coverUrl: track.album.cover_medium,
-        preview: track.preview,
         duration: track.duration,
         rating,
-        releaseDate: DeezerService.getTrackReleaseDate(track) || '1900-01-01',
+        releaseDate: MusicSearchService.getTrackReleaseDate(track) || '1900-01-01',
         trackPosition: track.track_position || 0,
         diskNumber: track.disk_number || 1,
         savedAt: new Date(),
@@ -144,7 +142,7 @@ export class MusicOperationsService {
 
   // === DIALOG HELPERS ===
   static showTrackDialog(
-    track: DeezerTrack,
+    track: MusicTrack,
     savedMusicData: SavedMusic | null,
     onSaveWithoutRating: () => void,
     onSaveWithRating: () => void,

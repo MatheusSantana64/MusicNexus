@@ -1,4 +1,4 @@
-// src/services/musicService.ts
+// src/services/music/musicService.ts
 // Music service for saving, updating, and deleting music with validation
 import { 
   collection, 
@@ -12,14 +12,14 @@ import {
   QueryConstraint,
   where 
 } from 'firebase/firestore';
-import { db } from '../config/firebaseConfig';
-import { SavedMusic, DeezerTrack } from '../types';
-import { DeezerService } from './deezer/deezerService';
+import { db } from '../../config/firebaseConfig';
+import { SavedMusic, MusicTrack } from '../../types';
+import { MusicSearchService } from './musicSearchService';
 import { 
   validateSavedMusicInput,
   safeParseFirebaseMusicDocument,
-} from '../utils/validators';
-import { setSavedMusicMeta } from './firestoreMetaHelper';
+} from '../../utils/validators';
+import { setSavedMusicMeta } from '../firestoreMetaHelper';
 
 const COLLECTION_NAME = 'savedMusic';
 const DEFAULT_RELEASE_DATE = '1900-01-01';
@@ -33,7 +33,7 @@ interface SaveMusicOptions {
 
 // === CORE FUNCTIONS ===
 
-export async function saveMusic(track: DeezerTrack, options: SaveMusicOptions = {}): Promise<string> {
+export async function saveMusic(track: MusicTrack, options: SaveMusicOptions = {}): Promise<string> {
   const { rating = 0, tags = [] } = options;
   
   if (!track?.id || !track?.title || !track?.artist?.name) {
@@ -53,11 +53,10 @@ export async function saveMusic(track: DeezerTrack, options: SaveMusicOptions = 
       artistId: track.artist.id,
       album: track.album.title,
       albumId: track.album.id,
-      coverUrl: track.album.cover_medium,
-      preview: track.preview,
+      coverUrl: track.album.cover_small,
       duration: track.duration,
       rating,
-      releaseDate: DeezerService.getTrackReleaseDate(track) || DEFAULT_RELEASE_DATE,
+      releaseDate: MusicSearchService.getTrackReleaseDate(track) || DEFAULT_RELEASE_DATE,
       trackPosition: track.track_position || 0,
       diskNumber: track.disk_number || 1,
       savedAt: new Date(),
@@ -196,7 +195,7 @@ export async function updateMusicRatingAndTags(firebaseId: string, rating: numbe
 }
 
 // === BATCH OPERATIONS ===
-export async function saveMusicBatch(tracks: DeezerTrack[], rating: number = 0, tags: string[] = []): Promise<string[]> {
+export async function saveMusicBatch(tracks: MusicTrack[], rating: number = 0, tags: string[] = []): Promise<string[]> {
   console.log(`📦 Starting batch save of ${tracks.length} tracks with rating ${rating}`);
   
   const results = await Promise.allSettled(

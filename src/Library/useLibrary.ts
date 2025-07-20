@@ -1,4 +1,4 @@
-// src/hooks/useLibrary.ts
+// src/Library/useLibrary.ts
 // Hook for managing library operations and logic
 import React, { useState, useCallback, useMemo } from 'react';
 import { SavedMusic } from '../types';

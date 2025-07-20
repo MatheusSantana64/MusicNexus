@@ -1,9 +1,7 @@
 // src/styles/components/StarRatingModal.styles.ts
 // Styles for the StarRatingModal component
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { theme } from '../../styles/theme';
-
-const { width } = Dimensions.get('window');
 
 export const starRatingModalStyles = StyleSheet.create({
   overlay: {

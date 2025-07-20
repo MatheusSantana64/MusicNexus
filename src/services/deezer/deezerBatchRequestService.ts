@@ -1,6 +1,6 @@
-// src/services/batchRequestService.ts
+// src/services/deezer/deezerBatchRequestService.ts
 // Service for batching requests to the Deezer API
-import { CacheService } from './deezerCacheService';
+import { CacheService } from '../music/musicCacheService';
 
 // This service batches requests to the Deezer API to reduce the number of calls made, improving performance and reducing load.
 interface BatchRequestOptions {
@@ -16,7 +16,7 @@ interface QueuedRequest<T> {
   timestamp: number;
 }
 
-export class BatchRequestService {
+export class DeezerBatchRequestService {
   private static readonly DEFAULT_OPTIONS: BatchRequestOptions = {
     maxBatchSize: 10,
     delayMs: 100,

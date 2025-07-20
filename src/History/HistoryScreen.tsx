@@ -1,3 +1,5 @@
+// src/History/HistoryScreen.tsx
+// HistoryScreen displays the user's music rating history
 import React, { useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

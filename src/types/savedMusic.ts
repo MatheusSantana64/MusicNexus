@@ -13,7 +13,6 @@ export interface SavedMusic {
   album: string;
   albumId: string;
   coverUrl: string;
-  preview: string;
   duration: number;
   rating: number;
   releaseDate: string;

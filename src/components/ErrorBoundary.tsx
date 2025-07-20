@@ -2,7 +2,6 @@
 // ErrorBoundary component to catch errors
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { theme } from '../styles/theme';
 import { errorBoundaryStyles as styles } from './styles/ErrorBoundary.styles';
 
 interface ErrorBoundaryState {

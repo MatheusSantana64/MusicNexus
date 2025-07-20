@@ -10,7 +10,7 @@ import {
 } from '../services/firestoreCacheService';
 import { setSavedMusicMeta } from '../services/firestoreMetaHelper';
 import NetInfo from '@react-native-community/netinfo';
-import { updateMusicRating, updateMusicRatingAndTags, deleteMusic, SortMode } from '../services/musicService';
+import { deleteMusic, SortMode } from '../services/music/musicService';
 import { doc, updateDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

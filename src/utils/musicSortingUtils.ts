@@ -1,11 +1,11 @@
-// src/services/deezer/deezerSortingUtils.ts
-// DeezerSortingUtils for sorting Deezer tracks and albums
+// src/utils/musicSortingUtils.ts
+// MusicSortingUtils for sorting music tracks and albums
 // This utility provides methods to sort albums by release date and tracks by album order
-import { DeezerTrack, DeezerAlbum } from '../../types';
-import { compareDates } from '../../utils/dateUtils';
+import { MusicTrack, MusicAlbum } from '../types';
+import { compareDates } from './dateUtils';
 
-export class DeezerSortingUtils {
-  static sortAlbumsByReleaseDate(albums: DeezerAlbum[]): DeezerAlbum[] {
+export class MusicSortingUtils {
+  static sortAlbumsByReleaseDate(albums: MusicAlbum[]): MusicAlbum[] {
     return albums.sort((a, b) => {
       if (a.release_date && b.release_date) {
         const dateComparison = compareDates(b.release_date, a.release_date);
@@ -18,7 +18,7 @@ export class DeezerSortingUtils {
     });
   }
 
-  static sortTracksByAlbumOrder(tracks: DeezerTrack[]): DeezerTrack[] {
+  static sortTracksByAlbumOrder(tracks: MusicTrack[]): MusicTrack[] {
     return tracks.sort((a, b) => {
       if (a.album.release_date && b.album.release_date) {
         const dateComparison = compareDates(b.album.release_date, a.album.release_date);

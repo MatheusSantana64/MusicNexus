@@ -1,8 +1,8 @@
 // src/hooks/useMusicOperations.ts
 // Custom hook for music operations like saving tracks and albums
 import { useCallback, useState } from 'react';
-import { DeezerTrack } from '../types';
-import { MusicOperationsService, AlbumGroup } from '../services/musicOperationsService';
+import { MusicTrack } from '../types';
+import { MusicOperationsService, AlbumGroup } from '../services/music/musicOperationsService';
 import { useMusicStore } from '../store/musicStore';
 import { useModal } from './useModal';
 
@@ -11,7 +11,7 @@ export function useMusicOperations() {
   
   // MODAL STATE FOR SEARCH SCREEN
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
-  const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<MusicTrack | null>(null);
   const [ratingType, setRatingType] = useState<'track' | 'album'>('track');
   const [selectedAlbum, setSelectedAlbum] = useState<AlbumGroup | null>(null);
 
@@ -19,7 +19,7 @@ export function useMusicOperations() {
   const { showModal } = useModal();
 
   // Track operations
-  const saveTrack = useCallback(async (track: DeezerTrack, rating: number = 0, tags: string[] = []) => {
+  const saveTrack = useCallback(async (track: MusicTrack, rating: number = 0, tags: string[] = []) => {
     try {
       console.log('🎵 Starting track save:', track.title);
       await MusicOperationsService.saveTrack(track, rating, tags);
@@ -29,7 +29,7 @@ export function useMusicOperations() {
     }
   }, []);
 
-  const handleTrackPress = useCallback((track: DeezerTrack) => {
+  const handleTrackPress = useCallback((track: MusicTrack) => {
     const savedMusicData = getSavedMusicById(track.id);
     
     const onSaveWithoutRating = () => saveTrack(track, 0);
@@ -51,7 +51,7 @@ export function useMusicOperations() {
   // Album operations
   const saveAlbum = useCallback(async (albumGroup: AlbumGroup, rating: number = 0, tags: string[] = []) => {
     try {
-      const unsavedTracks = albumGroup.tracks.filter((track: DeezerTrack) => !isMusicSaved(track.id));
+      const unsavedTracks = albumGroup.tracks.filter((track: MusicTrack) => !isMusicSaved(track.id));
       await MusicOperationsService.saveAlbumTracks(albumGroup, rating, unsavedTracks, undefined, tags);
     } catch (error) {
       console.error('Error saving album:', error);
@@ -59,8 +59,8 @@ export function useMusicOperations() {
   }, [isMusicSaved]);
 
   const handleAlbumSave = useCallback((albumGroup: AlbumGroup) => {
-    const savedTracks = albumGroup.tracks.filter((track: DeezerTrack) => isMusicSaved(track.id));
-    const unsavedTracks = albumGroup.tracks.filter((track: DeezerTrack) => !isMusicSaved(track.id));
+    const savedTracks = albumGroup.tracks.filter((track: MusicTrack) => isMusicSaved(track.id));
+    const unsavedTracks = albumGroup.tracks.filter((track: MusicTrack) => !isMusicSaved(track.id));
     
     const onSaveWithoutRating = () => saveAlbum(albumGroup, 0);
     const onSaveWithRating = () => {

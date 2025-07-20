@@ -1,11 +1,15 @@
 // src/hooks/useAlbumGrouping.ts
 // Groups tracks by album and sorts them by release date and title.
 import { useMemo } from 'react';
-import { DeezerTrack, SearchMode } from '../types';
+import { MusicTrack, SearchMode } from '../types';
 
-export function useAlbumGrouping(tracks: DeezerTrack[], searchMode: SearchMode) {
+export function useAlbumGrouping(tracks: MusicTrack[], searchMode: SearchMode) {
   return useMemo(() => {
-    if (searchMode !== 'album' || tracks.length === 0) return [];
+    // Only group for album search modes
+    if (
+      (searchMode !== 'spotify_album' && searchMode !== 'deezer_album') ||
+      tracks.length === 0
+    ) return [];
 
     const groups = tracks.reduce((acc, track) => {
       const albumId = track.album.id;
@@ -19,7 +23,7 @@ export function useAlbumGrouping(tracks: DeezerTrack[], searchMode: SearchMode) 
       }
       acc[albumId].tracks.push(track);
       return acc;
-    }, {} as Record<string, { album: any; artist: any; tracks: DeezerTrack[]; releaseDate: string }>);
+    }, {} as Record<string, { album: any; artist: any; tracks: MusicTrack[]; releaseDate: string }>);
 
     return Object.entries(groups)
       .map(([albumId, group]) => ({

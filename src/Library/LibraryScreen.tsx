@@ -1,4 +1,4 @@
-// src/screens/LibraryScreen.tsx
+// src/Library/LibraryScreen.tsx
 // Screen for displaying music library
 import React, { useCallback, useState, useRef } from 'react';
 import { RatingHistoryModal } from '../components/RatingHistoryModal';

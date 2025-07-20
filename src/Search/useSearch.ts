@@ -1,8 +1,8 @@
-// src/hooks/useSearch.ts
-// Hook for searching music tracks using the Deezer API
+// src/Search/useSearch.ts
+// useSearch hook for managing music search functionality
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { DeezerTrack, SearchMode } from '../types';
-import { DeezerService } from '../services/deezer/deezerService';
+import { MusicTrack, SearchMode } from '../types';
+import { MusicSearchService } from '../services/music/musicSearchService';
 
 // Search configuration
 const SEARCH_CONFIG = {
@@ -10,20 +10,22 @@ const SEARCH_CONFIG = {
 } as const;
 
 interface UseSearchResult {
-  tracks: DeezerTrack[];
+  tracks: MusicTrack[];
   loading: boolean;
   error: string | null;
   searchMode: SearchMode;
   searchTracks: (query: string, mode?: SearchMode) => Promise<void>;
   setSearchMode: (mode: SearchMode) => void;
   clearResults: () => void;
+  hasSearched: boolean;
 }
 
 export function useSearch(): UseSearchResult {
-  const [tracks, setTracks] = useState<DeezerTrack[]>([]);
+  const [tracks, setTracks] = useState<MusicTrack[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchMode, setSearchMode] = useState<SearchMode>('album'); // Album as default
+  const [searchMode, setSearchMode] = useState<SearchMode>('spotify_album'); // Use Spotify Album as default
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Refs to control debounce and cancellation
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -56,11 +58,12 @@ export function useSearch(): UseSearchResult {
 
     setLoading(true);
     setError(null);
+    setHasSearched(true);
 
     try {
       console.log(`[${searchId}] Starting ${mode} search for:`, query);
       
-      const results = await DeezerService.searchTracks(query, mode);
+      const results = await MusicSearchService.searchTracks(query, mode);
 
       // Verify if this is still the most recent search
       if (currentSearchRef.current === searchId) {
@@ -103,6 +106,7 @@ export function useSearch(): UseSearchResult {
       setTracks([]);
       setError(null);
       setLoading(false);
+      setHasSearched(false);
       currentSearchRef.current = '';
       return;
     }
@@ -132,6 +136,7 @@ export function useSearch(): UseSearchResult {
     setTracks([]);
     setError(null);
     setLoading(false);
+    setHasSearched(false);
     currentSearchRef.current = '';
   }, []);
 
@@ -143,5 +148,6 @@ export function useSearch(): UseSearchResult {
     searchTracks,
     setSearchMode: handleSetSearchMode,
     clearResults,
+    hasSearched,
   };
 }

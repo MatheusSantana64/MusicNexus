@@ -1,4 +1,4 @@
-// src/components/LibraryHeader.tsx
+// src/Library/LibraryHeader.tsx
 // Component for the header section of LibraryScreen with search and sort
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
