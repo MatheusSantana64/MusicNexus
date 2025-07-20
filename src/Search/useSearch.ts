@@ -17,13 +17,15 @@ interface UseSearchResult {
   searchTracks: (query: string, mode?: SearchMode) => Promise<void>;
   setSearchMode: (mode: SearchMode) => void;
   clearResults: () => void;
+  hasSearched: boolean; // <-- Add this
 }
 
 export function useSearch(): UseSearchResult {
   const [tracks, setTracks] = useState<DeezerTrack[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchMode, setSearchMode] = useState<SearchMode>('album'); // Album as default
+  const [searchMode, setSearchMode] = useState<SearchMode>('spotify_album'); // Use Spotify Album as default
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Refs to control debounce and cancellation
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -56,6 +58,7 @@ export function useSearch(): UseSearchResult {
 
     setLoading(true);
     setError(null);
+    setHasSearched(true); // <-- Set to true when search is triggered
 
     try {
       console.log(`[${searchId}] Starting ${mode} search for:`, query);
@@ -103,6 +106,7 @@ export function useSearch(): UseSearchResult {
       setTracks([]);
       setError(null);
       setLoading(false);
+      setHasSearched(false); // <-- Reset when cleared
       currentSearchRef.current = '';
       return;
     }
@@ -132,6 +136,7 @@ export function useSearch(): UseSearchResult {
     setTracks([]);
     setError(null);
     setLoading(false);
+    setHasSearched(false); // <-- Reset when cleared
     currentSearchRef.current = '';
   }, []);
 
@@ -143,5 +148,6 @@ export function useSearch(): UseSearchResult {
     searchTracks,
     setSearchMode: handleSetSearchMode,
     clearResults,
+    hasSearched, // <-- Return this
   };
 }

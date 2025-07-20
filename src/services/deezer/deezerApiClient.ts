@@ -8,6 +8,7 @@ import {
   safeParseDeezerTrack,
   safeParseDeezerSearchResponse
 } from '../../utils/validators';
+import { searchSpotifyTrack } from '../spotify/spotifyApiClient';
 
 const DEEZER_API_URL = 'https://api.deezer.com';
 
@@ -33,6 +34,13 @@ export class DeezerApiClient {
       const validatedTrack = safeParseDeezerTrack(rawData);
       if (!validatedTrack) {
         console.error('Invalid track data received from API:', rawData);
+        // 🔥 Fallback to Spotify
+        const spotifyTrack = await searchSpotifyTrack(trackId);
+        if (spotifyTrack) {
+          console.log(`✅ Track ${trackId} found on Spotify`);
+          CacheService.setTrack(trackId, spotifyTrack);
+          return spotifyTrack;
+        }
         return null;
       }
 

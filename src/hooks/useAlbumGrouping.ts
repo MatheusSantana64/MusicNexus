@@ -5,7 +5,11 @@ import { DeezerTrack, SearchMode } from '../types';
 
 export function useAlbumGrouping(tracks: DeezerTrack[], searchMode: SearchMode) {
   return useMemo(() => {
-    if (searchMode !== 'album' || tracks.length === 0) return [];
+    // Only group for album search modes
+    if (
+      (searchMode !== 'spotify_album' && searchMode !== 'deezer_album') ||
+      tracks.length === 0
+    ) return [];
 
     const groups = tracks.reduce((acc, track) => {
       const albumId = track.album.id;

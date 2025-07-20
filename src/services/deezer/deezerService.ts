@@ -6,19 +6,110 @@ import { DeezerApiClient } from './deezerApiClient';
 import { DeezerSearchService } from './deezerSearchService';
 import { CacheService } from './deezerCacheService';
 import { BatchRequestService } from './batchRequestService';
+import { searchSpotifyTrack, searchSpotifyArtistTracks, spotifyUnifiedSearch, getSpotifyAccessToken } from '../spotify/spotifyApiClient';
+
+// 🚀 NEW: Fetch tracks for a Spotify album
+async function fetchSpotifyAlbumTracks(albumId: string): Promise<DeezerTrack[]> {
+  const token = await getSpotifyAccessToken();
+  const response = await fetch(`https://api.spotify.com/v1/albums/${albumId}/tracks?limit=50`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    console.error('Spotify album tracks API error:', await response.text());
+    return [];
+  }
+  const data = await response.json();
+  // Map Spotify tracks to DeezerTrack-like objects
+  return (data.items || []).map((track: any) => ({
+    id: track.id,
+    title: track.name,
+    title_short: track.name,
+    artist: {
+      id: track.artists[0]?.id || '',
+      name: track.artists[0]?.name || '',
+      picture: '',
+      picture_small: '',
+      picture_medium: '',
+    },
+    album: {
+      id: albumId,
+      title: '', // Will be filled below
+      cover: '',
+      cover_small: '',
+      cover_medium: '',
+      cover_big: '',
+      release_date: '', // Will be filled below
+    },
+    duration: Math.floor(track.duration_ms / 1000),
+    preview: track.preview_url || '',
+    rank: 0,
+    track_position: track.track_number,
+    disk_number: track.disc_number,
+    release_date: '', // Will be filled below
+  }));
+}
 
 export class DeezerService {
   // === PUBLIC API METHODS ===
   
-  static async searchTracks(query: string, mode: SearchMode = 'album', limit: number = 25): Promise<DeezerTrack[]> {
-    const options: SearchOptions = { mode, query, limit };
-    
+  static async searchTracks(query: string, mode: SearchMode = 'spotify_album', limit: number = 25): Promise<DeezerTrack[]> {
+    let formattedQuery = query;
+    if (mode === 'spotify_album' || mode === 'deezer_album') {
+      // Only search for artist or album, never track title
+      // If query contains " - ", treat as "artist - album"
+      if (query.includes(' - ')) {
+        const [artist, album] = query.split(' - ');
+        formattedQuery = `artist:"${artist.trim()}" album:"${album.trim()}"`;
+      } else {
+        // Otherwise, treat as artist search
+        formattedQuery = `artist:"${query.trim()}"`;
+      }
+    }
+    const options: SearchOptions = { mode, query: formattedQuery, limit };
+
     const searchMethods = {
-      album: DeezerSearchService.searchTracksByAlbum,
-      quick: DeezerSearchService.searchTracksQuick,
+      spotify_album: async (opts: SearchOptions) => {
+        try {
+          // Spotify album search (use unified search, filter albums)
+          const result = await spotifyUnifiedSearch(opts.query, ['album'], opts.limit || 10);
+          // Fetch tracks from albums
+          const allTracks: DeezerTrack[] = [];
+          const albumTrackPromises = result.albums.map(async (album) => {
+            const albumTracks = await fetchSpotifyAlbumTracks(album.id);
+            albumTracks.forEach(track => {
+              track.album.title = album.title;
+              track.album.cover = album.cover;
+              track.album.cover_small = album.cover_small;
+              track.album.cover_medium = album.cover_medium;
+              track.album.cover_big = album.cover_big;
+              track.album.release_date = album.release_date;
+              track.artist = album.artist;
+              track.release_date = album.release_date;
+            });
+            return albumTracks;
+          });
+          const albumTracksArrays = await Promise.all(albumTrackPromises);
+          albumTracksArrays.forEach(tracks => allTracks.push(...tracks));
+          return allTracks;
+        } catch (e) {
+          // Fallback to Deezer
+          return searchMethods.deezer_album(opts);
+        }
+      },
+      spotify_quick: async (opts: SearchOptions) => {
+        try {
+          // Spotify quick search (tracks only)
+          const result = await spotifyUnifiedSearch(opts.query, ['track'], opts.limit || 10);
+          return result.tracks;
+        } catch (e) {
+          return searchMethods.deezer_quick(opts);
+        }
+      },
+      deezer_album: DeezerSearchService.searchTracksByAlbum,
+      deezer_quick: DeezerSearchService.searchTracksQuick,
     };
-    
-    return (searchMethods[mode] || searchMethods.album).call(null, options);
+
+    return (searchMethods[mode] || searchMethods.spotify_album).call(null, options);
   }
 
   static async getTrackById(trackId: string): Promise<DeezerTrack | null> {
@@ -52,11 +143,13 @@ export class DeezerService {
   }
 
   static getSearchModeDescription(mode: SearchMode): string {
-    const descriptions = {
-      album: 'By album',
-      quick: 'Quick search',
+    const descriptions: Record<SearchMode, string> = {
+      spotify_album: 'Spotify Album Search',
+      spotify_quick: 'Spotify Quick Search',
+      deezer_album: 'Deezer Album Search',
+      deezer_quick: 'Deezer Quick Search',
     };
-    return descriptions[mode] || descriptions.album;
+    return descriptions[mode] || descriptions.spotify_album;
   }
 
   // === CACHE MANAGEMENT ===

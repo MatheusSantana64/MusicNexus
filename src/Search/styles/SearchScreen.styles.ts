@@ -38,7 +38,7 @@ export const searchStyles = StyleSheet.create({
     lineHeight: 24,
   },
   emptyText: {
-    fontSize: theme.sizes.medium,
+    fontSize: 14,
     color: theme.colors.text.secondary,
     textAlign: 'center',
     lineHeight: 24,
@@ -49,7 +49,6 @@ export const searchStyles = StyleSheet.create({
     color: theme.colors.text.muted,
     textAlign: 'center',
     lineHeight: 20,
-    fontStyle: 'italic',
   },
   clearSearchButtonText: {
     color: theme.colors.background.surface,

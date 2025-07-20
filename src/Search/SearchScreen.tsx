@@ -29,7 +29,7 @@ const BATCH_DELAY_MS = 1500;
 
 export default function SearchScreen({ navigation }: { navigation?: any }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const { tracks, loading, error, searchMode, searchTracks, setSearchMode } = useSearch();
+  const { tracks, loading, error, searchMode, searchTracks, setSearchMode, clearResults, hasSearched } = useSearch();
   const { 
     handleTrackPress, 
     handleAlbumSave, 
@@ -87,8 +87,9 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
 
   const handleSearch = useCallback(async (text: string) => {
     setSearchQuery(text);
+    clearResults(); // <-- Clear results immediately
     await searchTracks(text);
-  }, [searchTracks]);
+  }, [searchTracks, clearResults]);
 
   const handleModeChange = useCallback(async (mode: SearchMode) => {
     setSearchMode(mode);
@@ -137,7 +138,11 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
   const memoizedFlatData = useMemo(() => {
     const flatData: Array<{ type: 'album' | 'track'; data: any }> = [];
     
-    if (searchMode === 'album' && albumGroups.length > 0) {
+    // FIX: Use valid SearchMode values
+    if (
+      searchMode === 'spotify_album' ||
+      searchMode === 'deezer_album'
+    ) {
       albumGroups.forEach(albumGroup => {
         flatData.push({ type: 'album', data: albumGroup });
         albumGroup.tracks.forEach(track => {
@@ -286,6 +291,7 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
               tracksLength={tracks.length}
               searchMode={searchMode}
               onImportPlaylist={handleOpenImportModal}
+              hasSearched={hasSearched} // <-- Pass this
             />
           )}
           showsVerticalScrollIndicator={false}
