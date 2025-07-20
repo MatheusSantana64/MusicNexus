@@ -1,7 +1,7 @@
 // src/Profile/ProfileScreen.tsx
 // ProfileScreen for displaying user profile and statistics
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, Button, Alert, TextInput, KeyboardAvoidingView, Keyboard, ScrollView } from 'react-native';
+import { View, Text, Alert, TextInput, KeyboardAvoidingView, Keyboard, ScrollView } from 'react-native';
 import { theme } from '../styles/theme';
 import { useMusicStore } from '../store/musicStore';
 import { useTagStore } from '../store/tagStore';

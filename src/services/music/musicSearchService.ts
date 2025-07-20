@@ -5,7 +5,7 @@ import { DeezerApiClient } from '../deezer/deezerApiClient';
 import { DeezerSearchService } from '../deezer/deezerSearchService';
 import { CacheService } from './musicCacheService';
 import { DeezerBatchRequestService } from '../deezer/deezerBatchRequestService';
-import { searchSpotifyTrack, searchSpotifyArtistTracks, spotifyUnifiedSearch, getSpotifyAccessToken } from '../spotify/spotifyApiClient';
+import { spotifyUnifiedSearch, getSpotifyAccessToken } from '../spotify/spotifyApiClient';
 
 // 🚀 NEW: Fetch tracks for a Spotify album
 async function fetchSpotifyAlbumTracks(albumId: string): Promise<MusicTrack[]> {

@@ -5,7 +5,6 @@ import { DeezerApiClient } from './deezerApiClient';
 import { MusicSortingUtils } from '../../utils/musicSortingUtils';
 import { CacheService } from '../music/musicCacheService';
 import { DeezerBatchRequestService } from './deezerBatchRequestService';
-import { safeParseMusicTrack } from '../../utils/validators';
 
 export class DeezerDataEnricher {
   static async fetchAndSortAlbums(options: SearchOptions): Promise<MusicAlbum[]> {
