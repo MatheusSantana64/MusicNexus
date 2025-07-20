@@ -95,10 +95,16 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - Organize your music collection
 - Filter music by tags
 
-### 📊 Rating History *(Coming Soon)*
+### 📊 Rating History
 - View your complete rating history
 - Track rating changes over time
 - Statistics and insights
+
+### 👤 Profile & Stats
+- View profile information and personal notes
+- See statistics: total songs, albums, artists, average rating
+- Breakdown by ratings, years, and tags
+- Delete all songs or tags from your account
 
 ## 🔧 Development
 
