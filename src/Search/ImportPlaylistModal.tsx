@@ -8,6 +8,7 @@ import { MusicItem } from '../components/MusicItem';
 import { SavedMusic } from '../types/savedMusic';
 import { FlashList } from '@shopify/flash-list';
 import { DeezerDataEnricher } from '../services/deezer/deezerDataEnricher';
+import { spotifyUnifiedSearch, getSpotifyAccessToken } from '../services/spotify/spotifyApiClient';
 
 interface ImportPlaylistModalProps {
   visible: boolean;
@@ -59,13 +60,61 @@ export function ImportPlaylistModal({
     setPreviewTracks([]);
     try {
       let playlistId = '';
+      let isSpotify = false;
+
+      // Detect Spotify playlist link or ID
+      const spotifyMatch = playlistLink.match(/(playlist\/|open\.spotify\.com\/playlist\/)([a-zA-Z0-9]+)/);
+      if (spotifyMatch) {
+        playlistId = spotifyMatch[2];
+        isSpotify = true;
+      } else if (/^[a-zA-Z0-9]{22}$/.test(playlistLink.trim())) {
+        playlistId = playlistLink.trim();
+        isSpotify = true;
+      }
+
+      if (isSpotify) {
+        // Fetch ALL Spotify playlist tracks using pagination
+        const token = await getSpotifyAccessToken();
+        let allTracks: any[] = [];
+        let offset = 0;
+        const limit = 100; // Spotify API limit
+        let hasMore = true;
+
+        while (hasMore) {
+          const response = await fetch(
+            `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+          );
+          const playlistData = await response.json();
+          const items = (playlistData.items || []).map((item: any) => item.track).filter((track: any) => track && track.id);
+          allTracks = allTracks.concat(items);
+          offset += limit;
+          hasMore = !!playlistData.next;
+        }
+
+        setPreviewTracks(
+          allTracks.map((track: any) => ({
+            id: track.id,
+            title: track.name,
+            artist: track.artists[0]?.name || '',
+            album: track.album?.name || '',
+            coverUrl: track.album?.images?.[1]?.url || track.album?.images?.[0]?.url || '',
+            duration: Math.floor(track.duration_ms / 1000),
+            releaseDate: track.album?.release_date || '',
+          }))
+        );
+        setPreviewLoading(false);
+        return;
+      }
+
+      // Fallback to Deezer logic
       const match = playlistLink.match(/playlist\/(\d+)/);
       if (match) {
         playlistId = match[1];
       } else if (/^\d+$/.test(playlistLink.trim())) {
         playlistId = playlistLink.trim();
       } else {
-        setPreviewError('Please enter a valid Deezer playlist link or ID');
+        setPreviewError('Please enter a valid Spotify or Deezer playlist link or ID');
         setPreviewLoading(false);
         return;
       }
@@ -99,7 +148,7 @@ export function ImportPlaylistModal({
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Import Playlist from Deezer</Text>
+          <Text style={styles.modalTitle}>Import Playlist from Spotify or Deezer</Text>
           <View style={styles.ratingContainer}>
             <Text style={styles.ratingLabel}>Select the rating for the imported songs:</Text>
             <Text style={styles.ratingValue}>
@@ -119,7 +168,7 @@ export function ImportPlaylistModal({
           <View style={{ position: 'relative' }}>
             <TextInput
               style={styles.modalInput}
-              placeholder="Paste Deezer playlist link or ID"
+              placeholder="Paste Spotify or Deezer playlist link or ID"
               placeholderTextColor="#888"
               value={playlistLink}
               onChangeText={onChangeLink}

@@ -21,6 +21,7 @@ import { getTags } from '../services/tagService';
 import { Tag } from '../types';
 import { saveMusicBatch } from '../services/music/musicService'; // Import batch save
 import { DeezerApiClient } from '../services/deezer/deezerApiClient'; // Import Deezer API client
+import { getSpotifyAccessToken } from '../services/spotify/spotifyApiClient';
 import { useMusicStore } from '../store/musicStore';
 import { ImportPlaylistModal } from './ImportPlaylistModal';
 
@@ -205,15 +206,111 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
     setImportLoading(true);
     setImportError(null);
     try {
-      // Accept either a full link or just the ID
       let playlistId = '';
+      let isSpotify = false;
+
+      // Detect Spotify playlist link or ID
+      const spotifyMatch = playlistLink.match(/(playlist\/|open\.spotify\.com\/playlist\/)([a-zA-Z0-9]+)/);
+      if (spotifyMatch) {
+        playlistId = spotifyMatch[2];
+        isSpotify = true;
+      } else if (/^[a-zA-Z0-9]{22}$/.test(playlistLink.trim())) {
+        playlistId = playlistLink.trim();
+        isSpotify = true;
+      }
+
+      if (isSpotify) {
+        const token = await getSpotifyAccessToken();
+        let allTracks: any[] = [];
+        let offset = 0;
+        const limit = 100; // Spotify API limit
+        let hasMore = true;
+
+        while (hasMore) {
+          const response = await fetch(
+            `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+          );
+          const playlistData = await response.json();
+          const items = (playlistData.items || []).map((item: any) => item.track).filter((track: any) => track && track.id);
+          allTracks = allTracks.concat(items);
+          offset += limit;
+          hasMore = playlistData.next != null;
+        }
+
+        // Map Spotify tracks to MusicTrack format
+        const resolvedTracks: MusicTrack[] = allTracks.map((track: any) => ({
+          id: track.id,
+          title: track.name,
+          title_short: track.name,
+          artist: {
+            id: track.artists[0]?.id || '',
+            name: track.artists[0]?.name || '',
+            picture: '',
+            picture_small: '',
+            picture_medium: '',
+          },
+          album: {
+            id: track.album?.id || '',
+            title: track.album?.name || '',
+            cover: track.album?.images?.[0]?.url || '',
+            cover_small: track.album?.images?.[2]?.url || '',
+            cover_medium: track.album?.images?.[1]?.url || '',
+            cover_big: track.album?.images?.[0]?.url || '',
+            release_date: track.album?.release_date || '',
+          },
+          duration: Math.floor(track.duration_ms / 1000),
+          preview: track.preview_url || '',
+          rank: 0,
+          track_position: track.track_number,
+          disk_number: track.disc_number,
+          release_date: track.album?.release_date || '',
+        }));
+
+        // Filter out tracks already in the library
+        const existingIds = new Set(useMusicStore.getState().savedMusic.map(m => m.id));
+        const newTracks = resolvedTracks.filter(track => !existingIds.has(track.id));
+
+        // Save only new tracks in batch
+        const firebaseIds = await saveMusicBatch(newTracks, importRating);
+
+        // Build SavedMusic objects for local store
+        const now = new Date();
+        const savedMusics = newTracks.map((track, idx) => ({
+          id: track.id,
+          title: track.title,
+          artist: track.artist.name,
+          artistId: track.artist.id,
+          album: track.album.title,
+          albumId: track.album.id,
+          coverUrl: track.album.cover_medium,
+          preview: track.preview,
+          duration: track.duration,
+          rating: importRating,
+          releaseDate: track.album.release_date,
+          trackPosition: track.track_position || 1,
+          diskNumber: track.disk_number || 1,
+          savedAt: now,
+          firebaseId: firebaseIds[idx],
+          tags: [],
+          ratingHistory: importRating > 0 ? [{ rating: importRating, timestamp: now.toISOString() }] : [],
+        }));
+
+        useMusicStore.getState().addMusicBatch(savedMusics);
+
+        setImportModalVisible(false);
+        setImportLoading(false);
+        return;
+      }
+
+      // Deezer logic (unchanged)
       const match = playlistLink.match(/playlist\/(\d+)/);
       if (match) {
         playlistId = match[1];
       } else if (/^\d+$/.test(playlistLink.trim())) {
         playlistId = playlistLink.trim();
       } else {
-        throw new Error('Please enter a valid Deezer playlist link or ID');
+        throw new Error('Please enter a valid Spotify or Deezer playlist link or ID');
       }
 
       // Fetch playlist tracks from Deezer API
@@ -255,7 +352,6 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
         ratingHistory: importRating > 0 ? [{ rating: importRating, timestamp: now.toISOString() }] : [],
       }));
 
-      // Update local store with only new tracks
       useMusicStore.getState().addMusicBatch(savedMusics);
 
       setImportModalVisible(false);
