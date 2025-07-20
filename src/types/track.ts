@@ -21,7 +21,6 @@ export interface MusicTrack {
     release_date: string;
   };
   duration: number;
-  preview: string;
   rank: number;
   track_position?: number;
   disk_number?: number;

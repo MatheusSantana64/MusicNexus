@@ -20,7 +20,6 @@ export const SavedMusicInputSchema = z.object({
   album: z.string().min(1, 'Album is required'),
   albumId: IdSchema,
   coverUrl: z.string(),
-  preview: z.string(),
   duration: z.number().min(1, 'Duration must be greater than 0'),
   rating: z.number().min(0).max(10).refine(
     (val) => val % 0.5 === 0, 

@@ -54,7 +54,6 @@ export async function saveMusic(track: MusicTrack, options: SaveMusicOptions = {
       album: track.album.title,
       albumId: track.album.id,
       coverUrl: track.album.cover_small,
-      preview: track.preview,
       duration: track.duration,
       rating,
       releaseDate: MusicSearchService.getTrackReleaseDate(track) || DEFAULT_RELEASE_DATE,

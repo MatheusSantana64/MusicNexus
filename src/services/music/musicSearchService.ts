@@ -40,7 +40,6 @@ async function fetchSpotifyAlbumTracks(albumId: string): Promise<MusicTrack[]> {
       release_date: '', // Will be filled below
     },
     duration: Math.floor(track.duration_ms / 1000),
-    preview: track.preview_url || '',
     rank: 0,
     track_position: track.track_number,
     disk_number: track.disc_number,
