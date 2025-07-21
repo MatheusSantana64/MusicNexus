@@ -18,7 +18,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#000000"
+        "backgroundColor": "#0b0e17"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.matheus64.MusicNexus"
