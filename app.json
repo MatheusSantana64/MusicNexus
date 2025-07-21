@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "MusicNexus",
-    "slug": "MusicNexus",
+    "slug": "musicnexus",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -28,8 +28,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "79d4914d-60c4-4893-8d95-e4c3a4f2870e"
+        "projectId": "f4e73423-db19-4e2f-854a-a311307e80f6"
       }
-    }
+    },
+    "owner": "matheus64"
   }
 }
