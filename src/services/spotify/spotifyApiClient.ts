@@ -5,6 +5,7 @@ import {
   safeParseSpotifyTrack,
   safeParseSpotifySearchResponse,
 } from '../../utils/validators/spotifyValidators';
+import Constants from 'expo-constants';
 
 const SPOTIFY_API_URL = 'https://api.spotify.com/v1';
 const TOKEN_URL = 'https://accounts.spotify.com/api/token';
@@ -13,8 +14,9 @@ let spotifyAccessToken: string | null = null;
 let tokenExpiresAt: number = 0;
 
 export async function getSpotifyAccessToken(): Promise<string> {
-  const clientId = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID;
-  const clientSecret = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET;
+  const extra = Constants.expoConfig?.extra || {};
+  const clientId = extra.EXPO_PUBLIC_SPOTIFY_CLIENT_ID;
+  const clientSecret = extra.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET;
   const credentials = btoa(`${clientId}:${clientSecret}`);
 
   const response = await fetch(TOKEN_URL, {
