@@ -97,4 +97,9 @@ export const profileScreenStyles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  columnTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
 });

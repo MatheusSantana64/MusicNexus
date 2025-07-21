@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProfileConfigModal } from './ProfileConfigModal';
 import { calculateProfileStats } from './profileStatsUtils';
 import { profileScreenStyles as styles } from './styles/ProfileScreen.styles';
+import { getRatingText, getRatingColor } from '../utils/ratingUtils';
 
 async function deleteAllSongs() {
   try {
@@ -94,32 +95,63 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Stats</Text>
           <View style={styles.statsRow}>
-            <Text style={styles.sectionBody}>Songs: {stats.totalSongs}</Text>
-            <Text style={styles.sectionBody}>Albums: {stats.totalAlbums}</Text>
-            <Text style={styles.sectionBody}>Artists: {stats.totalArtists}</Text>
+            <Text style={[styles.sectionBody, { fontWeight: 'bold', color: 'cornflowerblue' }]}>
+              Songs: {stats.totalSongs}
+            </Text>
+            <Text style={[styles.sectionBody, { fontWeight: 'bold', color: 'lightcoral' }]}>
+              Albums: {stats.totalAlbums}
+            </Text>
+            <Text style={[styles.sectionBody, { fontWeight: 'bold', color: 'lightpink' }]}>
+              Artists: {stats.totalArtists}
+            </Text>
           </View>
           <View style={[styles.statsRow, {justifyContent: 'center'}]}>
-            <Text style={styles.sectionBody}>Average Rating: {stats.avgRating}</Text>
+            {/* Removed Average Rating from here */}
           </View>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', marginTop: 12 }}>
               <View style={{ flex: 1, alignItems: 'center' }}>
                 <View>
-                  <Text style={[styles.sectionBody, { fontWeight: 'bold', marginBottom: 4, color: theme.colors.gold }]}>Ratings</Text>
+                  <Text
+                    style={[
+                      styles.sectionBody,
+                      styles.columnTitle,
+                      { color: theme.colors.gold }
+                    ]}
+                  >
+                    Ratings
+                  </Text>
                   <ScrollView style={{ width: '100%' }}>
                     {Object.entries(stats.ratingCounts)
                       .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]))
                       .map(([rating, count]) => (
-                        <Text key={rating} style={styles.sectionBody}>
-                          {rating}: {count}
+                        <Text
+                          key={rating}
+                          style={[
+                            styles.sectionBody,
+                            { color: getRatingColor(Number(rating)) }
+                          ]}
+                        >
+                          {getRatingText(Number(rating))}: {count}
                         </Text>
                       ))}
+                    <Text style={[styles.sectionBody, { marginTop: 8, fontWeight: 'bold' }]}>
+                      Average: {stats.avgRating}
+                    </Text>
                   </ScrollView>
                 </View>
               </View>
               <View style={{ flex: 1, alignItems: 'center' }}>
                 <View>
-                  <Text style={[styles.sectionBody, { fontWeight: 'bold', marginBottom: 4, color: 'mediumpurple' }]}>Year</Text>
+                  <Text
+                    style={[
+                      styles.sectionBody,
+                      styles.columnTitle,
+                      { color: 'mediumpurple' }
+                    ]}
+                  >
+                    Year
+                  </Text>
                   <ScrollView style={{ width: '100%' }}>
                     {Object.entries(stats.yearCounts)
                       .sort((a, b) => b[0].localeCompare(a[0]))
@@ -133,7 +165,15 @@ export default function ProfileScreen() {
               </View>
               <View style={{ flex: 1, alignItems: 'center' }}>
                 <View>
-                  <Text style={[styles.sectionBody, { fontWeight: 'bold', marginBottom: 4, color: 'mediumseagreen' }]}>Tags</Text>
+                  <Text
+                    style={[
+                      styles.sectionBody,
+                      styles.columnTitle,
+                      { color: 'mediumseagreen' }
+                    ]}
+                  >
+                    Tags
+                  </Text>
                   <ScrollView style={{ width: '100%' }}>
                     {Object.entries(stats.tagCounts)
                       .sort((a, b) => b[1] - a[1])
