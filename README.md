@@ -57,7 +57,16 @@ EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app
 EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
 EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
+
+EXPO_PUBLIC_SPOTIFY_CLIENT_ID=your_spotify_client_id
+EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 ```
+
+> ⚠️ **WARNING:**  
+> If you set `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET` here, it will be embedded in your app bundle.  
+> Anyone with access to your APK or JS bundle can extract this secret.  
+> DO NOT use this in production or share your APK if you care about keeping your Spotify secret safe.  
+> For real security, use a backend server to handle the Spotify secret and never expose it in your app code.
 
 ## 🛠️ Tech Stack
 

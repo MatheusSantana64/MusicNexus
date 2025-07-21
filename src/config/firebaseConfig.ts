@@ -3,7 +3,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import '@react-native-async-storage/async-storage';
 
 // Firebase configuration object using Expo environment variables
 const firebaseConfig = {
@@ -38,7 +37,7 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firestore
 const db = getFirestore(app);
 
-// Initialize Auth
+// Initialize Auth (default, in-memory persistence)
 const auth = getAuth(app);
 
 // Log Firebase initialization
