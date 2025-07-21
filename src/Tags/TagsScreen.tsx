@@ -191,6 +191,12 @@ export default function TagsScreen() {
 
         {loading ? (
           <ActivityIndicator size="large" color={theme.colors.text.primary} style={{ marginTop: 32 }} />
+        ) : tags.length === 0 ? (
+          <View style={{ alignItems: 'center', marginTop: 48 }}>
+            <Text style={{ color: theme.colors.text.primary, marginBottom: 12 }}>
+              No tags found.
+            </Text>
+          </View>
         ) : (
           <FlashList
             data={[...tags].sort((a, b) => a.position - b.position)}
@@ -207,6 +213,25 @@ export default function TagsScreen() {
             )}
           />
         )}
+
+        {/* Refresh Button at the bottom */}
+        <View style={{ alignItems: 'flex-end' }}>
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+              backgroundColor: theme.colors.button.primary,
+              padding: 6,
+              borderRadius: 8,
+              opacity: loading ? 0.2 : 0.6,
+            }}
+            onPress={refresh}
+            disabled={loading}
+            accessibilityLabel="Refresh Tags"
+          >
+            <Ionicons name="refresh" size={20} color={theme.colors.text.primary} />
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );

@@ -92,8 +92,24 @@ export const useTagStore = create<TagState & { _dirty?: boolean; syncTagsWithFir
     try {
       set({ loading: true, error: null });
       const { tags: cachedTags, lastModified: cachedLastModified } = await getCachedTags();
+
+      // 1. Check network status
+      const state = await NetInfo.fetch();
+      if (!state.isConnected) {
+        // Offline: use cache immediately if available
+        set({
+          tags: cachedTags,
+          loading: false,
+          lastUpdated: Date.now(),
+        });
+        console.log('[tagStore] loadTags: Offline, loaded from cache');
+        return;
+      }
+
+      // 2. Get Firestore lastModified
       const firestoreLastModified = await getTagsFirestoreLastModified();
 
+      // 3. Decide whether to use cache or fetch from Firestore
       let useCache = false;
       if (
         firestoreLastModified === null ||
