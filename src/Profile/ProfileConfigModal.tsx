@@ -5,6 +5,11 @@ import { View, Text, Button, Modal, TouchableOpacity, Alert } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import { profileScreenStyles as styles } from './styles/ProfileScreen.styles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ScrollView, TextInput } from 'react-native';
+import { getProfileData, setProfileData } from '../services/profileService';
+
+const RATING_STEPS = Array.from({ length: 21 }, (_, i) => (i * 0.5).toFixed(1)).reverse();
 
 interface ProfileConfigModalProps {
   visible: boolean;
@@ -21,6 +26,23 @@ export function ProfileConfigModal({
   onDeleteAllTags,
   onOpen,
 }: ProfileConfigModalProps) {
+  const [tooltips, setTooltips] = React.useState<{ [rating: string]: string }>({});
+
+  React.useEffect(() => {
+    // Load from Firestore first, fallback to AsyncStorage
+    getProfileData().then(data => {
+      if (data.ratingTooltips) setTooltips(data.ratingTooltips);
+      else AsyncStorage.getItem('ratingTooltips').then(val => { if (val) setTooltips(JSON.parse(val)); });
+    });
+  }, [visible]);
+
+  const handleTooltipChange = (rating: string, text: string) => {
+    const updated = { ...tooltips, [rating]: text };
+    setTooltips(updated);
+    AsyncStorage.setItem('ratingTooltips', JSON.stringify(updated));
+    setProfileData({ ratingTooltips: updated }); // Save to Firestore
+  };
+
   return (
     <>
       <TouchableOpacity onPress={onOpen} style={styles.gearIcon}>
@@ -67,6 +89,38 @@ export function ProfileConfigModal({
                 }
               />
             </View>
+            <Text style={[styles.configSectionTitle, { marginTop: 16 }]}>Rating Tooltips</Text>
+            <ScrollView style={{ maxHeight: 220, alignSelf: 'stretch', width: '100%' }}>
+              {RATING_STEPS.map(rating => (
+                <View
+                  key={rating}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 8,
+                    width: '100%',
+                  }}
+                >
+                  <Text style={{ width: 40, color: theme.colors.text.primary, marginRight: 8 }}>{rating}</Text>
+                  <TextInput
+                    style={{
+                      flex: 1,
+                      borderWidth: 1,
+                      borderColor: '#333',
+                      borderRadius: 6,
+                      padding: 4,
+                      color: theme.colors.text.primary,
+                      backgroundColor: theme.colors.background.surface,
+                      fontSize: 15,
+                    }}
+                    placeholder={`Tooltip for ${rating}`}
+                    placeholderTextColor="#888"
+                    value={tooltips[rating] || ''}
+                    onChangeText={text => handleTooltipChange(rating, text)}
+                  />
+                </View>
+              ))}
+            </ScrollView>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>

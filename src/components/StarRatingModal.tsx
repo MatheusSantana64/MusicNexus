@@ -13,6 +13,7 @@ import { getRatingColor, getRatingText } from '../utils/ratingUtils';
 import { starRatingModalStyles as styles } from './styles/StarRatingModal.styles';
 import { useTagStore } from '../store/tagStore';
 import { Tag } from '../types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface StarRatingModalProps {
   visible: boolean;
@@ -31,18 +32,23 @@ export function StarRatingModal({
   itemName,
   initialRating = 0,
   initialSelectedTagIds = [],
+  tags,
   onSave,
   onCancel,
 }: StarRatingModalProps) {
   const [rating, setRating] = useState(initialRating);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialSelectedTagIds);
-  const { tags } = useTagStore();
+  const [tooltips, setTooltips] = useState<{ [rating: string]: string }>({});
 
   // Update rating and selected tags when initialRating or initialSelectedTagIds changes or modal becomes visible
   React.useEffect(() => {
     if (visible) {
       setRating(initialRating);
       setSelectedTagIds(initialSelectedTagIds);
+      AsyncStorage.getItem('ratingTooltips').then(val => {
+        if (val) setTooltips(JSON.parse(val));
+        else setTooltips({});
+      });
     }
   }, [visible, initialRating, initialSelectedTagIds]);
 
@@ -136,11 +142,27 @@ export function StarRatingModal({
           </View>
           
           <View style={styles.ratingContainer}>
+            {/* Tooltip */}
+            {tooltips[rating.toFixed(1)] ? (
+              <Text
+                style={{
+                  color: getRatingColor(rating),
+                  marginBottom: 4,
+                  textAlign: 'center',
+                }}
+              >
+                {tooltips[rating.toFixed(1)]}
+              </Text>
+            ) : (
+              <Text style={{ marginBottom: 4 }} />
+            )}
+            {/* Rating (Number) */}
             <Text>
               <Text style={[styles.ratingValue, { color: getRatingColor(rating) }]}>
                 {rating === 0 ? getRatingText(rating) : `${getRatingText(rating)}/10`}
               </Text>
             </Text>
+            {/* Stars */}
             <StarRating
               rating={rating}
               onChange={setRating}

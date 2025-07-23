@@ -13,6 +13,7 @@ import { ProfileConfigModal } from './ProfileConfigModal';
 import { calculateProfileStats } from './profileStatsUtils';
 import { profileScreenStyles as styles } from './styles/ProfileScreen.styles';
 import { getRatingText, getRatingColor } from '../utils/ratingUtils';
+import { getProfileData, setProfileData } from '../services/profileService';
 
 async function deleteAllSongs() {
   try {
@@ -56,13 +57,16 @@ export default function ProfileScreen() {
   }, []);
 
   React.useEffect(() => {
-    AsyncStorage.getItem('profileNotes').then(val => {
-      if (val !== null) setNotes(val);
+    // Load notes from Firestore first, fallback to AsyncStorage
+    getProfileData().then(data => {
+      if (data.notes !== undefined) setNotes(data.notes);
+      else AsyncStorage.getItem('profileNotes').then(val => { if (val !== null) setNotes(val); });
     });
   }, []);
   const handleNotesChange = (text: string) => {
     setNotes(text);
     AsyncStorage.setItem('profileNotes', text);
+    setProfileData({ notes: text }); // Save to Firestore
   };
 
   const stats = useMemo(() => calculateProfileStats(savedMusic, tags), [savedMusic, tags]);
