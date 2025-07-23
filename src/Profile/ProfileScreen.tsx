@@ -180,7 +180,15 @@ export default function ProfileScreen() {
                   </Text>
                   <ScrollView style={{ width: '100%' }}>
                     {Object.entries(stats.tagCounts)
-                      .sort((a, b) => b[1] - a[1])
+                      .sort((a, b) => {
+                        // Sort by tag position if possible, fallback to count
+                        const tagA = tags.find(t => t.name === a[0]);
+                        const tagB = tags.find(t => t.name === b[0]);
+                        if (tagA && tagB) return tagA.position - tagB.position;
+                        if (tagA) return -1;
+                        if (tagB) return 1;
+                        return b[1] - a[1];
+                      })
                       .map(([tagName, count]) => (
                         <Text key={tagName} style={styles.sectionBody}>
                           {tagName}: {count}

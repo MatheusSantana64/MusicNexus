@@ -157,7 +157,7 @@ export function MusicItem<T extends MusicTrack | SavedMusic>({
     return [];
   };
 
-  const tagObjects = getTagObjects();
+  const tagObjects = getTagObjects().sort((a, b) => a.position - b.position);
 
   return (
     <TouchableOpacity
