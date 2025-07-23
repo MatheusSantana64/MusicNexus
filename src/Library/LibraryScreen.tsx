@@ -172,6 +172,18 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
     return unsubscribe;
   }, [navigation]);
 
+  // Handler for saving rating/tags
+  const handleRatingSaveWithTagsRefresh = useCallback(async (rating: number, tagIds: string[]) => {
+    await handleRatingSave(rating, tagIds);
+    // Always refresh tags from cache after saving, so UI updates instantly
+    setTagsLoading(true);
+    getTags().then(tagList => {
+      setTags(tagList);
+    }).finally(() => {
+      setTagsLoading(false);
+    });
+  }, [handleRatingSave]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {hasMusic && (
@@ -240,7 +252,7 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
         initialRating={selectedMusic?.rating ?? 0}
         tags={tags}
         initialSelectedTagIds={selectedMusic?.tags ?? []}
-        onSave={handleRatingSave}
+        onSave={handleRatingSaveWithTagsRefresh}
         onCancel={handleRatingCancel}
       />
 
