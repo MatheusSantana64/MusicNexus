@@ -14,16 +14,15 @@ import { OptionsModal } from '../components/OptionsModal';
 import { useLibrary } from './useLibrary';
 import { useModal } from '../hooks/useModal';
 import { libraryStyles as styles } from './styles/LibraryScreen.styles';
-import { getTags } from '../services/tagService';
-import { Tag } from '../types';
+import { useTagStore } from '../store/tagStore';
 import { useMusicStore } from '../store/musicStore';
 import { formatDateTimeDDMMYY_HHMM } from '../utils/dateUtils';
 
 export default function LibraryScreen({ navigation }: { navigation?: any }) {
   const [ratingFilter, setRatingFilter] = useState<[number, number]>([0, 10]);
 
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [tagsLoading, setTagsLoading] = useState(true);
+  // Use Zustand tag store
+  const { tags, loading: tagsLoading, refresh: refreshTags } = useTagStore();
 
   const {
     sortMode,
@@ -122,29 +121,12 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
   const hasMusic = savedMusic.length > 0;
   const shouldShowList = hasMusic && !loading && !error && !(searchQuery.trim() && processedMusic.length === 0);
 
-  // Fetch tags on mount and whenever the rating modal is opened
-  React.useEffect(() => {
-    let mounted = true;
-    setTagsLoading(true);
-    getTags().then(tagList => {
-      if (mounted) setTags(tagList);
-    }).finally(() => {
-      if (mounted) setTagsLoading(false);
-    });
-    return () => { mounted = false; };
-  }, []);
-
-  // Optionally, keep the ratingModalVisible effect if you want to refresh tags when rating modal opens
+  // Optionally, refresh tags when rating modal opens (if you want)
   React.useEffect(() => {
     if (ratingModalVisible) {
-      setTagsLoading(true);
-      getTags().then(tagList => {
-        setTags(tagList);
-      }).finally(() => {
-        setTagsLoading(false);
-      });
+      refreshTags();
     }
-  }, [ratingModalVisible]);
+  }, [ratingModalVisible, refreshTags]);
 
   // Handler to delete a rating history entry
   const handleDeleteHistoryEntry = useCallback(async (music: SavedMusic, entryIdx: number) => {
@@ -176,13 +158,8 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
   const handleRatingSaveWithTagsRefresh = useCallback(async (rating: number, tagIds: string[]) => {
     await handleRatingSave(rating, tagIds);
     // Always refresh tags from cache after saving, so UI updates instantly
-    setTagsLoading(true);
-    getTags().then(tagList => {
-      setTags(tagList);
-    }).finally(() => {
-      setTagsLoading(false);
-    });
-  }, [handleRatingSave]);
+    await refreshTags();
+  }, [handleRatingSave, refreshTags]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
