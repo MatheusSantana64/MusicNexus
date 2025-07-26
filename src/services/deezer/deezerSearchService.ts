@@ -11,21 +11,17 @@ export class DeezerSearchService {
     try {
       if (!options.query?.trim()) return [];
 
-      console.log(`🔍 [ALBUM MODE] Starting search for: "${options.query}"`);
       const startTime = Date.now();
 
       // Step 1: Search albums (1 API call)
       const albums = await DeezerDataEnricher.fetchAndSortAlbums(options);
       if (albums.length === 0) return [];
 
-      console.log(`📀 Found ${albums.length} albums`);
-
       // Step 2: Get tracks with batching (much fewer API calls)
       const allTracks = await DeezerDataEnricher.fetchTracksFromAlbums(albums);
       const sortedTracks = MusicSortingUtils.sortTracksByAlbumOrder(allTracks);
 
       const endTime = Date.now();
-      console.log(`✅ [ALBUM MODE] Completed in ${endTime - startTime}ms: ${sortedTracks.length} tracks`);
       
       return sortedTracks;
     } catch (error) {
@@ -38,7 +34,6 @@ export class DeezerSearchService {
     try {
       if (!options.query?.trim()) return [];
 
-      console.log(`⚡ [QUICK MODE] Starting search for: "${options.query}"`);
       const startTime = Date.now();
 
       const validatedResponse = await DeezerApiClient.searchTracksRaw(options.query, options.limit || 25);
@@ -47,14 +42,12 @@ export class DeezerSearchService {
       }
 
       let tracks = validatedResponse.data || [];
-      console.log(`🎵 Found ${tracks.length} tracks`);
       
       // Step 3: Enrich tracks with album data fetching
       tracks = await DeezerDataEnricher.enrichTracksWithAlbumData(tracks);
       tracks = MusicSortingUtils.sortTracksByAlbumOrder(tracks);
       
       const endTime = Date.now();
-      console.log(`✅ [QUICK MODE] Completed in ${endTime - startTime}ms: ${tracks.length} tracks`);
       
       return tracks;
     } catch (error) {

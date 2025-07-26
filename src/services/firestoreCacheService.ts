@@ -16,7 +16,6 @@ const TAGS_META_DOC_ID = '_meta';
 
 export async function getCachedMusic(): Promise<{ music: SavedMusic[]; lastModified: number | null }> {
   try {
-    console.log('[firestoreCacheService] getCachedMusic: Checking AsyncStorage for cache...', '📦');
     const [musicJson, lastModifiedStr] = await Promise.all([
       AsyncStorage.getItem(CACHE_KEY_MUSIC),
       AsyncStorage.getItem(CACHE_KEY_LAST_MODIFIED),
@@ -28,7 +27,6 @@ export async function getCachedMusic(): Promise<{ music: SavedMusic[]; lastModif
       savedAt: m.savedAt ? new Date(m.savedAt) : new Date()
     }));
     const lastModified = lastModifiedStr ? Number(lastModifiedStr) : null;
-    console.log('[firestoreCacheService] getCachedMusic: Parsed cache:', { musicCount: music.length, lastModified }, '📦');
     return { music, lastModified };
   } catch (err) {
     console.warn('[firestoreCacheService] getCachedMusic: Error reading cache:', err, '📦⚠️');
@@ -38,10 +36,8 @@ export async function getCachedMusic(): Promise<{ music: SavedMusic[]; lastModif
 
 export async function setCachedMusic(music: SavedMusic[], lastModified: number): Promise<void> {
   try {
-    console.log('[firestoreCacheService] setCachedMusic: Saving cache with', music.length, 'items, lastModified:', lastModified, '📦⬆️');
     await AsyncStorage.setItem(CACHE_KEY_MUSIC, JSON.stringify(music));
     await AsyncStorage.setItem(CACHE_KEY_LAST_MODIFIED, String(lastModified));
-    console.log('[firestoreCacheService] setCachedMusic: Cache saved successfully', '📦✅');
   } catch (err) {
     console.error('[firestoreCacheService] setCachedMusic: Error saving cache:', err, '📦❌');
   }
@@ -49,7 +45,6 @@ export async function setCachedMusic(music: SavedMusic[], lastModified: number):
 
 export async function getFirestoreLastModified(): Promise<number | null> {
   try {
-    console.log('[firestoreCacheService] getFirestoreLastModified: Fetching _meta doc from Firestore... 🔥');
     const metaDocRef = doc(collection(db, 'savedMusic'), META_DOC_ID);
     const metaDocSnap = await getDoc(metaDocRef);
     if (!metaDocSnap.exists()) {
@@ -57,7 +52,6 @@ export async function getFirestoreLastModified(): Promise<number | null> {
       return null;
     }
     const data = metaDocSnap.data();
-    console.log('[firestoreCacheService] getFirestoreLastModified: _meta doc data:', data, ' 🔥');
     return typeof data.lastModified === 'number' ? data.lastModified : null;
   } catch (err) {
     console.error('[firestoreCacheService] getFirestoreLastModified: Error fetching Firestore lastModified:', err, '🔥❌');
@@ -67,7 +61,6 @@ export async function getFirestoreLastModified(): Promise<number | null> {
 
 export async function fetchMusicFromFirestore(): Promise<{ music: SavedMusic[]; lastModified: number }> {
   try {
-    console.log('[firestoreCacheService] fetchMusicFromFirestore: Fetching all docs from Firestore...', '🌐⬇️');
     const colRef = collection(db, 'savedMusic');
     const snapshot = await getDocs(colRef);
     let lastModified = 0;
@@ -76,7 +69,6 @@ export async function fetchMusicFromFirestore(): Promise<{ music: SavedMusic[]; 
       if (docSnap.id === META_DOC_ID) {
         const meta = docSnap.data();
         if (typeof meta.lastModified === 'number') lastModified = meta.lastModified;
-        console.log('[firestoreCacheService] fetchMusicFromFirestore: Found _meta doc:', meta, '🔥');
       } else {
         const raw = { 
           ...docSnap.data(), 
@@ -92,7 +84,6 @@ export async function fetchMusicFromFirestore(): Promise<{ music: SavedMusic[]; 
         }
       }
     });
-    console.log('[firestoreCacheService] fetchMusicFromFirestore: Fetched', music.length, 'music docs, lastModified:', lastModified, '🌐✅');
     return { music, lastModified };
   } catch (err) {
     console.error('[firestoreCacheService] fetchMusicFromFirestore: Error fetching music:', err, '🌐❌');

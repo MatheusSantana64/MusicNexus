@@ -41,7 +41,6 @@ export const useTagStore = create<TagState & { _dirty?: boolean; syncTagsWithFir
     try {
       const state = await NetInfo.fetch();
       if (!state.isConnected) {
-        console.log('[tagStore] syncTagsWithFirestore: Offline, skipping sync');
         return;
       }
       const { tags: cachedTags, lastModified: cachedLastModified } = await getCachedTags();
@@ -55,7 +54,6 @@ export const useTagStore = create<TagState & { _dirty?: boolean; syncTagsWithFir
         for (const id of deletedIds) {
           try {
             await deleteDoc(doc(db, 'tags', id));
-            console.log('[tagStore] Synced deleted tag from Firestore:', id);
           } catch (err) {
             console.warn('[tagStore] Failed to delete tag from Firestore during sync:', id, err);
           }
@@ -68,7 +66,6 @@ export const useTagStore = create<TagState & { _dirty?: boolean; syncTagsWithFir
         (firestoreLastModified === null || cachedLastModified > firestoreLastModified)
       ) {
         // Push local cache to Firestore
-        console.log('[tagStore] syncTagsWithFirestore: Local cache is newer, pushing to Firestore');
         const { db } = require('../config/firebaseConfig');
         const { doc, setDoc } = require('firebase/firestore');
         for (const tag of cachedTags) {
@@ -79,9 +76,6 @@ export const useTagStore = create<TagState & { _dirty?: boolean; syncTagsWithFir
         }
         await setTagsMeta(cachedLastModified);
         set({ _dirty: false });
-        console.log('[tagStore] syncTagsWithFirestore: Sync complete');
-      } else {
-        console.log('[tagStore] syncTagsWithFirestore: No sync needed');
       }
     } catch (err) {
       console.error('[tagStore] syncTagsWithFirestore: Sync failed', err);
@@ -102,7 +96,6 @@ export const useTagStore = create<TagState & { _dirty?: boolean; syncTagsWithFir
           loading: false,
           lastUpdated: Date.now(),
         });
-        console.log('[tagStore] loadTags: Offline, loaded from cache');
         return;
       }
 

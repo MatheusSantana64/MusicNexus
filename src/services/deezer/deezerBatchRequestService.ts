@@ -82,8 +82,6 @@ export class DeezerBatchRequestService {
 
     this.activeRequests++;
     
-    console.log(`📦 Processing album batch: ${batch.length} requests`);
-
     try {
       await this.fetchAlbumBatch(batch);
     } catch (error) {
@@ -120,11 +118,8 @@ export class DeezerBatchRequestService {
     }
 
     if (uncachedRequests.length === 0) {
-      console.log(`✅ All ${batch.length} albums served from cache`);
       return;
     }
-
-    console.log(`🌐 Fetching ${uncachedRequests.length} albums from API (${cachedRequests.length} from cache)`);
 
     // Fetch uncached albums with controlled concurrency
     const chunks = this.chunkArray(uncachedRequests, 3); // Max 3 simultaneous requests

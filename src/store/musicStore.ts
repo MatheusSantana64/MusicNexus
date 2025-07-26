@@ -100,7 +100,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
     try {
       const state = await NetInfo.fetch();
       if (!state.isConnected) {
-        console.log('[musicStore] syncMusicWithFirestore: Offline, skipping sync');
         return;
       }
       const { music: cachedMusic, lastModified: cachedLastModified } = await getCachedMusic();
@@ -114,7 +113,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
         for (const id of deletedIds) {
           try {
             await deleteDoc(doc(db, 'savedMusic', id));
-            console.log('[musicStore] Synced deleted music from Firestore:', id);
           } catch (err) {
             console.warn('[musicStore] Failed to delete music from Firestore during sync:', id, err);
           }
@@ -127,7 +125,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
         (firestoreLastModified === null || cachedLastModified > firestoreLastModified)
       ) {
         // Push local cache to Firestore
-        console.log('[musicStore] syncMusicWithFirestore: Local cache is newer, pushing to Firestore');
         const { db } = require('../config/firebaseConfig');
         const { doc, setDoc } = require('firebase/firestore');
         for (const music of cachedMusic) {
@@ -138,9 +135,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
         }
         await setSavedMusicMeta(cachedLastModified);
         set({ _dirty: false });
-        console.log('[musicStore] syncMusicWithFirestore: Sync complete');
-      } else {
-        console.log('[musicStore] syncMusicWithFirestore: No sync needed');
       }
     } catch (err) {
       console.error('[musicStore] syncMusicWithFirestore: Sync failed', err);
@@ -148,12 +142,10 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
   },
   loadMusic: async (sortMode: SortMode = 'release') => {
     try {
-      console.log('[musicStore] loadMusic: Triggered with sortMode:', sortMode, '🎶');
       set({ loading: true, error: null });
 
       // 1. Get cached music and lastModified
       const { music: cachedMusic, lastModified: cachedLastModified } = await getCachedMusic();
-      console.log('[musicStore] loadMusic: Cached music count:', cachedMusic.length, 'Cached lastModified:', cachedLastModified, '📦');
 
       // 2. Check network status
       const state = await NetInfo.fetch();
@@ -166,13 +158,11 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
           refreshing: false,
           lastUpdated: Date.now()
         });
-        console.log('[musicStore] loadMusic: Offline, loaded from cache', '📦🚫🌐');
         return;
       }
 
       // 3. Get Firestore lastModified
       const firestoreLastModified = await getFirestoreLastModified();
-      console.log('[musicStore] loadMusic: Firestore lastModified:', firestoreLastModified, '🔥');
 
       // 4. Decide whether to use cache or fetch from Firestore
       let useCache = false;
@@ -182,12 +172,8 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
         typeof cachedLastModified !== 'number'
       ) {
         useCache = false;
-        console.log('[musicStore] loadMusic: Cache is NOT valid (missing or invalid lastModified)', '📦⚠️');
       } else if (cachedLastModified >= firestoreLastModified) {
         useCache = true;
-        console.log('[musicStore] loadMusic: Cache is up-to-date, using cached music', '📦✅');
-      } else {
-        console.log('[musicStore] loadMusic: Firestore has newer data, will fetch from Firestore', '🔥⬇️');
       }
 
       let music: SavedMusic[] = [];
@@ -195,14 +181,12 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
 
       if (useCache && cachedMusic.length > 0) {
         music = cachedMusic;
-        console.log('[musicStore] loadMusic: Loaded music from cache', '📦');
       } else {
         // Fetch from Firestore and update cache
         const result = await fetchMusicFromFirestore();
         music = result.music;
         lastModified = result.lastModified || Date.now();
         await setCachedMusic(music, lastModified);
-        console.log('[musicStore] loadMusic: Loaded music from Firestore and updated cache', '🔥⬇️📦');
       }
 
       set({ 
@@ -214,7 +198,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       });
       // After loading, try to sync if needed
       (get() as any).syncMusicWithFirestore();
-      console.log('[musicStore] loadMusic: Store updated. Music count:', music.length, 'Last updated:', new Date().toISOString(), '🎶✅');
     } catch (error) {
       console.error('[musicStore] loadMusic: Error loading music:', error, '🎶❌');
       set({ 
@@ -237,11 +220,7 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
         _dirty: true
       });
       setCachedMusic(newMusic, newLastModified);
-      console.log('[musicStore] Music added to store:', music.title, '➕🎶');
-      console.log('[musicStore] Total music count:', savedMusic.length + 1, '📊');
       (get() as any).syncMusicWithFirestore();
-    } else {
-      console.log('[musicStore] Music already exists in store:', music.title, '⚠️');
     }
   },
 
@@ -258,7 +237,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
         _dirty: true
       });
       setCachedMusic(updatedMusic, newLastModified);
-      console.log('[musicStore] Batch added to store:', newMusics.length, 'songs', '➕🎶');
       (get() as any).syncMusicWithFirestore();
     }
   },
@@ -300,7 +278,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       });
       setCachedMusic(updatedMusic, newLastModified);
       (get() as any).syncMusicWithFirestore();
-      console.log('[musicStore] Rating/tags updated successfully, history updated if rating changed', '⭐✅');
 
       // 2. Update Firestore immediately if online
       const state = await NetInfo.fetch();
@@ -314,7 +291,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
           updateObj
         );
         await setSavedMusicMeta();
-        console.log('[musicStore] Firestore updated immediately for rating/tags/history', '⭐🔥');
       }
 
       return true;
@@ -344,7 +320,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       });
       setCachedMusic(updatedMusic, newLastModified);
       (get() as any).syncMusicWithFirestore();
-      console.log('[musicStore] Music deleted locally:', firebaseId, '🗑️');
 
       // 🔥 Actually delete from Firestore if online, else track for later
       const state = await NetInfo.fetch();
@@ -386,7 +361,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
           savingTracks: new Set(operations.savingTracks).add(trackId)
         }
       });
-      console.log('[musicStore] Started saving track:', trackId, '🎵');
     }
   },
 
@@ -401,7 +375,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
           savingTracks: newSet
         }
       });
-      console.log('[musicStore] Finished saving track:', trackId, '🎵✅');
     }
   },
 
@@ -414,7 +387,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
           savingAlbums: new Set(operations.savingAlbums).add(albumId)
         }
       });
-      console.log('[musicStore] Started saving album:', albumId, '💿');
     }
   },
 
@@ -429,7 +401,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
           savingAlbums: newSet
         }
       });
-      console.log('[musicStore] Finished saving album:', albumId, '💿✅');
     }
   },
 
@@ -442,7 +413,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
           updatingRatings: new Set(operations.updatingRatings).add(firebaseId)
         }
       });
-      console.log('[musicStore] Started updating rating:', firebaseId, '⭐');
     }
   },
 
@@ -457,7 +427,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
           updatingRatings: newSet
         }
       });
-      console.log('[musicStore] Finished updating rating:', firebaseId, '⭐✅');
     }
   },
 
@@ -470,7 +439,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
           deletingMusic: new Set(operations.deletingMusic).add(firebaseId)
         }
       });
-      console.log('[musicStore] Started deleting music:', firebaseId, '🗑️');
     }
   },
 
@@ -485,7 +453,6 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
           deletingMusic: newSet
         }
       });
-      console.log('[musicStore] Finished deleting music:', firebaseId, '🗑️✅');
     }
   },
 

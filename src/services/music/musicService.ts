@@ -68,7 +68,6 @@ export async function saveMusic(track: MusicTrack, options: SaveMusicOptions = {
     const validatedMusicData = validateSavedMusicInput(musicData);
 
     const docRef = await addDoc(collection(db, COLLECTION_NAME), validatedMusicData);
-    console.log('✅ Music validated and saved to Firebase:', validatedMusicData.title);
     return docRef.id;
   } catch (error) {
     console.error('Error saving song:', error);
@@ -133,7 +132,6 @@ export async function getSavedMusic(
       })
       .filter((music): music is SavedMusic => music !== null);
 
-    console.log(`✅ Loaded ${musics.length} validated music documents from Firebase (sorted by ${sortMode})`);
     return musics;
   } catch (error) {
     console.error('Error loading saved music:', error);
@@ -153,7 +151,6 @@ export async function updateMusicRating(firebaseId: string, rating: number): Pro
   try {
     await updateDoc(doc(db, COLLECTION_NAME, firebaseId), { rating });
     await setSavedMusicMeta();
-    console.log(`✅ Rating updated for document ${firebaseId}: ${rating}`);
   } catch (error) {
     console.error('Error updating rating:', error);
     throw new Error(`Failed to update rating: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -168,7 +165,6 @@ export async function deleteMusic(firebaseId: string): Promise<void> {
   try {
     await deleteDoc(doc(db, COLLECTION_NAME, firebaseId));
     await setSavedMusicMeta();
-    console.log(`✅ Music deleted from Firebase: ${firebaseId}`);
   } catch (error) {
     console.error('Error deleting music:', error);
     throw new Error(`Failed to delete music: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -187,7 +183,6 @@ export async function updateMusicRatingAndTags(firebaseId: string, rating: numbe
   try {
     await updateDoc(doc(db, COLLECTION_NAME, firebaseId), { rating, tags });
     await setSavedMusicMeta();
-    console.log(`✅ Rating and tags updated for document ${firebaseId}: ${rating}, tags: ${tags.join(', ')}`);
   } catch (error) {
     console.error('Error updating rating/tags:', error);
     throw new Error(`Failed to update rating/tags: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -196,8 +191,6 @@ export async function updateMusicRatingAndTags(firebaseId: string, rating: numbe
 
 // === BATCH OPERATIONS ===
 export async function saveMusicBatch(tracks: MusicTrack[], rating: number = 0, tags: string[] = []): Promise<string[]> {
-  console.log(`📦 Starting batch save of ${tracks.length} tracks with rating ${rating}`);
-  
   const results = await Promise.allSettled(
     tracks.map(track => saveMusic(track, { rating, tags }))
   );
@@ -206,9 +199,6 @@ export async function saveMusicBatch(tracks: MusicTrack[], rating: number = 0, t
     .filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled')
     .map(result => result.value);
     
-  const failed = results.filter(result => result.status === 'rejected').length;
-  
-  console.log(`✅ Batch save completed: ${successful.length} successful, ${failed} failed`);
   return successful;
 }
 

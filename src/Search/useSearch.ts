@@ -61,16 +61,11 @@ export function useSearch(): UseSearchResult {
     setHasSearched(true);
 
     try {
-      console.log(`[${searchId}] Starting ${mode} search for:`, query);
-      
       const results = await MusicSearchService.searchTracks(query, mode);
 
       // Verify if this is still the most recent search
       if (currentSearchRef.current === searchId) {
-        console.log(`[${searchId}] Search completed:`, results.length, 'tracks found');
         setTracks(results);
-      } else {
-        console.log(`[${searchId}] Search cancelled - newer search in progress`);
       }
     } catch (err: unknown) {
       // Verify if this is still the most recent search and not cancelled

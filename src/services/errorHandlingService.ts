@@ -124,7 +124,6 @@ export class ErrorHandlingService {
       });
     } else {
       // Fallback - just execute confirm action
-      console.log(`${title}: ${message} - Auto-confirmed`);
       onConfirm();
     }
   }

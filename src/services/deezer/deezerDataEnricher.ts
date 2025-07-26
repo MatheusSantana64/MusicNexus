@@ -19,9 +19,7 @@ export class DeezerDataEnricher {
   // Fetch tracks using batch requests and smart caching
   static async fetchTracksFromAlbums(albums: MusicAlbum[]): Promise<MusicTrack[]> {
     const allTracks: MusicTrack[] = [];
-    
-    console.log(`📦 Starting track fetching for ${albums.length} albums`);
-    
+       
     // Process albums in smaller batches to avoid overwhelming the API
     const albumBatches = this.chunkArray(albums, 5);
     
@@ -45,7 +43,6 @@ export class DeezerDataEnricher {
       }
     }
 
-    console.log(`✅ Fetched ${allTracks.length} tracks total`);
     return allTracks;
   }
 
@@ -55,11 +52,8 @@ export class DeezerDataEnricher {
     const albumsWithData = albums.filter(album => album.release_date);
     
     if (albumsToEnrich.length === 0) {
-      console.log(`✅ All ${albums.length} albums already have release data`);
       return albums;
     }
-
-    console.log(`📦 Enriching ${albumsToEnrich.length} albums with release data`);
 
     // Use batch requests to get album data
     const enrichmentPromises = albumsToEnrich.map(async (album) => {
@@ -74,14 +68,11 @@ export class DeezerDataEnricher {
 
     const enrichedAlbums = await Promise.all(enrichmentPromises);
     
-    console.log(`✅ Enriched ${enrichedAlbums.length} albums`);
     return [...albumsWithData, ...enrichedAlbums];
   }
 
   // Enrich tracks with album position data
   static async enrichTracksWithAlbumData(tracks: MusicTrack[]): Promise<MusicTrack[]> {
-    console.log(`📦 Enriching ${tracks.length} tracks with position data`);
-
     const enrichedTracks = await Promise.all(
       tracks.map(async (track) => {
         try {
@@ -124,7 +115,6 @@ export class DeezerDataEnricher {
       })
     );
     
-    console.log(`✅ Enhanced ${enrichedTracks.length} tracks`);
     return enrichedTracks;
   }
 
@@ -159,7 +149,7 @@ export class DeezerDataEnricher {
           }
         } catch (error) {
           // Ignore pre-warm errors - this is background optimization
-          console.debug('Pre-warm cache failed for album:', albumId);
+          // Removed console.debug for pre-warm cache failed
         }
       }
     }, 100);

@@ -68,7 +68,6 @@ export class CacheService {
     // Check if there's already a pending request
     const pending = this.pendingRequests.get(key);
     if (pending && (Date.now() - pending.timestamp) < ttl) {
-      console.log(`🔄 Deduplicating request for: ${key}`);
       return pending.promise;
     }
 
@@ -138,7 +137,6 @@ export class CacheService {
     
     if (oldestKey) {
       cache.delete(oldestKey);
-      console.log(`🗑️ Evicted oldest cache entry: ${oldestKey}`);
     }
   }
 
@@ -161,8 +159,6 @@ export class CacheService {
         this.pendingRequests.delete(key);
       }
     }
-    
-    console.log(`🧹 Cache cleanup completed`);
   }
 
   private static cleanupCache<T>(cache: Map<string, CacheEntry<T>>): void {
@@ -178,10 +174,6 @@ export class CacheService {
     for (const key of expiredKeys) {
       cache.delete(key);
     }
-    
-    if (expiredKeys.length > 0) {
-      console.log(`🗑️ Cleaned ${expiredKeys.length} expired entries`);
-    }
   }
 
   // Clear all caches (for testing or memory management)
@@ -189,7 +181,6 @@ export class CacheService {
     this.albumCache.clear();
     this.trackCache.clear();
     this.pendingRequests.clear();
-    console.log('🗑️ All caches cleared');
   }
 
   // Get cache statistics

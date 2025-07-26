@@ -18,7 +18,6 @@ export class DeezerApiClient {
       // Check cache first
       const cached = CacheService.getTrack(trackId);
       if (cached) {
-        console.log(`✅ Track ${trackId} served from cache`);
         return cached;
       }
 
@@ -37,7 +36,6 @@ export class DeezerApiClient {
         // 🔥 Fallback to Spotify
         const spotifyTrack = await searchSpotifyTrack(trackId);
         if (spotifyTrack) {
-          console.log(`✅ Track ${trackId} found on Spotify`);
           CacheService.setTrack(trackId, spotifyTrack);
           return spotifyTrack;
         }

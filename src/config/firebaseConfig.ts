@@ -43,9 +43,5 @@ const db = getFirestore(app);
 // Initialize Auth (default, in-memory persistence)
 const auth = getAuth(app);
 
-// Log Firebase initialization
-console.log('Firebase initialized successfully');
-console.log('Project ID:', firebaseConfig.projectId);
-
 // Export the services that will be used
 export { db, auth };

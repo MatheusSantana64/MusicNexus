@@ -21,9 +21,7 @@ export function useMusicOperations() {
   // Track operations
   const saveTrack = useCallback(async (track: MusicTrack, rating: number = 0, tags: string[] = []) => {
     try {
-      console.log('🎵 Starting track save:', track.title);
       await MusicOperationsService.saveTrack(track, rating, tags);
-      console.log('✅ Track save completed:', track.title);
     } catch (error) {
       console.error('❌ Error saving track:', error);
     }

@@ -35,7 +35,6 @@ export class MusicOperationsService {
     try {
       store.startTrackSave(track.id);
 
-      console.log('💾 Saving track to Firebase:', track.title);
       const firebaseId = await saveMusic(track, { rating, tags });
 
       // Create SavedMusic object for optimistic update
@@ -63,7 +62,6 @@ export class MusicOperationsService {
       store.addMusic(savedMusic);
       await setSavedMusicMeta();
 
-      console.log('✅ Track saved successfully:', track.title);
     } catch (error) {
       console.error('❌ Error saving track:', error);
       throw error;
@@ -120,7 +118,6 @@ export class MusicOperationsService {
 
       store.addMusicBatch(savedMusics);
       await setSavedMusicMeta();
-      console.log(`✅ Album saved: ${firebaseIds.length} tracks`);
       return firebaseIds;
     } catch (error) {
       if (showModal) {
