@@ -2,6 +2,36 @@
 
 A React Native Expo app for searching, rating, and organizing your favorite music using the Spotify API and Firebase.
 
+## 🖼️ Screenshots
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="https://drive.google.com/uc?export=view&id=1uAO2bztuwNYc9NepL7LS5_Ndv_Zo1TRg" alt="Library Screenshot" width="300">
+      </td>
+      <td align="center">
+        <img src="https://drive.google.com/uc?export=view&id=1jxgcDJq31dc3gNqGsdvux5NvCounsAOh" alt="Rating Screenshot" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <img src="https://drive.google.com/uc?export=view&id=1N73QFPCcsLfkEE3g1MAIK0UsSr8QV_l_" alt="Quick Search Screenshot" width="300">
+      </td>
+      <td align="center">
+        <img src="https://drive.google.com/uc?export=view&id=1D6wXFMs4BfnQkvn0a_jLBjrVuBZxdGub" alt="Search Screenshot" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <img src="https://drive.google.com/uc?export=view&id=11Lx16QsiGX24ILTAoWCf1kcWsEWUETS2" alt="History Screenshot" width="300">
+      </td>
+      <td align="center">
+        <img src="https://drive.google.com/uc?export=view&id=1pw52V_oetJVpyB3E47ZoNyYNPnKhgDQb" alt="Tags Screenshot" width="300">
+      </td>
+    </tr>
+  </table>
+</div>
+
 ## ✨ Features
 
 - 🔍 **Search Music**: Search for songs, artists, and albums using the Spotify API
