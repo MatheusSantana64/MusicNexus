@@ -1,15 +1,15 @@
 # 🎵 MusicNexus
 
-A React Native Expo app for searching, rating, and organizing your favorite music using the Deezer API and Firebase.
+A React Native Expo app for searching, rating, and organizing your favorite music using the Spotify API and Firebase.
 
 ## ✨ Features
 
-- 🔍 **Search Music**: Search for songs, artists, and albums using the Deezer API
+- 🔍 **Search Music**: Search for songs, artists, and albums using the Spotify API
 - ⭐ **Rate Songs**: Rate your favorite tracks from 1 to 10
 - 💾 **Save Offline**: Save songs to your personal library for offline access
 - 🏷️ **Tags System**: Create custom tags to organize your music collection
 - 📊 **Rating History**: Track your rating history across all songs
-- 🎯 **Multi-API Ready**: Built to support multiple music APIs (Deezer, Spotify, Tidal, etc.)
+- 🎯 **Multi-API Ready**: Built to support multiple music APIs (Spotify or Deezer)
 
 ## 🚀 Getting Started
 
@@ -73,7 +73,7 @@ EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 - **Frontend**: React Native, Expo
 - **Language**: TypeScript
 - **Database**: Firebase Firestore
-- **Music API**: Deezer API (with support for future APIs)
+- **Music API**: Spotify and Deezer APIs (with support for future APIs)
 - **Navigation**: React Navigation
 - **State Management**: React Hooks
 
@@ -95,7 +95,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - Filter and sort your music
 
 ### 🔍 Search Screen
-- Search for music using Deezer API
+- Search for music using Spotify or Deezer API
 - View song details (title, artist, album, duration)
 - Rate and save songs to your library
 
@@ -142,7 +142,6 @@ You may use and modify it freely for **non-commercial purposes**, as long as you
 
 ## 🙏 Acknowledgments
 
-- [Deezer API](https://developers.deezer.com/) for providing free music data
 - [Firebase](https://firebase.google.com/) for backend services
 - [Expo](https://expo.dev/) for the amazing development platform
 
