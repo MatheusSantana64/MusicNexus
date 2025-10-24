@@ -11,7 +11,7 @@ import {
 import { setSavedMusicMeta } from '../services/firestoreMetaHelper';
 import NetInfo from '@react-native-community/netinfo';
 import { deleteMusic, SortMode } from '../services/music/musicService';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, collection, setDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface OperationState {
@@ -102,17 +102,21 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       if (!state.isConnected) {
         return;
       }
-      const { music: cachedMusic, lastModified: cachedLastModified } = await getCachedMusic();
-      const firestoreLastModified = await getFirestoreLastModified();
 
-      // --- NEW: Sync deleted IDs ---
+      // Load cached and remote data
+      const { music: cachedMusic, lastModified: cachedLastModified } = await getCachedMusic();
+      const { music: remoteMusicArray } = await fetchMusicFromFirestore();
+      const remoteById = new Map<string, SavedMusic>();
+      remoteMusicArray.forEach(m => { if (m.firebaseId) remoteById.set(m.firebaseId, m); });
+
+      // Sync deleted IDs first (existing behavior)
       const deletedIds = await getDeletedMusicIds();
       if (deletedIds.length > 0) {
         const { db } = require('../config/firebaseConfig');
-        const { doc, deleteDoc } = require('firebase/firestore');
+        const { doc: fDoc, deleteDoc } = require('firebase/firestore');
         for (const id of deletedIds) {
           try {
-            await deleteDoc(doc(db, 'savedMusic', id));
+            await deleteDoc(fDoc(db, 'savedMusic', id));
           } catch (err) {
             console.warn('[musicStore] Failed to delete music from Firestore during sync:', id, err);
           }
@@ -120,21 +124,149 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
         await setDeletedMusicIds([]); // Clear after syncing
       }
 
-      if (
-        typeof cachedLastModified === 'number' &&
-        (firestoreLastModified === null || cachedLastModified > firestoreLastModified)
-      ) {
-        // Push local cache to Firestore
-        const { db } = require('../config/firebaseConfig');
-        const { doc, setDoc } = require('firebase/firestore');
-        for (const music of cachedMusic) {
-          if (!music.firebaseId) continue;
-          const docRef = doc(db, 'savedMusic', music.firebaseId);
-          const { firebaseId, ...musicData } = music;
-          await setDoc(docRef, musicData, { merge: true });
+      // Helper: determine a numeric lastModified for a SavedMusic
+      const getLastModified = (m?: SavedMusic): number => {
+        if (!m) return 0;
+        // ratingHistory latest timestamp (ISO string)
+        const hist = m.ratingHistory ?? [];
+        if (hist.length > 0) {
+          const last = hist[hist.length - 1].timestamp;
+          const t = Date.parse(last);
+          if (!Number.isNaN(t)) return t;
         }
-        await setSavedMusicMeta(cachedLastModified);
-        set({ _dirty: false });
+        if (m['lastModified'] && typeof m['lastModified'] === 'number') {
+          return m['lastModified'];
+        }
+        if (m.savedAt instanceof Date) return m.savedAt.getTime();
+        return 0;
+      };
+
+      // Build local map by firebaseId when present, otherwise keep local-only list
+      const localById = new Map<string, SavedMusic>();
+      const localNoId: SavedMusic[] = [];
+      for (const lm of cachedMusic) {
+        if (lm.firebaseId) localById.set(lm.firebaseId, lm);
+        else localNoId.push(lm);
+      }
+
+      // Merge per-document
+      const mergedMap = new Map<string, SavedMusic>();
+
+      // 1) handle documents present remotely (remote wins when newer)
+      for (const [fid, remote] of remoteById.entries()) {
+        const local = localById.get(fid);
+        if (!local) {
+          // remote-only, keep remote
+          mergedMap.set(fid, remote);
+          continue;
+        }
+
+        const localLM = getLastModified(local);
+        const remoteLM = getLastModified(remote);
+
+        // Merge ratingHistory (union by timestamp), tags (union), and prefer latest values by lastModified
+        const mergeHistories = (a: (RatingHistoryEntry[]|undefined), b: (RatingHistoryEntry[]|undefined)) => {
+          const combined = [...(a ?? []), ...(b ?? [])];
+          const unique = new Map<string, RatingHistoryEntry>();
+          combined.forEach(h => {
+            if (h.timestamp) unique.set(h.timestamp + '|' + h.rating, h);
+          });
+          return Array.from(unique.values()).sort((x, y) => Date.parse(x.timestamp) - Date.parse(y.timestamp));
+        };
+
+        const mergedHistory = mergeHistories(local.ratingHistory, remote.ratingHistory);
+        const mergedTags = Array.from(new Set([...(local.tags ?? []), ...(remote.tags ?? [])]));
+
+        // Choose base: remote if remote newer, else local
+        const base = remoteLM >= localLM ? remote : local;
+        const merged: SavedMusic = {
+          ...base,
+          // merge fields
+          tags: mergedTags,
+          ratingHistory: mergedHistory,
+          // rating = last history rating if available, else base.rating
+          rating: (mergedHistory.length > 0 ? mergedHistory[mergedHistory.length - 1].rating : base.rating),
+          // savedAt choose earliest (preserve original saved date)
+          savedAt: new Date(Math.min((local.savedAt?.getTime?.() ?? Infinity), (remote.savedAt?.getTime?.() ?? Infinity)) || Date.now()),
+        };
+        mergedMap.set(fid, merged);
+
+        // If local is newer, ensure remote gets updated (push after building merged set)
+        // We'll collect later by comparing timestamps
+      }
+
+      // 2) handle local-only items with firebaseId that are not in remote (e.g. created locally and pushed earlier)
+      for (const [fid, local] of localById.entries()) {
+        if (!remoteById.has(fid)) {
+          mergedMap.set(fid, local);
+        }
+      }
+
+      // 3) add remote-only items already covered; now add local-only (no firebaseId) items
+      // localNoId should be preserved and attempted to push to Firestore
+      // merged list will temporarily include them without firebaseId
+      for (const l of localNoId) {
+        mergedMap.set(`local-${l.id}`, l); // key is temporary: will normalize after push
+      }
+
+      // Convert mergedMap to array
+      let mergedList = Array.from(mergedMap.values());
+
+      // 4) Push local-only (no firebaseId) items to Firestore and update their firebaseId in mergedList
+      const { db } = require('../config/firebaseConfig');
+      const toAdd = mergedList.filter(m => !m.firebaseId);
+      if (toAdd.length > 0) {
+        for (const item of toAdd) {
+          try {
+            // prepare payload (omit firebaseId, ensure dates -> ISO or Firestore compatible)
+            const { firebaseId, savedAt, ratingHistory, ...payload } = item as any;
+            const payloadToSave = {
+              ...payload,
+              savedAt: savedAt instanceof Date ? savedAt : new Date(),
+              ratingHistory: ratingHistory ?? [],
+            };
+            const docRef = await addDoc(collection(db, 'savedMusic'), payloadToSave);
+            // update local item firebaseId in mergedList and cachedMusic
+            mergedList = mergedList.map(m => m === item ? { ...m, firebaseId: docRef.id } : m);
+          } catch (err) {
+            console.warn('[musicStore] syncMusicWithFirestore: Failed to add local-only item to Firestore:', item.id, err);
+            // leave local item as-is; it remains in cache and _dirty so it will be retried
+          }
+        }
+      }
+
+      // 5) For items where local was newer than remote, push merged local to Firestore (setDoc)
+      let pushedAny = false;
+      for (const merged of mergedList) {
+        if (!merged.firebaseId) continue;
+        const fid = merged.firebaseId;
+        const local = cachedMusic.find(m => m.firebaseId === fid);
+        const remote = remoteById.get(fid);
+        const localLM = getLastModified(local);
+        const remoteLM = getLastModified(remote);
+        if (local && localLM > remoteLM) {
+          try {
+            const { firebaseId, ...payload } = merged as any;
+            await setDoc(doc(db, 'savedMusic', fid), { ...payload }, { merge: true });
+            pushedAny = true;
+          } catch (err) {
+            console.warn('[musicStore] syncMusicWithFirestore: Failed to setDoc for', fid, err);
+          }
+        }
+      }
+
+      // 6) Save mergedList to cache and state
+      const now = Date.now();
+      await setCachedMusic(mergedList, now);
+      set({ savedMusic: mergedList, lastUpdated: now, _dirty: false });
+
+      // 7) If we pushed changes, update the global meta
+      if (pushedAny) {
+        try {
+          await setSavedMusicMeta();
+        } catch (err) {
+          console.warn('[musicStore] syncMusicWithFirestore: Failed to update meta', err);
+        }
       }
     } catch (err) {
       console.error('[musicStore] syncMusicWithFirestore: Sync failed', err);
@@ -165,15 +297,21 @@ export const useMusicStore = create<MusicState & { _dirty?: boolean; syncMusicWi
       const firestoreLastModified = await getFirestoreLastModified();
 
       // 4. Decide whether to use cache or fetch from Firestore
+      // If we have unsynced local changes, prefer the cache to avoid overwriting offline edits.
+      const dirty = (get() as any)._dirty === true;
       let useCache = false;
-      if (
-        firestoreLastModified === null ||
-        cachedLastModified === null ||
-        typeof cachedLastModified !== 'number'
-      ) {
-        useCache = false;
-      } else if (cachedLastModified >= firestoreLastModified) {
+      if (dirty) {
         useCache = true;
+      } else {
+        if (
+          firestoreLastModified === null ||
+          cachedLastModified === null ||
+          typeof cachedLastModified !== 'number'
+        ) {
+          useCache = false;
+        } else if (cachedLastModified >= firestoreLastModified) {
+          useCache = true;
+        }
       }
 
       let music: SavedMusic[] = [];
