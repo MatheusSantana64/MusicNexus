@@ -22,5 +22,4 @@ export interface SavedMusic {
   tags: string[];
   firebaseId?: string;
   ratingHistory?: RatingHistoryEntry[];
-  lastModified?: number; // Per-document last modified timestamp (ms since epoch). Optional so older cached items keep working.
 }
