@@ -47,26 +47,32 @@ export function StarRatingModal({
     if (visible) {
       setRating(initialRating);
       setSelectedTagIds(initialSelectedTagIds);
-      // Load latest from profile service first
+      
+      // Load from local AsyncStorage cache first (for offline support)
+      AsyncStorage.getItem('ratingTooltips').then(val => {
+        if (val) setTooltips(JSON.parse(val));
+        else setTooltips({});
+      });
+      
+      // Then try to sync with Firestore and update local cache if needed
       getProfileData().then(data => {
         if (data.ratingTooltips) {
           setTooltips(data.ratingTooltips);
-        } else {
-          AsyncStorage.getItem('ratingTooltips').then(val => {
-            if (val) setTooltips(JSON.parse(val));
-            else setTooltips({});
-          });
+          // Update AsyncStorage cache if it differs
+          AsyncStorage.setItem('ratingTooltips', JSON.stringify(data.ratingTooltips));
         }
       }).catch(() => {
-        // fallback to AsyncStorage
-        AsyncStorage.getItem('ratingTooltips').then(val => { if (val) setTooltips(val ? JSON.parse(val) : {}); });
+        // Ignore errors; local cache is already loaded
       });
 
       // Subscribe to live profile changes (keeps tooltips in sync across devices)
       unsub = addProfileChangeListener((data) => {
         if (data.ratingTooltips) {
           setTooltips(data.ratingTooltips);
+          // Update AsyncStorage cache
+          AsyncStorage.setItem('ratingTooltips', JSON.stringify(data.ratingTooltips));
         } else {
+          // Fallback to local cache if Firestore data is empty
           AsyncStorage.getItem('ratingTooltips').then(val => { if (val !== null) setTooltips(JSON.parse(val)); });
         }
       });

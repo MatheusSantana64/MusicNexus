@@ -30,18 +30,29 @@ export function ProfileConfigModal({
 
   React.useEffect(() => {
     let unsub: (() => void) | undefined;
-    // Load from Firestore first, fallback to AsyncStorage
     if (visible) {
-      getProfileData().then(data => {
-        if (data.ratingTooltips) setTooltips(data.ratingTooltips);
-        else AsyncStorage.getItem('ratingTooltips').then(val => { if (val !== null) setTooltips(JSON.parse(val)); });
+      // Load from local AsyncStorage cache first (for offline support)
+      AsyncStorage.getItem('ratingTooltips').then(val => {
+        if (val) setTooltips(JSON.parse(val));
       });
+      
+      // Then try to sync with Firestore and update local cache if needed
+      getProfileData().then(data => {
+        if (data.ratingTooltips) {
+          setTooltips(data.ratingTooltips);
+          // Update AsyncStorage cache if it differs
+          AsyncStorage.setItem('ratingTooltips', JSON.stringify(data.ratingTooltips));
+        }
+      }).catch(() => {
+        // Ignore errors; local cache is already loaded
+      });
+      
       // Subscribe to live updates while modal is visible
       unsub = subscribeToProfileChanges((data) => {
         if (data.ratingTooltips) {
           setTooltips(data.ratingTooltips);
-        } else {
-          AsyncStorage.getItem('ratingTooltips').then(val => { if (val !== null) setTooltips(JSON.parse(val)); });
+          // Update AsyncStorage cache
+          AsyncStorage.setItem('ratingTooltips', JSON.stringify(data.ratingTooltips));
         }
       });
     }
