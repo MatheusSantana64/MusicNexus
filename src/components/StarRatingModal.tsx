@@ -9,11 +9,12 @@ import {
   ScrollView,
 } from 'react-native';
 import StarRating from 'react-native-star-rating-widget';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getRatingColor, getRatingText } from '../utils/ratingUtils';
 import { starRatingModalStyles as styles } from './styles/StarRatingModal.styles';
 import { useTagStore } from '../store/tagStore';
 import { Tag } from '../types';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getProfileData, addProfileChangeListener } from '../services/profileService';
 
 interface StarRatingModalProps {
   visible: boolean;
@@ -42,14 +43,36 @@ export function StarRatingModal({
 
   // Update rating and selected tags when initialRating or initialSelectedTagIds changes or modal becomes visible
   React.useEffect(() => {
+    let unsub: (() => void) | undefined;
     if (visible) {
       setRating(initialRating);
       setSelectedTagIds(initialSelectedTagIds);
-      AsyncStorage.getItem('ratingTooltips').then(val => {
-        if (val) setTooltips(JSON.parse(val));
-        else setTooltips({});
+      // Load latest from profile service first
+      getProfileData().then(data => {
+        if (data.ratingTooltips) {
+          setTooltips(data.ratingTooltips);
+        } else {
+          AsyncStorage.getItem('ratingTooltips').then(val => {
+            if (val) setTooltips(JSON.parse(val));
+            else setTooltips({});
+          });
+        }
+      }).catch(() => {
+        // fallback to AsyncStorage
+        AsyncStorage.getItem('ratingTooltips').then(val => { if (val) setTooltips(val ? JSON.parse(val) : {}); });
+      });
+
+      // Subscribe to live profile changes (keeps tooltips in sync across devices)
+      unsub = addProfileChangeListener((data) => {
+        if (data.ratingTooltips) {
+          setTooltips(data.ratingTooltips);
+        } else {
+          AsyncStorage.getItem('ratingTooltips').then(val => { if (val !== null) setTooltips(JSON.parse(val)); });
+        }
       });
     }
+
+    return () => { if (unsub) unsub(); };
   }, [visible, initialRating, initialSelectedTagIds]);
 
   const handleTagToggle = (tagId: string) => {
