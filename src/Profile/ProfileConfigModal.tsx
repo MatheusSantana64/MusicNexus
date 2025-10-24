@@ -7,7 +7,7 @@ import { theme } from '../styles/theme';
 import { profileScreenStyles as styles } from './styles/ProfileScreen.styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScrollView, TextInput } from 'react-native';
-import { getProfileData, setProfileData } from '../services/profileService';
+import { getProfileData, setProfileData, subscribeToProfileChanges } from '../services/profileService';
 
 const RATING_STEPS = Array.from({ length: 21 }, (_, i) => (i * 0.5).toFixed(1)).reverse();
 
@@ -29,11 +29,24 @@ export function ProfileConfigModal({
   const [tooltips, setTooltips] = React.useState<{ [rating: string]: string }>({});
 
   React.useEffect(() => {
+    let unsub: (() => void) | undefined;
     // Load from Firestore first, fallback to AsyncStorage
-    getProfileData().then(data => {
-      if (data.ratingTooltips) setTooltips(data.ratingTooltips);
-      else AsyncStorage.getItem('ratingTooltips').then(val => { if (val) setTooltips(JSON.parse(val)); });
-    });
+    if (visible) {
+      getProfileData().then(data => {
+        if (data.ratingTooltips) setTooltips(data.ratingTooltips);
+        else AsyncStorage.getItem('ratingTooltips').then(val => { if (val !== null) setTooltips(JSON.parse(val)); });
+      });
+      // Subscribe to live updates while modal is visible
+      unsub = subscribeToProfileChanges((data) => {
+        if (data.ratingTooltips) {
+          setTooltips(data.ratingTooltips);
+        } else {
+          AsyncStorage.getItem('ratingTooltips').then(val => { if (val !== null) setTooltips(JSON.parse(val)); });
+        }
+      });
+    }
+
+    return () => { if (unsub) unsub(); };
   }, [visible]);
 
   const handleTooltipChange = (rating: string, text: string) => {
