@@ -1,13 +1,14 @@
 // src/Profile/ProfileConfigModal.tsx
 // ProfileConfigModal for configuring profile settings
 import React from 'react';
-import { View, Text, Button, Modal, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, Button, Modal, TouchableOpacity, Alert, ActivityIndicator, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import { profileScreenStyles as styles } from './styles/ProfileScreen.styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ScrollView, TextInput } from 'react-native';
 import { getProfileData, setProfileData, subscribeToProfileChanges } from '../services/profileService';
+import { useMusicStore } from '../store/musicStore';
+import { migrateSavedMusicToTidal, MigrationProgress, MigrationSummary, MigrationLogEntry } from '../services/migration/tidalMigrationService';
 
 const RATING_STEPS = Array.from({ length: 21 }, (_, i) => (i * 0.5).toFixed(1)).reverse();
 
@@ -27,6 +28,12 @@ export function ProfileConfigModal({
   onOpen,
 }: ProfileConfigModalProps) {
   const [tooltips, setTooltips] = React.useState<{ [rating: string]: string }>({});
+  const [migrationProgress, setMigrationProgress] = React.useState<MigrationProgress | null>(null);
+  const [migrationSummary, setMigrationSummary] = React.useState<MigrationSummary | null>(null);
+  const [showMigrationLog, setShowMigrationLog] = React.useState(false);
+  const [migrationLog, setMigrationLog] = React.useState<MigrationLogEntry[]>([]);
+  const [isMigrating, setIsMigrating] = React.useState(false);
+  const { savedMusic } = useMusicStore();
 
   React.useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -65,6 +72,69 @@ export function ProfileConfigModal({
     setTooltips(updated);
     AsyncStorage.setItem('ratingTooltips', JSON.stringify(updated));
     setProfileData({ ratingTooltips: updated }); // Save to Firestore
+  };
+
+  const handleMigrateToTidal = async () => {
+    if (savedMusic.length === 0) {
+      Alert.alert('No Songs to Migrate', 'You have no saved songs to migrate.');
+      return;
+    }
+
+    Alert.alert(
+      'Select Target Platform',
+      'Choose the platform to which your saved songs should be migrated.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'TIDAL', style: 'default', onPress: confirmTidalMigration },
+      ]
+    );
+  };
+
+  const confirmTidalMigration = () => {
+    Alert.alert(
+      'Migrate Saved Music to TIDAL',
+      `This will search TIDAL for matches to your ${savedMusic.length} saved songs and update their platform metadata (track ID, artist ID, album ID, artwork, etc.) while preserving all your local MusicNexus data (ratings, tags, savedAt, ratingHistory, firebaseId).\n\nSongs that cannot be confidently matched will be logged and left unchanged.\n\nProceed with migration?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Migrate', style: 'default', onPress: () => startMigration() },
+      ]
+    );
+  };
+
+  const startMigration = async () => {
+    setIsMigrating(true);
+    setMigrationProgress(null);
+    setMigrationSummary(null);
+    setMigrationLog([]);
+
+    try {
+      await migrateSavedMusicToTidal(
+        savedMusic,
+        (progress) => {
+          setMigrationProgress(progress);
+        },
+        (summary) => {
+          setMigrationSummary(summary);
+          setMigrationLog(summary.migrationLog);
+          setIsMigrating(false);
+          if (summary.successful > 0) {
+            useMusicStore.getState().loadMusic();
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Migration error:', error);
+      Alert.alert('Migration Failed', 'An error occurred during migration. Please try again.');
+      setIsMigrating(false);
+    }
+  };
+
+  const handleViewMigrationLog = () => {
+    setShowMigrationLog(true);
+  };
+
+  const handleCloseMigrationLog = () => {
+    setShowMigrationLog(false);
   };
 
   return (
@@ -145,6 +215,119 @@ export function ProfileConfigModal({
                 </View>
               ))}
             </ScrollView>
+
+            {/* Migration Section */}
+            <Text style={[styles.configSectionTitle, { marginTop: 16 }]}>Migration</Text>
+            <View style={{ marginBottom: 12 }}>
+              <Button
+                title={isMigrating ? 'Migrating...' : 'Migrate Songs to Another Platform'}
+                color={theme.colors.button.primary}
+                onPress={handleMigrateToTidal}
+                disabled={isMigrating || savedMusic.length === 0}
+              />
+              {savedMusic.length === 0 && (
+                <Text style={{ color: theme.colors.text.secondary, fontSize: 12, marginTop: 4 }}>
+                  No saved music to migrate
+                </Text>
+              )}
+            </View>
+
+            {/* Migration Progress */}
+            {migrationProgress && isMigrating && (
+              <View style={{ marginBottom: 12, padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text style={{ color: theme.colors.text.primary, fontWeight: '600' }}>
+                    Migrating: {migrationProgress.current}/{migrationProgress.total}
+                  </Text>
+                  <ActivityIndicator size="small" color={theme.colors.button.primary} />
+                </View>
+                <Text style={{ color: theme.colors.text.secondary, fontSize: 13 }}>
+                  {migrationProgress.currentTrack}
+                </Text>
+                <View style={{ marginTop: 8 }}>
+                  <View
+                    style={{
+                      height: 6,
+                      backgroundColor: theme.colors.background.surface,
+                      borderRadius: 3,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <View
+                      style={{
+                        height: '100%',
+                        width: `${(migrationProgress.current / migrationProgress.total) * 100}%`,
+                        backgroundColor: theme.colors.button.primary,
+                      }}
+                    />
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Migration Summary */}
+            {migrationSummary && !isMigrating && (
+              <View style={{ marginBottom: 12, padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8 }}>
+                <Text style={{ color: theme.colors.text.primary, fontWeight: '600', marginBottom: 8 }}>
+                  Migration Complete
+                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={{ color: theme.colors.text.secondary }}>Total Processed:</Text>
+                  <Text style={{ color: theme.colors.text.primary, fontWeight: '600' }}>{migrationSummary.total}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={{ color: theme.colors.text.secondary }}>Successful:</Text>
+                  <Text style={{ color: theme.colors.text.success, fontWeight: '600' }}>{migrationSummary.successful}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={{ color: theme.colors.text.secondary }}>Failed:</Text>
+                  <Text style={{ color: theme.colors.text.error, fontWeight: '600' }}>{migrationSummary.failed}</Text>
+                </View>
+                {migrationSummary.failed > 0 && (
+                  <Button
+                    title="View Migration Log"
+                    color={theme.colors.button.primary}
+                    onPress={handleViewMigrationLog}
+                  />
+                )}
+              </View>
+            )}
+
+            {/* Migration Log Modal */}
+            {showMigrationLog && migrationLog.length > 0 && (
+              <Modal visible={true} transparent animationType="slide" onRequestClose={handleCloseMigrationLog}>
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    <Text style={styles.configSectionTitle}>Migration Log - Unmatched Songs</Text>
+                    <ScrollView style={{ maxHeight: 300, width: '100%' }}>
+                      {migrationLog.map((entry, index) => (
+                        <View key={index} style={{ marginBottom: 12, padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8 }}>
+                          <Text style={{ color: theme.colors.text.primary, fontWeight: '600' }}>
+                            {entry.originalTrack.title} - {entry.originalTrack.artist}
+                          </Text>
+                          <Text style={{ color: theme.colors.text.secondary, fontSize: 12, marginTop: 2 }}>
+                            Album: {entry.originalTrack.album}
+                          </Text>
+                          <Text style={{ color: theme.colors.text.secondary, fontSize: 12 }}>
+                            Track: {entry.originalTrack.trackPosition} | Disk: {entry.originalTrack.diskNumber} | Duration: {entry.originalTrack.duration}s
+                          </Text>
+                          <Text style={{ color: theme.colors.button.delete, fontSize: 12, marginTop: 4 }}>
+                            Reason: {entry.reason}
+                          </Text>
+                          <Text style={{ color: theme.colors.text.muted, fontSize: 11, marginTop: 2 }}>
+                            {new Date(entry.timestamp).toLocaleString()}
+                          </Text>
+                        </View>
+                      ))}
+                    </ScrollView>
+                    <TouchableOpacity onPress={handleCloseMigrationLog} style={styles.closeButton}>
+                      <Text style={styles.closeButtonText}>Close</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+            )}
+
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
