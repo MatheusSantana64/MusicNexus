@@ -10,9 +10,30 @@ export const libraryStyles = StyleSheet.create({
 
   // Search section
   searchContainer: {
-    paddingTop: 8,
+    paddingTop: 4,
+    paddingBottom: 4,
     paddingHorizontal: 8,
     backgroundColor: theme.colors.background.amoled,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchInputWrapper: {
+    flex: 1,
+    position: 'relative',
+  },
+  filterToggleButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.button.disabled,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterToggleButtonActive: {
+    backgroundColor: theme.colors.button.primary,
   },
   searchInput: {
     ...theme.styles.input,
@@ -25,7 +46,7 @@ export const libraryStyles = StyleSheet.create({
   sortContainer: {
     backgroundColor: theme.colors.background.amoled,
     paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingVertical: 4,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.divider,
   },

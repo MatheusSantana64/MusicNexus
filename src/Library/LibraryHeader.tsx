@@ -86,6 +86,7 @@ export function LibraryHeader({
   onExcludedTagChange,
   searchInputRef,
 }: LibraryHeaderProps) {
+  const [showFilters, setShowFilters] = useState(false);
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showRatingSlider, setShowRatingSlider] = useState(false);
   const [showTagsModal, setShowTagsModal] = useState(false);
@@ -142,6 +143,8 @@ export function LibraryHeader({
   };
 
   const isTagFilterActive = selectedTagIds.length > 0;
+  const areFiltersActive =
+    ratingFilter[0] !== 0 || ratingFilter[1] !== 10 || selectedTagIds.length > 0 || excludedTagIds.length > 0;
 
   const handleTagPress = (tagId: string) => {
     if (!onTagFilterChange || !onExcludedTagChange) return;
@@ -161,18 +164,19 @@ export function LibraryHeader({
   return (
     <>
       {/* SEARCH BAR */}
-      <View style={[styles.searchContainer, { position: 'relative' }]}>
-        <TextInput
-          ref={searchInputRef}
-          style={[styles.searchInput, { paddingRight: 48 }]} // Right padding so text doesn't go under the X
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputWrapper}>
+          <TextInput
+            ref={searchInputRef}
+            style={[styles.searchInput, { paddingRight: 48 }]} // Right padding so text doesn't go under the X
           placeholder="Search in library..."
           placeholderTextColor={styles.placeholderText.color}
           value={searchQuery}
           onChangeText={onSearchChange}
           autoCorrect={false}
           clearButtonMode="never"
-        />
-        {searchQuery.length > 0 && (
+          />
+          {searchQuery.length > 0 && (
           <TouchableOpacity // Clear search button (X)
             onPress={() => onSearchChange('')}
             style={{
@@ -188,11 +192,25 @@ export function LibraryHeader({
           >
             <Text style={{ fontSize: 18, color: theme.colors.text.secondary }}>✕</Text>
           </TouchableOpacity>
-        )}
+          )}
+        </View>
+        <TouchableOpacity
+          onPress={() => setShowFilters(prev => !prev)}
+          style={[styles.filterToggleButton, areFiltersActive && styles.filterToggleButtonActive]}
+          accessibilityLabel="Toggle library filters"
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showFilters }}
+        >
+          <Ionicons
+            name="filter-outline"
+            size={22}
+            color={areFiltersActive ? theme.colors.text.primary : theme.colors.text.secondary}
+          />
+        </TouchableOpacity>
       </View>
       
       {/* SORTING AND FILTERING CONTROLS */}
-      <View style={styles.sortContainer}>
+      {showFilters && <View style={styles.sortContainer}>
         <View style={styles.sortHeader}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
 
@@ -304,7 +322,7 @@ export function LibraryHeader({
             </View>
           </View>
         )}
-      </View>
+      </View>}
 
       {/* TAGS FILTER MODAL */}
       <Modal
