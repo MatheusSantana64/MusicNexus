@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, ActivityIndicator, FlatList, Alert } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, ActivityIndicator, Alert, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
@@ -9,10 +9,11 @@ import {
   disconnectTidalAccount,
   getTidalAccountData,
   finalizeTidalAuthorization,
+  getTidalRatingKeys,
   refreshTidalConnectionIfNeeded,
+  updateTidalRatingPlaylists,
   subscribeToTidalAccountChanges,
   TidalAccountData,
-  TidalPlaylistSummary,
   getTidalAuthDiscovery,
   getTidalAuthRequestConfig,
 } from '../services/tidal/tidalAccountService';
@@ -29,8 +30,11 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
   const [loading, setLoading] = React.useState(false);
   const [connecting, setConnecting] = React.useState(false);
   const [disconnecting, setDisconnecting] = React.useState(false);
+  const [savingMappings, setSavingMappings] = React.useState(false);
+  const [activeRating, setActiveRating] = React.useState<string | null>(null);
+  const [ratingInputs, setRatingInputs] = React.useState<Record<string, string>>({});
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
-    { ...getTidalAuthRequestConfig(), shouldAutoExchangeCode: false },
+    { ...(getTidalAuthRequestConfig() as AuthSession.AuthRequestConfig), shouldAutoExchangeCode: false } as AuthSession.AuthRequestConfig,
     getTidalAuthDiscovery()
   );
 
@@ -38,11 +42,21 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
     if (!visible) return;
     let unsub = subscribeToTidalAccountChanges(setAccount);
     setLoading(true);
-    refreshTidalConnectionIfNeeded().then(setAccount).catch(async () => {
-      setAccount(await getTidalAccountData());
-    }).finally(() => setLoading(false));
+    (async () => {
+      try {
+        setAccount(await refreshTidalConnectionIfNeeded());
+      } catch {
+        setAccount(await getTidalAccountData());
+      } finally {
+        setLoading(false);
+      }
+    })();
     return () => { unsub(); };
   }, [visible]);
+
+  React.useEffect(() => {
+    setRatingInputs(account?.ratingPlaylists || {});
+  }, [account?.ratingPlaylists]);
 
   React.useEffect(() => {
     if (!response) return;
@@ -83,38 +97,122 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
     }
   };
 
-  const renderPlaylist = ({ item }: { item: TidalPlaylistSummary }) => (
-    <View style={{
-      width: '100%',
-      padding: 12,
-      backgroundColor: theme.colors.background.surface,
-      borderRadius: 8,
-      marginBottom: 10,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    }}>
-      <View style={{
-        width: 48,
-        height: 48,
-        borderRadius: 8,
-        backgroundColor: '#111',
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}>
-        <Ionicons name="musical-notes-outline" size={22} color={theme.colors.text.primary} />
+  const ratingKeys = getTidalRatingKeys();
+  const activePlaylistIds = account?.ratingPlaylists || {};
+
+  const saveRatingPlaylist = async (ratingKey: string, playlistId: string | null) => {
+    setSavingMappings(true);
+    try {
+      const updatedMappings = {
+        ...(account?.ratingPlaylists || {}),
+      };
+
+      if (playlistId) {
+        updatedMappings[ratingKey] = playlistId;
+      } else {
+        delete updatedMappings[ratingKey];
+      }
+
+      const updated = await updateTidalRatingPlaylists(updatedMappings);
+      setAccount(updated);
+      setActiveRating(null);
+    } catch (error) {
+      Alert.alert('Save failed', error instanceof Error ? error.message : 'Unable to save rating mappings.');
+    } finally {
+      setSavingMappings(false);
+    }
+  };
+
+  const normalizePlaylistId = (value: string) => value.trim().replace(/^https?:\/\/tidal\.com\/playlist\//i, '').replace(/\/.*$/, '');
+
+  const renderRatingSelector = (ratingKey: string) => {
+    const selectedPlaylistId = activePlaylistIds[ratingKey] || null;
+    const currentValue = ratingInputs[ratingKey] ?? selectedPlaylistId ?? '';
+
+    return (
+      <View
+        key={ratingKey}
+        style={{
+          width: '100%',
+          marginBottom: 10,
+          padding: 12,
+          backgroundColor: theme.colors.background.surface,
+          borderRadius: 8,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => setActiveRating(activeRating === ratingKey ? null : ratingKey)}
+          disabled={savingMappings}
+          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+        >
+          <Text style={{ color: theme.colors.text.primary, fontWeight: '700' }}>
+            {ratingKey}
+          </Text>
+          <Text style={{ color: selectedPlaylistId ? theme.colors.text.primary : theme.colors.text.secondary, flex: 1, textAlign: 'right' }} numberOfLines={1}>
+            {selectedPlaylistId ? selectedPlaylistId : 'Not configured'}
+          </Text>
+        </TouchableOpacity>
+
+        {activeRating === ratingKey && (
+          <View style={{ marginTop: 10 }}>
+            <Text style={{ color: theme.colors.text.secondary, fontSize: 12, marginBottom: 8 }}>
+              Paste the TIDAL playlist ID or full playlist link for this rating.
+            </Text>
+            <TextInput
+              value={currentValue}
+              onChangeText={(value) => setRatingInputs(prev => ({ ...prev, [ratingKey]: value }))}
+              placeholder="4f0f3200-64eb-46f4-97ce-c78b7c6d3e1e"
+              placeholderTextColor={theme.colors.text.secondary}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={{
+                color: theme.colors.text.primary,
+                backgroundColor: '#222',
+                borderRadius: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                marginBottom: 8,
+              }}
+            />
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => saveRatingPlaylist(ratingKey, normalizePlaylistId(currentValue) || null)}
+                disabled={savingMappings}
+                style={{
+                  flex: 1,
+                  paddingVertical: 8,
+                  paddingHorizontal: 10,
+                  borderRadius: 6,
+                  backgroundColor: theme.colors.button.primary,
+                }}
+              >
+                <Text style={{ color: theme.colors.text.primary, textAlign: 'center', fontWeight: '700' }}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+              onPress={() => {
+                setRatingInputs(prev => ({ ...prev, [ratingKey]: '' }));
+                saveRatingPlaylist(ratingKey, null);
+              }}
+                disabled={savingMappings}
+                style={{
+                  paddingVertical: 8,
+                  paddingHorizontal: 10,
+                  borderRadius: 6,
+                  backgroundColor: '#222',
+                  minWidth: 100,
+                }}
+              >
+                <Text style={{ color: theme.colors.text.primary, textAlign: 'center' }}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={{ color: theme.colors.text.secondary, fontSize: 11, marginTop: 8 }}>
+              Example: {`https://tidal.com/playlist/4f0f3200-64eb-46f4-97ce-c78b7c6d3e1e`}
+            </Text>
+          </View>
+        )}
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: theme.colors.text.primary, fontWeight: '700' }} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <Text style={{ color: theme.colors.text.secondary, fontSize: 12 }} numberOfLines={1}>
-          {item.numberOfTracks ? `${item.numberOfTracks} tracks` : 'TIDAL playlist'}
-          {item.ownerName ? ` - ${item.ownerName}` : ''}
-        </Text>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -160,21 +258,22 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
                 </Text>
               </View>
 
-              {loading ? (
-                <ActivityIndicator color={theme.colors.button.primary} />
-              ) : (
-                <FlatList
-                  data={account.playlists || []}
-                  renderItem={renderPlaylist}
-                  keyExtractor={(item) => item.id}
-                  style={{ width: '100%', maxHeight: 420 }}
-                  ListEmptyComponent={() => (
-                    <Text style={{ color: theme.colors.text.secondary, textAlign: 'center', marginVertical: 16 }}>
-                      No playlists were found for this account.
-                    </Text>
-                  )}
-                />
-              )}
+              <View style={{ width: '100%', marginTop: 16 }}>
+                <Text style={{ color: theme.colors.text.primary, fontWeight: '700', marginBottom: 8 }}>
+                  Rating to playlist
+                </Text>
+                <Text style={{ color: theme.colors.text.secondary, fontSize: 12, marginBottom: 12 }}>
+                  Paste the TIDAL playlist ID or full playlist link for each rating. Leave any rating empty to keep the current behavior.
+                </Text>
+                <ScrollView style={{ width: '100%', maxHeight: 320 }}>
+                  {ratingKeys.map(renderRatingSelector)}
+                </ScrollView>
+                {savingMappings && (
+                  <View style={{ marginTop: 8 }}>
+                    <ActivityIndicator color={theme.colors.button.primary} />
+                  </View>
+                )}
+              </View>
 
               <TouchableOpacity
                 onPress={handleDisconnect}

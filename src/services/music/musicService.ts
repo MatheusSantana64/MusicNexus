@@ -4,6 +4,7 @@ import {
   collection, 
   addDoc, 
   getDocs, 
+  getDoc,
   updateDoc, 
   doc, 
   deleteDoc, 
@@ -15,6 +16,7 @@ import {
 import { db } from '../../config/firebaseConfig';
 import { SavedMusic, MusicTrack } from '../../types';
 import { MusicSearchService } from './musicSearchService';
+import { syncTrackToConfiguredTidalPlaylist } from '../tidal/tidalAccountService';
 import { 
   validateSavedMusicInput,
   safeParseFirebaseMusicDocument,
@@ -68,6 +70,13 @@ export async function saveMusic(track: MusicTrack, options: SaveMusicOptions = {
     const validatedMusicData = validateSavedMusicInput(musicData);
 
     const docRef = await addDoc(collection(db, COLLECTION_NAME), validatedMusicData);
+    if (rating > 0) {
+      void syncTrackToConfiguredTidalPlaylist({
+        id: track.id,
+        rating,
+        firebaseId: docRef.id,
+      });
+    }
     return docRef.id;
   } catch (error) {
     console.error('Error saving song:', error);
@@ -149,8 +158,14 @@ export async function updateMusicRating(firebaseId: string, rating: number): Pro
   }
 
   try {
+    const currentSnap = await getDoc(doc(db, COLLECTION_NAME, firebaseId));
+    const previousRating = Number(currentSnap.data()?.rating);
     await updateDoc(doc(db, COLLECTION_NAME, firebaseId), { rating });
     await setSavedMusicMeta();
+    const trackId = String(currentSnap.data()?.id || '');
+    if (trackId) {
+      void syncTrackToConfiguredTidalPlaylist({ id: trackId, rating, previousRating, firebaseId });
+    }
   } catch (error) {
     console.error('Error updating rating:', error);
     throw new Error(`Failed to update rating: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -181,8 +196,14 @@ export async function updateMusicRatingAndTags(firebaseId: string, rating: numbe
   }
 
   try {
+    const currentSnap = await getDoc(doc(db, COLLECTION_NAME, firebaseId));
+    const previousRating = Number(currentSnap.data()?.rating);
     await updateDoc(doc(db, COLLECTION_NAME, firebaseId), { rating, tags });
     await setSavedMusicMeta();
+    const trackId = String(currentSnap.data()?.id || '');
+    if (trackId) {
+      void syncTrackToConfiguredTidalPlaylist({ id: trackId, rating, previousRating, firebaseId });
+    }
   } catch (error) {
     console.error('Error updating rating/tags:', error);
     throw new Error(`Failed to update rating/tags: ${error instanceof Error ? error.message : 'Unknown error'}`);

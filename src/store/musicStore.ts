@@ -11,6 +11,7 @@ import {
 import { setSavedMusicMeta } from '../services/firestoreMetaHelper';
 import NetInfo from '@react-native-community/netinfo';
 import { deleteMusic, SortMode } from '../services/music/musicService';
+import { syncTrackToConfiguredTidalPlaylist } from '../services/tidal/tidalAccountService';
 import { doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -381,6 +382,16 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
         await setSavedMusicMeta(syncedTimestamp);
         await setCachedMusic(updatedMusic, syncedTimestamp);
         set({ lastUpdated: syncedTimestamp });
+
+        const updatedTrack = updatedMusic.find(music => music.firebaseId === firebaseId);
+        if (updatedTrack) {
+          void syncTrackToConfiguredTidalPlaylist({
+            id: updatedTrack.id,
+            rating,
+            previousRating: prevRating,
+            firebaseId,
+          });
+        }
       } else {
         console.log('[musicStore] Offline rating update queued for sync');
       }
