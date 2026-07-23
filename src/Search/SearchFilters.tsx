@@ -18,22 +18,21 @@ interface SearchFiltersProps {
 export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps) {
   // Helper to get the other provider for the same type
   const getToggledMode = (mode: SearchMode): SearchMode => {
-    if (mode === 'spotify_album') return 'deezer_album';
-    if (mode === 'deezer_album') return 'spotify_album';
-    if (mode === 'spotify_quick') return 'deezer_quick';
-    if (mode === 'deezer_quick') return 'spotify_quick';
-    return mode;
+    const providerModes: Record<'album' | 'quick', SearchMode[]> = {
+      album: ['tidal_album', 'spotify_album', 'deezer_album'],
+      quick: ['tidal_quick', 'spotify_quick', 'deezer_quick'],
+    };
+    const type = mode.includes('album') ? 'album' : 'quick';
+    const modes = providerModes[type];
+    return modes[(modes.indexOf(mode) + 1) % modes.length];
   };
-
-  const searchModes: SearchMode[] = [
-    'spotify_album',
-    'spotify_quick',
-    'deezer_album',
-    'deezer_quick'
-  ];
 
   const getModeIcon = (mode: SearchMode): React.ReactNode => {
     switch (mode) {
+      case 'tidal_album':
+        return <MaterialCommunityIcons name="album" size={currentMode === mode ? 24 : 16} color="#00ffff" />;
+      case 'tidal_quick':
+        return <MaterialCommunityIcons name="flash" size={currentMode === mode ? 24 : 16} color="#00ffff" />;
       case 'spotify_album':
         return <MaterialCommunityIcons name="album" size={currentMode === mode ? 24 : 16} color="#1DB954" />;
       case 'spotify_quick':
@@ -49,8 +48,8 @@ export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps)
 
   // Only show two buttons: Album and Quick
   const mainModes: Array<{ type: 'album' | 'quick'; mode: SearchMode }> = [
-    { type: 'album', mode: currentMode.includes('album') ? currentMode : 'spotify_album' },
-    { type: 'quick', mode: currentMode.includes('quick') ? currentMode : 'spotify_quick' }
+    { type: 'album', mode: currentMode.includes('album') ? currentMode : 'tidal_album' },
+    { type: 'quick', mode: currentMode.includes('quick') ? currentMode : 'tidal_quick' }
   ];
 
   return (
@@ -67,7 +66,7 @@ export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps)
               // Toggle provider
               onModeChange(getToggledMode(mode));
             } else {
-              // Switch to this type (default to Spotify)
+              // Switch to this type (default to TIDAL)
               onModeChange(mode);
             }
           }}

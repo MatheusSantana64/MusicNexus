@@ -90,6 +90,10 @@ EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
 
 EXPO_PUBLIC_SPOTIFY_CLIENT_ID=your_spotify_client_id
 EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+
+EXPO_PUBLIC_TIDAL_CLIENT_ID=your_tidal_client_id
+EXPO_PUBLIC_TIDAL_CLIENT_SECRET=your_tidal_client_secret
+EXPO_PUBLIC_TIDAL_REDIRECT_URI=musicnexus://tidal-auth
 ```
 
 > ⚠️ **WARNING:**  
@@ -98,12 +102,14 @@ EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 > DO NOT use this in production or share your APK if you care about keeping your Spotify secret safe.  
 > For real security, use a backend server to handle the Spotify secret and never expose it in your app code.
 
+TIDAL catalog search uses the client-credentials flow. User account access is not implemented yet; when added, it should use TIDAL OAuth 2.1 Authorization Code + PKCE with the configured `musicnexus://tidal-auth` redirect URI.
+
 ## 🛠️ Tech Stack
 
 - **Frontend**: React Native, Expo
 - **Language**: TypeScript
 - **Database**: Firebase Firestore
-- **Music API**: Spotify and Deezer APIs (with support for future APIs)
+- **Music API**: TIDAL, Spotify, and Deezer APIs (with support for future APIs)
 - **Navigation**: React Navigation
 - **State Management**: React Hooks
 

@@ -6,6 +6,7 @@ import { DeezerSearchService } from '../deezer/deezerSearchService';
 import { CacheService } from './musicCacheService';
 import { DeezerBatchRequestService } from '../deezer/deezerBatchRequestService';
 import { spotifyUnifiedSearch, getSpotifyAccessToken } from '../spotify/spotifyApiClient';
+import { searchTidalTracks } from '../tidal/tidalApiClient';
 
 // 🚀 NEW: Fetch tracks for a Spotify album
 async function fetchSpotifyAlbumTracks(albumId: string): Promise<MusicTrack[]> {
@@ -49,7 +50,7 @@ async function fetchSpotifyAlbumTracks(albumId: string): Promise<MusicTrack[]> {
 
 export class MusicSearchService {
   // === PUBLIC API METHODS ===
-  static async searchTracks(query: string, mode: SearchMode = 'spotify_album', limit: number = 25): Promise<MusicTrack[]> {
+  static async searchTracks(query: string, mode: SearchMode = 'tidal_album', limit: number = 25): Promise<MusicTrack[]> {
     let formattedQuery = query;
     if (mode === 'spotify_album' || mode === 'deezer_album') {
       // Only search for artist or album, never track title
@@ -65,6 +66,8 @@ export class MusicSearchService {
     const options: SearchOptions = { mode, query: formattedQuery, limit };
 
     const searchMethods = {
+      tidal_album: async (opts: SearchOptions) => searchTidalTracks(opts.query, opts.limit, true),
+      tidal_quick: async (opts: SearchOptions) => searchTidalTracks(opts.query, opts.limit, false),
       spotify_album: async (opts: SearchOptions) => {
         try {
           // Spotify album search (use unified search, filter albums)
@@ -106,7 +109,7 @@ export class MusicSearchService {
       deezer_quick: DeezerSearchService.searchTracksQuick,
     };
 
-    return (searchMethods[mode] || searchMethods.spotify_album).call(null, options);
+    return (searchMethods[mode] || searchMethods.tidal_album).call(null, options);
   }
 
   static async getTrackById(trackId: string): Promise<MusicTrack | null> {
@@ -141,12 +144,14 @@ export class MusicSearchService {
 
   static getSearchModeDescription(mode: SearchMode): string {
     const descriptions: Record<SearchMode, string> = {
+      tidal_album: 'TIDAL Album Search',
+      tidal_quick: 'TIDAL Quick Search',
       spotify_album: 'Spotify Album Search',
       spotify_quick: 'Spotify Quick Search',
       deezer_album: 'Deezer Album Search',
       deezer_quick: 'Deezer Quick Search',
     };
-    return descriptions[mode] || descriptions.spotify_album;
+    return descriptions[mode] || descriptions.tidal_album;
   }
 
   // === CACHE MANAGEMENT ===

@@ -21,7 +21,7 @@ export function SearchEmptyState({ loading, error, searchQuery, tracksLength, se
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
         <Text style={styles.loadingText}>
-          {(searchMode === 'spotify_album' || searchMode === 'deezer_album')
+          {(searchMode === 'tidal_album' || searchMode === 'spotify_album' || searchMode === 'deezer_album')
             ? 'Searching albums...'
             : 'Quick search...'}
         </Text>
@@ -41,6 +41,24 @@ export function SearchEmptyState({ loading, error, searchQuery, tracksLength, se
     let instructions: React.ReactNode = null;
 
     switch (searchMode) {
+      case 'tidal_album':
+        instructions = (
+          <Text style={styles.hintText}>
+            <Text style={{ fontWeight: 'bold', color: '#00ffff' }}>TIDAL Album Search:</Text>
+            {'\n'}Find albums on TIDAL by artist or album.
+            {'\n\n'}TIP: To search for both an artist and a specific album together, format your search as:{'\n'}
+            <Text>Artist Name - Album Title</Text>.
+          </Text>
+        );
+        break;
+      case 'tidal_quick':
+        instructions = (
+          <Text style={styles.hintText}>
+            <Text style={{ fontWeight: 'bold', color: '#00ffff' }}>TIDAL Quick Search:</Text>
+            {'\n'}Find individual songs on TIDAL by typing the song or artist name.
+          </Text>
+        );
+        break;
       case 'spotify_album':
         instructions = (
           <Text style={styles.hintText}>

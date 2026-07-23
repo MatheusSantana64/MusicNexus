@@ -168,7 +168,7 @@ export function MusicItem<T extends MusicTrack | SavedMusic>({
       disabled={isOperationInProgress()}
     >
       <Image
-        source={{ uri: data.coverUrl }}
+        source={data.coverUrl ? { uri: data.coverUrl } : require('../../assets/icon.png')}
         style={styles.albumCover}
         defaultSource={require('../../assets/icon.png')}
       />

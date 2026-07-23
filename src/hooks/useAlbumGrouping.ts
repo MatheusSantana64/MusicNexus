@@ -7,7 +7,7 @@ export function useAlbumGrouping(tracks: MusicTrack[], searchMode: SearchMode) {
   return useMemo(() => {
     // Only group for album search modes
     if (
-      (searchMode !== 'spotify_album' && searchMode !== 'deezer_album') ||
+      (searchMode !== 'tidal_album' && searchMode !== 'spotify_album' && searchMode !== 'deezer_album') ||
       tracks.length === 0
     ) return [];
 

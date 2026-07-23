@@ -15,6 +15,7 @@ interface UseSearchResult {
   error: string | null;
   searchMode: SearchMode;
   searchTracks: (query: string, mode?: SearchMode) => Promise<void>;
+  loadMore: () => Promise<void>;
   setSearchMode: (mode: SearchMode) => void;
   clearResults: () => void;
   hasSearched: boolean;
@@ -24,8 +25,10 @@ export function useSearch(): UseSearchResult {
   const [tracks, setTracks] = useState<MusicTrack[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchMode, setSearchMode] = useState<SearchMode>('spotify_album'); // Use Spotify Album as default
+  const [searchMode, setSearchMode] = useState<SearchMode>('tidal_album'); // Use TIDAL Album as default
   const [hasSearched, setHasSearched] = useState(false);
+  const currentQueryRef = useRef('');
+  const currentModeRef = useRef<SearchMode>('tidal_album');
 
   // Refs to control debounce and cancellation
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -90,6 +93,8 @@ export function useSearch(): UseSearchResult {
 
   const searchTracks = useCallback(async (query: string, mode?: SearchMode) => {
     const currentMode = mode || searchMode;
+    currentQueryRef.current = query.trim();
+    currentModeRef.current = currentMode;
     
     // Cancel previous debounce timeout if it exists
     if (debounceTimeoutRef.current) {
@@ -112,6 +117,32 @@ export function useSearch(): UseSearchResult {
     }, SEARCH_CONFIG.DEBOUNCE_DELAY);
   }, [performSearch, searchMode]);
 
+  const loadMore = useCallback(async () => {
+    const query = currentQueryRef.current;
+    const mode = currentModeRef.current;
+    if (!query || loading || !hasSearched) return;
+
+    const searchId = Math.random().toString(36).substr(2, 9);
+    currentSearchRef.current = searchId;
+    setLoading(true);
+    try {
+      const results = await MusicSearchService.searchTracks(query, mode, tracks.length + 25);
+      if (currentSearchRef.current === searchId) {
+        const existingIds = new Set(tracks.map(track => track.id));
+        setTracks(current => [
+          ...current,
+          ...results.filter(track => !existingIds.has(track.id)),
+        ]);
+      }
+    } catch (err) {
+      if (currentSearchRef.current === searchId) {
+        console.error(`[${searchId}] Loading more search results failed:`, err);
+      }
+    } finally {
+      if (currentSearchRef.current === searchId) setLoading(false);
+    }
+  }, [hasSearched, loading, tracks]);
+
   const handleSetSearchMode = useCallback((mode: SearchMode) => {
     setSearchMode(mode);
   }, []);
@@ -133,6 +164,7 @@ export function useSearch(): UseSearchResult {
     setLoading(false);
     setHasSearched(false);
     currentSearchRef.current = '';
+    currentQueryRef.current = '';
   }, []);
 
   return {
@@ -141,6 +173,7 @@ export function useSearch(): UseSearchResult {
     error,
     searchMode,
     searchTracks,
+    loadMore,
     setSearchMode: handleSetSearchMode,
     clearResults,
     hasSearched,

@@ -30,7 +30,7 @@ const BATCH_DELAY_MS = 1500;
 
 export default function SearchScreen({ navigation }: { navigation?: any }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const { tracks, loading, error, searchMode, searchTracks, setSearchMode, clearResults, hasSearched } = useSearch();
+  const { tracks, loading, error, searchMode, searchTracks, loadMore, setSearchMode, clearResults, hasSearched } = useSearch();
   const { 
     handleTrackPress, 
     handleAlbumSave, 
@@ -141,6 +141,7 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
     
     // FIX: Use valid SearchMode values
     if (
+      searchMode === 'tidal_album' ||
       searchMode === 'spotify_album' ||
       searchMode === 'deezer_album'
     ) {
@@ -376,6 +377,8 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
           keyExtractor={keyExtractor}
           getItemType={getItemType}
           estimatedItemSize={80}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
           ListEmptyComponent={() => (
             <SearchEmptyState
               loading={loading}
