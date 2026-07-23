@@ -30,7 +30,7 @@ export class DeezerBatchRequestService {
   };
 
   private static albumQueue: QueuedRequest<any>[] = [];
-  private static albumBatchTimeout: NodeJS.Timeout | null = null;
+  private static albumBatchTimeout: ReturnType<typeof setTimeout> | null = null;
   private static activeRequests = 0;
 
   // Batch album requests to reduce API calls

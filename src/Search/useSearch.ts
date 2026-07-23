@@ -32,7 +32,7 @@ export function useSearch(): UseSearchResult {
   const requestedLimitRef = useRef(25);
 
   // Refs to control debounce and cancellation
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentSearchRef = useRef<string>('');
   const abortControllerRef = useRef<AbortController | null>(null);
 
