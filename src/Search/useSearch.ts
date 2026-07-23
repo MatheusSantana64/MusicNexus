@@ -29,6 +29,7 @@ export function useSearch(): UseSearchResult {
   const [hasSearched, setHasSearched] = useState(false);
   const currentQueryRef = useRef('');
   const currentModeRef = useRef<SearchMode>('tidal_album');
+  const requestedLimitRef = useRef(25);
 
   // Refs to control debounce and cancellation
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -95,6 +96,7 @@ export function useSearch(): UseSearchResult {
     const currentMode = mode || searchMode;
     currentQueryRef.current = query.trim();
     currentModeRef.current = currentMode;
+    requestedLimitRef.current = 25;
     
     // Cancel previous debounce timeout if it exists
     if (debounceTimeoutRef.current) {
@@ -126,7 +128,11 @@ export function useSearch(): UseSearchResult {
     currentSearchRef.current = searchId;
     setLoading(true);
     try {
-      const results = await MusicSearchService.searchTracks(query, mode, tracks.length + 25);
+      const nextLimit = mode === 'tidal_album'
+        ? requestedLimitRef.current + 36
+        : tracks.length + 25;
+      requestedLimitRef.current = nextLimit;
+      const results = await MusicSearchService.searchTracks(query, mode, nextLimit);
       if (currentSearchRef.current === searchId) {
         const existingIds = new Set(tracks.map(track => track.id));
         setTracks(current => [
@@ -165,6 +171,7 @@ export function useSearch(): UseSearchResult {
     setHasSearched(false);
     currentSearchRef.current = '';
     currentQueryRef.current = '';
+    requestedLimitRef.current = 25;
   }, []);
 
   return {

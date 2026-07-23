@@ -297,7 +297,7 @@ export async function searchTidalTracks(
 ): Promise<MusicTrack[]> {
   const token = await getTidalAccessToken();
   const encodedQuery = encodeURIComponent(query.trim());
-  const include = 'tracks,albums,artists';
+  const include = albumMode ? 'albums' : 'tracks';
   const response = await fetch(
     `${TIDAL_API_URL}/searchResults/${encodedQuery}?countryCode=${TIDAL_COUNTRY_CODE}&explicitFilter=INCLUDE&include=${include}`,
     {
@@ -321,11 +321,38 @@ export async function searchTidalTracks(
     const albumIds = (Array.isArray(albumRefs) ? albumRefs : [])
       .map(album => album.id)
       .filter(Boolean);
-    if (albumIds.length === 0) return [];
+    const albumSearchIncluded = [...(document.included || [])];
+    const desiredAlbumCount = Math.max(3, Math.ceil(limit / 12));
+    let nextAlbumPage = rootRelationships.albums?.links?.next;
+    let albumPages = 1;
+
+    while (nextAlbumPage && albumIds.length < desiredAlbumCount && albumPages < 10) {
+      const nextDocument = await fetchTidalCollection(nextAlbumPage, token);
+      albumIds.push(...(nextDocument.data || []).map(album => album.id).filter(Boolean));
+      albumSearchIncluded.push(...(nextDocument.included || []));
+      nextAlbumPage = nextDocument.links?.next;
+      albumPages += 1;
+    }
+
+    const uniqueAlbumIds = [...new Set(albumIds)];
+    const albumDates = new Map(
+      albumSearchIncluded
+        .filter(resource => resource.type === 'albums')
+        .map(album => [album.id, String(album.attributes?.releaseDate || '')])
+    );
+    uniqueAlbumIds.sort((a, b) =>
+      (albumDates.get(b) || '').localeCompare(albumDates.get(a) || '')
+    );
+    // Album searches are primarily used to find an artist's newest release.
+    // Expand only a small recent-album window initially; loadMore increases
+    // this window without expanding all search results at once.
+    const albumWindow = Math.min(uniqueAlbumIds.length, desiredAlbumCount);
+    const selectedAlbumIds = uniqueAlbumIds.slice(0, albumWindow);
+    if (selectedAlbumIds.length === 0) return [];
 
     const albumDocument = await fetchTidalResourcesByIds(
       'albums',
-      albumIds,
+      selectedAlbumIds,
       'items,coverArt,artists',
       token
     );
