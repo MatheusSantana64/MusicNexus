@@ -4,6 +4,7 @@
     "slug": "musicnexus",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "musicnexus",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
@@ -31,6 +32,9 @@
         "projectId": "f4e73423-db19-4e2f-854a-a311307e80f6"
       }
     },
-    "owner": "matheus64"
+    "owner": "matheus64",
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }

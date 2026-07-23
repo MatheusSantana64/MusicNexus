@@ -27,6 +27,8 @@ export interface MigrationLogEntry {
   originalTrack: SavedMusic;
   reason: string;
   timestamp: string;
+  closestMatch?: MusicTrack;
+  matchConfidence?: number;
 }
 
 export interface MigrationProgress {
@@ -39,12 +41,65 @@ export interface MigrationProgress {
 type ProgressCallback = (progress: MigrationProgress) => void;
 type SummaryCallback = (summary: MigrationSummary) => void;
 
+const TIDAL_ARTWORK_PREFIX = 'https://resources.tidal.com';
+
+function normalizeMatchValue(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\((?:[^()]*?)\)/g, ' ')
+    .replace(/\[(?:[^[\]]*?)\]/g, ' ')
+    .replace(/\s*-\s*(remaster|remastered|radio edit|edit|live|version|explicit|clean).*$/i, '')
+    .replace(/\b(feat\.?|ft\.?|featuring)\b/gi, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function stripTrailingNoise(value: string): string {
+  return value
+    .replace(/\((?:[^()]*?)\)\s*$/g, '')
+    .replace(/\[(?:[^[\]]*?)\]\s*$/g, '')
+    .replace(/\s*-\s*(remaster|remastered|radio edit|edit|live|version|explicit|clean).*$/i, '')
+    .trim();
+}
+
+export function isAlreadyTidalTrack(track: SavedMusic): boolean {
+  return track.coverUrl.trim().startsWith(TIDAL_ARTWORK_PREFIX);
+}
+
 /**
  * Build a search query for TIDAL from a SavedMusic track
  */
-function buildTidalSearchQuery(track: SavedMusic): string {
-  // Use track title and artist for best matching
-  return `${track.title} ${track.artist}`;
+function buildTidalSearchQueries(track: SavedMusic): string[] {
+  const title = track.title.trim();
+  const artist = track.artist.trim();
+  const album = track.album.trim();
+
+  const normalizedTitle = normalizeMatchValue(title);
+  const normalizedArtist = normalizeMatchValue(artist);
+  const normalizedAlbum = normalizeMatchValue(album);
+  const cleanedTitle = normalizeMatchValue(stripTrailingNoise(title));
+  const cleanedArtist = normalizeMatchValue(stripTrailingNoise(artist));
+  const cleanedAlbum = normalizeMatchValue(stripTrailingNoise(album));
+
+  const queries = [
+    `${title} ${artist}`.trim(),
+    `${cleanedTitle} ${cleanedArtist}`.trim(),
+    `${normalizedTitle} ${normalizedArtist}`.trim(),
+    `${cleanedTitle} ${normalizedArtist}`.trim(),
+    `${normalizedTitle} ${cleanedArtist}`.trim(),
+    `${title} ${album}`.trim(),
+    `${artist} ${album}`.trim(),
+    `${cleanedTitle} ${cleanedAlbum}`.trim(),
+    `${cleanedArtist} ${cleanedAlbum}`.trim(),
+    `${normalizedTitle} ${normalizedAlbum}`.trim(),
+    `${normalizedArtist} ${normalizedAlbum}`.trim(),
+    `${normalizedTitle} ${normalizedArtist} ${normalizedAlbum}`.trim(),
+  ];
+
+  return [...new Set(queries.filter(Boolean))];
 }
 
 /**
@@ -54,27 +109,24 @@ function buildTidalSearchQuery(track: SavedMusic): string {
 function calculateMatchConfidence(savedTrack: SavedMusic, tidalTrack: MusicTrack): number {
   let score = 0;
   
-  // Title match (exact = 40, partial = 20)
-  const savedTitle = savedTrack.title.toLowerCase().trim();
-  const tidalTitle = tidalTrack.title.toLowerCase().trim();
+  const savedTitle = normalizeMatchValue(savedTrack.title);
+  const tidalTitle = normalizeMatchValue(tidalTrack.title);
   if (savedTitle === tidalTitle) {
-    score += 40;
+    score += 45;
   } else if (savedTitle.includes(tidalTitle) || tidalTitle.includes(savedTitle)) {
-    score += 20;
+    score += 22;
   }
   
-  // Artist match (exact = 30, partial = 15)
-  const savedArtist = savedTrack.artist.toLowerCase().trim();
-  const tidalArtist = tidalTrack.artist.name.toLowerCase().trim();
+  const savedArtist = normalizeMatchValue(savedTrack.artist);
+  const tidalArtist = normalizeMatchValue(tidalTrack.artist.name);
   if (savedArtist === tidalArtist) {
     score += 30;
   } else if (savedArtist.includes(tidalArtist) || tidalArtist.includes(savedArtist)) {
     score += 15;
   }
   
-  // Album match (exact = 15, partial = 8)
-  const savedAlbum = savedTrack.album.toLowerCase().trim();
-  const tidalAlbum = tidalTrack.album.title.toLowerCase().trim();
+  const savedAlbum = normalizeMatchValue(savedTrack.album);
+  const tidalAlbum = normalizeMatchValue(tidalTrack.album.title);
   if (savedAlbum === tidalAlbum) {
     score += 15;
   } else if (savedAlbum.includes(tidalAlbum) || tidalAlbum.includes(savedAlbum)) {
@@ -83,10 +135,12 @@ function calculateMatchConfidence(savedTrack: SavedMusic, tidalTrack: MusicTrack
   
   // Duration match (within 5 seconds = 10, within 10 seconds = 5)
   const durationDiff = Math.abs(savedTrack.duration - tidalTrack.duration);
-  if (durationDiff <= 5) {
-    score += 10;
+  if (durationDiff <= 3) {
+    score += 12;
+  } else if (durationDiff <= 5) {
+    score += 8;
   } else if (durationDiff <= 10) {
-    score += 5;
+    score += 4;
   }
   
   // Track position match (5 points)
@@ -100,6 +154,26 @@ function calculateMatchConfidence(savedTrack: SavedMusic, tidalTrack: MusicTrack
       savedTrack.diskNumber === tidalTrack.disk_number) {
     score += 5;
   }
+
+  // Strong fallback when the album and track position line up.
+  // This helps when titles differ because of language, punctuation, or
+  // release-specific suffixes.
+  const hasStrongAlbumMatch = savedAlbum && tidalAlbum && savedAlbum === tidalAlbum;
+  const hasExactTrackPosition = Boolean(
+    savedTrack.trackPosition &&
+    tidalTrack.track_position &&
+    savedTrack.trackPosition === tidalTrack.track_position
+  );
+  if (hasStrongAlbumMatch && hasExactTrackPosition) {
+    score += 25;
+    if (durationDiff <= 3) {
+      score += 15;
+    }
+  }
+
+  if (hasStrongAlbumMatch && savedTrack.diskNumber && tidalTrack.disk_number && savedTrack.diskNumber === tidalTrack.disk_number) {
+    score += 5;
+  }
   
   return Math.min(score, 100);
 }
@@ -107,38 +181,63 @@ function calculateMatchConfidence(savedTrack: SavedMusic, tidalTrack: MusicTrack
 /**
  * Find the best matching TIDAL track for a saved music track
  */
-async function findBestTidalMatch(savedTrack: SavedMusic): Promise<MusicTrack | null> {
-  const query = buildTidalSearchQuery(savedTrack);
-  
+async function findClosestTidalMatch(savedTrack: SavedMusic): Promise<{ track: MusicTrack; score: number } | null> {
   try {
-    const results = await searchTidalTracks(query, 10, false);
-    
-    if (results.length === 0) {
-      return null;
-    }
-    
-    // Score all results and find the best match
+    const queries = buildTidalSearchQueries(savedTrack);
     let bestMatch: MusicTrack | null = null;
     let bestScore = 0;
-    
-    for (const track of results) {
-      const score = calculateMatchConfidence(savedTrack, track);
-      if (score > bestScore) {
-        bestScore = score;
-        bestMatch = track;
+
+    for (const query of queries) {
+      const results = await searchTidalTracks(query, 10, false);
+      if (results.length === 0) continue;
+
+      for (const track of results) {
+        const score = calculateMatchConfidence(savedTrack, track);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = track;
+        }
+      }
+
+      // If we already have a strong candidate from an earlier query, stop
+      // expanding the search. This keeps the fallback path cheaper.
+      if (bestScore >= 85) break;
+    }
+
+    if (bestScore < 85 && normalizeMatchValue(savedTrack.album)) {
+      const albumQueries = [
+        `${savedTrack.album} ${savedTrack.artist}`.trim(),
+        `${normalizeMatchValue(savedTrack.album)} ${normalizeMatchValue(savedTrack.artist)}`.trim(),
+        normalizeMatchValue(savedTrack.album),
+        `${normalizeMatchValue(savedTrack.artist)} ${normalizeMatchValue(savedTrack.album)}`.trim(),
+      ];
+
+      for (const query of [...new Set(albumQueries.filter(Boolean))]) {
+        const results = await searchTidalTracks(query, 10, true);
+        if (results.length === 0) continue;
+
+        for (const track of results) {
+          const score = calculateMatchConfidence(savedTrack, track);
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = track;
+          }
+        }
+
+        if (bestScore >= 85) break;
       }
     }
-    
-    // Only return match if confidence is high enough (threshold: 70)
-    if (bestScore >= 70 && bestMatch) {
-      return bestMatch;
-    }
-    
-    return null;
+
+    return bestMatch ? { track: bestMatch, score: bestScore } : null;
   } catch (error) {
     console.error('[tidalMigrationService] Search error for track:', savedTrack.title, error);
     return null;
   }
+}
+
+async function findBestTidalMatch(savedTrack: SavedMusic): Promise<MusicTrack | null> {
+  const closest = await findClosestTidalMatch(savedTrack);
+  return closest && closest.score >= 65 ? closest.track : null;
 }
 
 /**
@@ -177,6 +276,35 @@ async function updateTrackWithTidalMetadata(
 }
 
 /**
+ * Retry one migration using the supplied search fields. The supplied track is
+ * only used as search input; local metadata is never written to Firestore.
+ */
+export async function retrySavedMusicToTidal(track: SavedMusic): Promise<MusicTrack> {
+  if (!track.firebaseId) {
+    throw new Error('The saved song does not have a Firebase document ID');
+  }
+
+  const matchedTrack = await findBestTidalMatch(track);
+  if (!matchedTrack) {
+    throw new Error('No confident match found on TIDAL');
+  }
+
+  await updateTrackWithTidalMetadata(track.firebaseId, track, matchedTrack);
+  await setSavedMusicMeta();
+  return matchedTrack;
+}
+
+/** Approve a previously suggested candidate without applying the confidence threshold. */
+export async function approveTidalMigration(track: SavedMusic, matchedTrack: MusicTrack): Promise<void> {
+  if (!track.firebaseId) {
+    throw new Error('The saved song does not have a Firebase document ID');
+  }
+
+  await updateTrackWithTidalMetadata(track.firebaseId, track, matchedTrack);
+  await setSavedMusicMeta();
+}
+
+/**
  * Main migration function - migrates all saved music to TIDAL
  */
 export async function migrateSavedMusicToTidal(
@@ -189,10 +317,13 @@ export async function migrateSavedMusicToTidal(
   let successful = 0;
   let failed = 0;
   
-  const total = savedMusic.length;
+  // Existing TIDAL artwork is the provider marker used by savedMusic. These
+  // tracks are already migrated and must not trigger another API search.
+  const tracksToMigrate = savedMusic.filter(track => !isAlreadyTidalTrack(track));
+  const total = tracksToMigrate.length;
   
   for (let i = 0; i < total; i++) {
-    const track = savedMusic[i];
+    const track = tracksToMigrate[i];
     
     // Update progress - searching
     onProgress({
@@ -203,7 +334,10 @@ export async function migrateSavedMusicToTidal(
     });
     
     // Find best TIDAL match
-    const matchedTrack = await findBestTidalMatch(track);
+    const closestMatch = await findClosestTidalMatch(track);
+    const matchedTrack = closestMatch && closestMatch.score >= 65
+      ? closestMatch.track
+      : null;
     
     if (!matchedTrack) {
       // No confident match found
@@ -212,6 +346,8 @@ export async function migrateSavedMusicToTidal(
         originalTrack: track,
         reason: 'No confident match found on TIDAL',
         timestamp: new Date().toISOString(),
+        closestMatch: closestMatch?.track,
+        matchConfidence: closestMatch?.score,
       };
       migrationLog.push(logEntry);
       

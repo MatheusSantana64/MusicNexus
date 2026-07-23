@@ -10,6 +10,7 @@ import { db } from '../config/firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProfileConfigModal } from './ProfileConfigModal';
+import { TidalAccountModal } from './TidalAccountModal';
 import { calculateProfileStats } from './profileStatsUtils';
 import { profileScreenStyles as styles } from './styles/ProfileScreen.styles';
 import { getRatingText, getRatingColor } from '../utils/ratingUtils';
@@ -43,6 +44,7 @@ export default function ProfileScreen() {
   const { savedMusic } = useMusicStore();
   const { tags } = useTagStore();
   const [modalVisible, setModalVisible] = useState(false);
+  const [accountModalVisible, setAccountModalVisible] = useState(false);
 
   const [notes, setNotes] = useState('');
   const [keyboardUp, setKeyboardUp] = useState(false);
@@ -78,8 +80,13 @@ export default function ProfileScreen() {
           visible={modalVisible}
           onOpen={() => setModalVisible(true)}
           onClose={() => setModalVisible(false)}
+          onOpenAccount={() => setAccountModalVisible(true)}
           onDeleteAllSongs={deleteAllSongs}
           onDeleteAllTags={deleteAllTags}
+        />
+        <TidalAccountModal
+          visible={accountModalVisible}
+          onClose={() => setAccountModalVisible(false)}
         />
         <KeyboardAvoidingView
           behavior="padding"

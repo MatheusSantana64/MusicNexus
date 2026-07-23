@@ -209,6 +209,13 @@ async function fetchTidalCollection(
   throw new Error('TIDAL metadata request failed after retries');
 }
 
+async function fetchTidalTrackById(
+  trackId: string,
+  token: string
+): Promise<TidalCollectionDocument> {
+  return fetchTidalCollection(`/tracks/${encodeURIComponent(trackId)}?countryCode=${TIDAL_COUNTRY_CODE}&include=albums,artists`, token);
+}
+
 function splitIntoBatches<T>(items: T[], batchSize: number): T[][] {
   const batches: T[][] = [];
   for (let index = 0; index < items.length; index += batchSize) {
@@ -397,4 +404,25 @@ export async function searchTidalTracks(
   }
 
   return enrichTidalTracks(allTrackRefs, document, token, limit);
+}
+
+export async function getTidalTrackById(trackId: string): Promise<MusicTrack | null> {
+  const token = await getTidalAccessToken();
+  const document = await fetchTidalTrackById(trackId, token);
+  const track = Array.isArray(document.data)
+    ? document.data[0]
+    : document.data;
+
+  if (!track) return null;
+
+  const enrichedDocument = {
+    ...document,
+    included: [
+      ...(document.included || []),
+      ...(Array.isArray(document.data) ? document.data : [document.data]),
+    ],
+  };
+
+  const tracks = await enrichTidalTracks([track], enrichedDocument, token, 1);
+  return tracks[0] || null;
 }
