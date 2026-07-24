@@ -130,7 +130,7 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
     setImportStatus('Reading configured playlists...');
     try {
       const existingIds = new Set(useMusicStore.getState().savedMusic.map(m => m.id));
-      const results = await importFromConfiguredPlaylists(existingIds, [5, 6]);
+      const results = await importFromConfiguredPlaylists(existingIds);
 
       let totalImported = 0;
       for (const { rating, tracks } of results) {
