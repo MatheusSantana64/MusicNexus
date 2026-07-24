@@ -319,6 +319,12 @@ export async function fetchTidalPlaylistItems(playlistId: string, token: string)
 
 async function addTrackToPlaylist(playlistId: string, trackId: string, token: string): Promise<void> {
   debugTidal('addTrackToPlaylist request', { playlistId, trackId });
+  const existingItems = await fetchPlaylistRelationshipItems(playlistId, token);
+  const alreadyExists = existingItems.some(item => String(item?.id || '') === trackId);
+  if (alreadyExists) {
+    debugTidal('addTrackToPlaylist skip duplicate', { playlistId, trackId });
+    return;
+  }
   const response = await fetch(
     `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=US`,
     {
@@ -685,6 +691,8 @@ export async function syncTrackToConfiguredTidalPlaylist(track: { id: string; ra
     }
 
     if (!playlistId) return;
+
+    if (previousPlaylistId === playlistId) return;
 
     await addTrackToPlaylist(playlistId, track.id, accessToken);
     await saveTidalAccount({
