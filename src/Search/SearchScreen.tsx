@@ -22,6 +22,8 @@ import { Tag } from '../types';
 import { saveMusicBatch } from '../services/music/musicService'; // Import batch save
 import { DeezerApiClient } from '../services/deezer/deezerApiClient'; // Import Deezer API client
 import { getSpotifyAccessToken } from '../services/spotify/spotifyApiClient';
+import { getTidalPlaylistTracksWithToken } from '../services/tidal/tidalApiClient';
+import { refreshTidalConnectionIfNeeded } from '../services/tidal/tidalAccountService';
 import { useMusicStore } from '../store/musicStore';
 import { ImportPlaylistModal } from './ImportPlaylistModal';
 
@@ -202,6 +204,20 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
     return allTracks;
   }
 
+  async function fetchTidalTracksInPlaylist(playlistLink: string): Promise<MusicTrack[]> {
+    const trimmed = playlistLink.trim();
+    const match = trimmed.match(/tidal\.com\/playlist\/([a-zA-Z0-9-]+)/i);
+    const playlistId = match?.[1] || (/^[a-zA-Z0-9-]+$/.test(trimmed) ? trimmed : '');
+    if (!playlistId) {
+      return [];
+    }
+    const account = await refreshTidalConnectionIfNeeded();
+    if (!account.connected || !account.tokenSet?.accessToken) {
+      throw new Error('Please connect your TIDAL account before importing a TIDAL playlist.');
+    }
+    return getTidalPlaylistTracksWithToken(playlistId, account.tokenSet.accessToken);
+  }
+
   // Handler to import playlist
   const handleImportPlaylist = async () => {
     setImportLoading(true);
@@ -302,6 +318,40 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
         return;
       }
 
+      const tidalTracks = await fetchTidalTracksInPlaylist(playlistLink);
+      if (tidalTracks.length > 0) {
+        const existingIds = new Set(useMusicStore.getState().savedMusic.map(m => m.id));
+        const newTracks = tidalTracks.filter(track => !existingIds.has(track.id));
+
+        const firebaseIds = await saveMusicBatch(newTracks, importRating);
+
+        const now = new Date();
+        const savedMusics = newTracks.map((track, idx) => ({
+          id: track.id,
+          title: track.title,
+          artist: track.artist.name,
+          artistId: track.artist.id,
+          album: track.album.title,
+          albumId: track.album.id,
+          coverUrl: track.album.cover_small,
+          duration: track.duration,
+          rating: importRating,
+          releaseDate: track.album.release_date,
+          trackPosition: track.track_position || 1,
+          diskNumber: track.disk_number || 1,
+          savedAt: now,
+          firebaseId: firebaseIds[idx],
+          tags: [],
+          ratingHistory: importRating > 0 ? [{ rating: importRating, timestamp: now.toISOString() }] : [],
+        }));
+
+        useMusicStore.getState().addMusicBatch(savedMusics);
+
+        setImportModalVisible(false);
+        setImportLoading(false);
+        return;
+      }
+
       // Deezer logic (unchanged)
       const match = playlistLink.match(/playlist\/(\d+)/);
       if (match) {
@@ -309,7 +359,7 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
       } else if (/^\d+$/.test(playlistLink.trim())) {
         playlistId = playlistLink.trim();
       } else {
-        throw new Error('Please enter a valid Spotify or Deezer playlist link or ID');
+        throw new Error('Please enter a valid Spotify, Deezer, or TIDAL playlist link or ID');
       }
 
       // Fetch playlist tracks from Deezer API

@@ -188,7 +188,16 @@ async function fetchTidalCollection(
     });
 
     if (response.ok) {
-      return response.json() as Promise<TidalCollectionDocument>;
+      const text = await response.text();
+      try {
+        return JSON.parse(text) as TidalCollectionDocument;
+      } catch (error) {
+        console.warn('[tidalApiClient] Failed to parse JSON collection response', {
+          path,
+          preview: text.slice(0, 200),
+        });
+        throw error;
+      }
     }
 
     const message = await response.text();
@@ -232,17 +241,60 @@ async function fetchTidalResourcesByIds(
 ): Promise<TidalCollectionDocument> {
   const uniqueIds = [...new Set(ids)];
   const documents: TidalCollectionDocument[] = [];
-  for (const batch of splitIntoBatches(uniqueIds, 20)) {
-    documents.push(await fetchTidalCollection(
-      `/${resourceType}?filter%5Bid%5D=${encodeURIComponent(batch.join(','))}&countryCode=${TIDAL_COUNTRY_CODE}&include=${include}`,
-      token
-    ));
+  const batches = splitIntoBatches(uniqueIds, 20);
+  console.log(`[tidal] fetchTidalResourcesByIds(${resourceType}): ${uniqueIds.length} IDs in ${batches.length} batches`);
+
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i];
+    const url = `/${resourceType}?filter%5Bid%5D=${encodeURIComponent(batch.join(','))}&countryCode=${TIDAL_COUNTRY_CODE}&include=${include}`;
+    try {
+      const doc = await fetchTidalCollection(url, token);
+      console.log(`[tidal]   batch ${i + 1}/${batches.length}: requested ${batch.length} IDs, got ${doc.data?.length ?? 0} results`);
+      if ((doc.data?.length ?? 0) < batch.length) {
+        const returnedIds = new Set(doc.data?.map(r => String(r.id ?? '')) ?? []);
+        const missing = batch.filter(id => !returnedIds.has(id));
+        console.warn(`[tidal]   batch ${i + 1}: MISSING ${missing.length} IDs:`, missing);
+      }
+      documents.push(doc);
+    } catch (error) {
+      console.error(`[tidal]   batch ${i + 1}/${batches.length}: FAILED for IDs:`, batch, error);
+    }
   }
 
   return {
     data: documents.flatMap(document => document.data || []),
     included: documents.flatMap(document => document.included || []),
   };
+}
+
+async function fetchTidalAlbumTrackPositions(
+  albumIds: string[],
+  trackIds: Set<string>,
+  token: string
+): Promise<Map<string, number>> {
+  const positionMap = new Map<string, number>();
+  for (const albumId of albumIds) {
+    try {
+      const doc = await fetchTidalCollection(
+        `/albums/${encodeURIComponent(albumId)}/relationships/items?countryCode=${TIDAL_COUNTRY_CODE}`,
+        token
+      );
+      const items = doc.data || [];
+      for (let i = 0; i < items.length; i++) {
+        const itemId = String(items[i].id || '');
+        if (trackIds.has(itemId) && !positionMap.has(itemId)) {
+          const attrs = items[i].attributes || {};
+          const pos = Number(attrs.trackNumber || i + 1);
+          if (pos > 0) {
+            positionMap.set(itemId, pos);
+          }
+        }
+      }
+    } catch {
+      // Album items fetch is best-effort; skip on failure
+    }
+  }
+  return positionMap;
 }
 
 async function enrichTidalTracks(
@@ -425,4 +477,186 @@ export async function getTidalTrackById(trackId: string): Promise<MusicTrack | n
 
   const tracks = await enrichTidalTracks([track], enrichedDocument, token, 1);
   return tracks[0] || null;
+}
+
+export async function getTidalTracksByIds(trackIds: string[], token: string): Promise<MusicTrack[]> {
+  const uniqueIds = [...new Set(trackIds)].filter(Boolean);
+  if (uniqueIds.length === 0) return [];
+
+  console.log(`[tidal] getTidalTracksByIds: ${uniqueIds.length} unique IDs requested`);
+
+  const tracksDocument = await fetchTidalResourcesByIds('tracks', uniqueIds, 'albums,artists', token);
+  const fetchedTracks = tracksDocument.data || [];
+  console.log(`[tidal] getTidalTracksByIds: ${fetchedTracks.length}/${uniqueIds.length} tracks returned from API`);
+
+  if (fetchedTracks.length > 0) {
+    const sample = fetchedTracks[0];
+    console.log(`[tidal] getTidalTracksByIds: sample track attributes:`, JSON.stringify(sample.attributes || {}, null, 2));
+  }
+
+  const albumIds = fetchedTracks
+    .map(track => firstRelation(track, 'albums')?.id)
+    .filter((id): id is string => Boolean(id));
+  const artistIds = fetchedTracks
+    .map(track => firstRelation(track, 'artists')?.id)
+    .filter((id): id is string => Boolean(id));
+
+  console.log(`[tidal] getTidalTracksByIds: enriching ${albumIds.length} albums, ${artistIds.length} artists`);
+
+  const [albumDocument, artistDocument] = await Promise.all([
+    albumIds.length > 0
+      ? fetchTidalResourcesByIds('albums', albumIds, 'coverArt,artists', token)
+      : Promise.resolve({ data: [], included: [] }),
+    artistIds.length > 0
+      ? fetchTidalResourcesByIds('artists', artistIds, 'profileArt', token)
+      : Promise.resolve({ data: [], included: [] }),
+  ]);
+
+  const enrichedDocument = {
+    included: [
+      ...(tracksDocument.included || []),
+      ...(tracksDocument.data || []),
+      ...(albumDocument.data || []),
+      ...(albumDocument.included || []),
+      ...(artistDocument.data || []),
+      ...(artistDocument.included || []),
+    ],
+  };
+
+  const fetchedById = new Map(fetchedTracks.map(track => [track.id, track]));
+  const resolved = uniqueIds
+    .map(id => fetchedById.get(id))
+    .filter((track): track is TidalResource => Boolean(track))
+    .map(track => toMusicTrack(track, enrichedDocument))
+    .filter((track): track is MusicTrack => Boolean(track && track.duration > 0));
+
+  console.log(`[tidal] getTidalTracksByIds: ${resolved.length}/${uniqueIds.length} tracks resolved to MusicTrack`);
+
+  const missingPosition = resolved.filter(t => !t.track_position);
+  if (missingPosition.length > 0) {
+    console.log(`[tidal] getTidalTracksByIds: ${missingPosition.length} tracks missing track_position, fetching album tracklists...`);
+    const albumIdsForPositions = [...new Set(missingPosition.map(t => t.album.id).filter(Boolean))];
+    const positionMap = await fetchTidalAlbumTrackPositions(albumIdsForPositions, new Set(missingPosition.map(t => t.id)), token);
+    console.log(`[tidal] getTidalTracksByIds: resolved ${positionMap.size}/${missingPosition.length} track positions from album tracklists`);
+    for (const track of missingPosition) {
+      const pos = positionMap.get(track.id);
+      if (pos) {
+        track.track_position = pos;
+      }
+    }
+  }
+
+  const resolvedIds = new Set(resolved.map(t => t.id));
+  const notFoundInFetch = uniqueIds.filter(id => !fetchedById.has(id));
+  const failedConversion = uniqueIds.filter(id => fetchedById.has(id) && !resolvedIds.has(id));
+  if (notFoundInFetch.length > 0) {
+    console.warn(`[tidal] getTidalTracksByIds: ${notFoundInFetch.length} IDs not in fetch result, retrying individually:`, notFoundInFetch);
+    for (const missingId of notFoundInFetch) {
+      try {
+        const singleDoc = await fetchTidalTrackById(missingId, token);
+        const singleTrack = (singleDoc.data || undefined) as TidalResource | undefined;
+        if (singleTrack && singleTrack.type === 'tracks') {
+          const mergedDoc = {
+            included: [
+              ...(singleDoc.included || []),
+              singleTrack,
+            ],
+          };
+          const converted = toMusicTrack(singleTrack, mergedDoc);
+          if (converted && converted.duration > 0) {
+            console.log(`[tidal] getTidalTracksByIds: individual retry recovered "${converted.title}" by ${converted.artist.name} (id=${missingId})`);
+            resolved.push(converted);
+          } else {
+            console.warn(`[tidal] getTidalTracksByIds: individual retry for ${missingId} returned track but conversion failed (duration=${converted?.duration})`);
+          }
+        } else {
+          console.warn(`[tidal] getTidalTracksByIds: individual retry for ${missingId} returned no track data (type=${singleTrack?.type})`);
+        }
+      } catch (retryError) {
+        console.warn(`[tidal] getTidalTracksByIds: individual retry FAILED for ${missingId}:`, retryError instanceof Error ? retryError.message : retryError);
+      }
+    }
+  }
+  if (failedConversion.length > 0) {
+    console.warn(`[tidal] getTidalTracksByIds: ${failedConversion.length} IDs failed toMusicTrack/duration filter:`, failedConversion);
+    for (const id of failedConversion) {
+      const res = fetchedById.get(id)!;
+      const track = toMusicTrack(res, enrichedDocument);
+      console.warn(`[tidal]   ${id}: type=${res.type} toMusicTrack=${track ? 'OK' : 'null'}${track ? ` duration=${track.duration}` : ''}`);
+    }
+  }
+
+  return resolved;
+}
+
+export async function getTidalPlaylistTracks(playlistId: string): Promise<MusicTrack[]> {
+  const token = await getTidalAccessToken();
+
+  const itemIds: string[] = [];
+  let nextUrl: string | undefined = `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=${TIDAL_COUNTRY_CODE}`;
+
+  while (nextUrl) {
+    const response: Response = await fetch(nextUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.api+json',
+        'Content-Type': 'application/vnd.api+json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`TIDAL playlist items request failed (${response.status} ${response.statusText}): ${await response.text()}`);
+    }
+
+    const document: { data?: TidalResource[]; links?: { next?: string } } = await response.json();
+    const items = Array.isArray(document.data) ? document.data : [];
+    itemIds.push(...items.map((item) => String(item.id || '')).filter(Boolean));
+    nextUrl = document.links?.next || undefined;
+  }
+
+  if (itemIds.length === 0) return [];
+
+  const tracksDocument = await fetchTidalResourcesByIds('tracks', itemIds, 'albums,artists', token);
+  const fetchedTracks = tracksDocument.data || [];
+  const fetchedById = new Map(fetchedTracks.map(track => [track.id, track]));
+  return itemIds
+    .map(id => fetchedById.get(id))
+    .filter((track): track is TidalResource => Boolean(track))
+    .map(track => toMusicTrack(track, { included: [...(tracksDocument.included || []), ...(tracksDocument.data || [])] }))
+    .filter((track): track is MusicTrack => Boolean(track && track.duration > 0));
+}
+
+export async function getTidalPlaylistTracksWithToken(playlistId: string, token: string): Promise<MusicTrack[]> {
+  const itemIds: string[] = [];
+  let nextUrl: string | undefined = `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=${TIDAL_COUNTRY_CODE}`;
+
+  while (nextUrl) {
+    const response: Response = await fetch(nextUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.api+json',
+        'Content-Type': 'application/vnd.api+json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`TIDAL playlist items request failed (${response.status} ${response.statusText}): ${await response.text()}`);
+    }
+
+    const document: { data?: TidalResource[]; links?: { next?: string } } = await response.json();
+    const items = Array.isArray(document.data) ? document.data : [];
+    itemIds.push(...items.map((item) => String(item.id || '')).filter(Boolean));
+    nextUrl = document.links?.next || undefined;
+  }
+
+  if (itemIds.length === 0) return [];
+
+  const tracksDocument = await fetchTidalResourcesByIds('tracks', itemIds, 'albums,artists', token);
+  const fetchedTracks = tracksDocument.data || [];
+  const fetchedById = new Map(fetchedTracks.map(track => [track.id, track]));
+  return itemIds
+    .map(id => fetchedById.get(id))
+    .filter((track): track is TidalResource => Boolean(track))
+    .map(track => toMusicTrack(track, { included: [...(tracksDocument.included || []), ...(tracksDocument.data || [])] }))
+    .filter((track): track is MusicTrack => Boolean(track && track.duration > 0));
 }

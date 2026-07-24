@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../../config/firebaseConfig';
+import { MusicTrack } from '../../types';
+import { getTidalTracksByIds } from './tidalApiClient';
 
 const TIDAL_API_URL = 'https://openapi.tidal.com/v2';
 const TIDAL_ACCOUNT_DOC_ID = 'tidal';
@@ -11,6 +13,9 @@ const TIDAL_DISCOVERY = {
   authorizationEndpoint: 'https://login.tidal.com/authorize',
   tokenEndpoint: 'https://auth.tidal.com/v1/oauth2/token',
 } as const;
+
+const TIDAL_DEBUG_ENABLED = true;
+const TIDAL_REQUEST_DELAY_MS = 350;
 
 export interface TidalTokenSet {
   accessToken: string;
@@ -40,6 +45,36 @@ export interface TidalAccountData {
   updatedAt?: number;
 }
 
+export interface TidalPlaylistItem {
+  id: string;
+  type?: string;
+  meta?: {
+    itemId?: string;
+    addedAt?: string;
+    itemCursor?: string;
+    [key: string]: unknown;
+  };
+}
+
+export interface TidalPlaylistSyncIssue {
+  trackId: string;
+  trackTitle?: string;
+  artist?: string;
+  playlistIds: string[];
+  playlistRatings: string[];
+  playlistDetails: Array<{ playlistId: string; rating: string; addedAt?: string }>;
+  libraryRating?: number;
+  libraryTimestamp?: string;
+  conflictType: 'missing' | 'mismatch' | 'duplicate';
+}
+
+export interface TidalReconcileCheckpoint {
+  scannedPlaylists: string[];
+  remainingPlaylists: string[];
+  issues: TidalPlaylistSyncIssue[];
+  duplicateTracks: Array<{ trackId: string; playlists: { playlistId: string; rating: string; addedAt?: string }[] }>;
+}
+
 type TidalDocListener = (data: TidalAccountData) => void;
 
 let tidalAccountSnapshotUnsub: (() => void) | null = null;
@@ -61,8 +96,14 @@ function normalizePlaylistDescription(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
+function debugTidal(label: string, payload: unknown): void {
+  if (!TIDAL_DEBUG_ENABLED) return;
+  console.log(`[tidalAccountService][debug] ${label}`, JSON.stringify(payload, null, 2));
+}
+
 async function fetchJson(url: string, token: string): Promise<any> {
-  const response = await fetch(url, {
+  const normalizedUrl = url.startsWith('http') ? url : `${TIDAL_API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  const response = await fetch(normalizedUrl, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.api+json',
@@ -70,14 +111,52 @@ async function fetchJson(url: string, token: string): Promise<any> {
     },
   });
   if (!response.ok) {
-    throw new Error(`TIDAL request failed (${response.status} ${response.statusText}): ${await response.text()}`);
+    const body = await response.text();
+    debugTidal('fetchJson error', { url: normalizedUrl, status: response.status, statusText: response.statusText, body });
+    throw new Error(`TIDAL request failed (${response.status} ${response.statusText}): ${body}`);
   }
   return response.json();
+}
+
+async function fetchJsonWithBackoff(url: string, token: string, attempts = 3): Promise<any> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      if (attempt > 0) {
+        await new Promise(resolve => setTimeout(resolve, TIDAL_REQUEST_DELAY_MS * attempt));
+      }
+      return await fetchJson(url, token);
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes('(429')) {
+        throw error;
+      }
+      debugTidal('fetchJson retry', { url, attempt: attempt + 1, attempts });
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError || 'TIDAL request failed'));
 }
 
 function normalizeRatingKey(rating: number | string): string {
   const value = typeof rating === 'number' ? rating : Number(rating);
   return Number.isFinite(value) ? value.toFixed(1) : String(rating);
+}
+
+function getLatestRatingTimestamp(track: { savedAt?: Date; ratingHistory?: { timestamp: string }[] }): number {
+  const historyTimestamps = (track.ratingHistory || [])
+    .map(entry => Date.parse(entry.timestamp))
+    .filter(time => Number.isFinite(time));
+  if (historyTimestamps.length > 0) {
+    return Math.max(...historyTimestamps);
+  }
+  return track.savedAt ? track.savedAt.getTime() : 0;
+}
+
+function parseAddedAt(value: unknown): number {
+  if (typeof value !== 'string') return 0;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function extractResourceArray(document: any): any[] {
@@ -149,7 +228,7 @@ async function fetchPlaylistDocumentPages(endpoint: string, token: string, maxPa
   let nextEndpoint: string | undefined = endpoint;
 
   for (let page = 0; page < maxPages && nextEndpoint; page += 1) {
-    const document = await fetchJson(nextEndpoint, token);
+    const document = await fetchJsonWithBackoff(nextEndpoint, token);
     collected.push(...extractResourceArray(document));
     const nextLink = extractNextLink(document);
     nextEndpoint = nextLink ? nextLink : undefined;
@@ -160,75 +239,41 @@ async function fetchPlaylistDocumentPages(endpoint: string, token: string, maxPa
 
 async function fetchOwnedPlaylists(token: string, userId?: string): Promise<TidalPlaylistSummary[]> {
   const collected = new Map<string, TidalPlaylistSummary>();
-  const endpoints = [
-    `${TIDAL_API_URL}/playlists?countryCode=US&include=coverArt,owners`,
-    `${TIDAL_API_URL}/users/me/relationships/playlists?countryCode=US&include=coverArt,owners`,
-  ];
+  const ownerFilter = userId || 'me';
+  const endpoint = `${TIDAL_API_URL}/playlists?countryCode=US&filter[owners.id]=${encodeURIComponent(ownerFilter)}&include=coverArt,owners`;
 
-  for (const endpoint of endpoints) {
-    try {
-      const playlists = await fetchPlaylistDocumentPages(endpoint, token);
-      for (const playlist of playlists) {
-        const ownerIds = new Set(
-          [
-            ...(playlist.relationships?.owners?.data || []),
-            ...(playlist.relationships?.ownerProfiles?.data || []),
-            ...(playlist.relationships?.owner?.data ? [playlist.relationships.owner.data] : []),
-          ]
-            .map((owner: any) => String(owner?.id || ''))
-            .filter(Boolean)
-        );
+  try {
+    const playlists = await fetchPlaylistDocumentPages(endpoint, token);
+    for (const playlist of playlists) {
+      const ownerIds = new Set(
+        [
+          ...(playlist.relationships?.owners?.data || []),
+          ...(playlist.relationships?.ownerProfiles?.data || []),
+          ...(playlist.relationships?.owner?.data ? [playlist.relationships.owner.data] : []),
+        ]
+          .map((owner: any) => String(owner?.id || ''))
+          .filter(Boolean)
+      );
 
-        if (userId && ownerIds.size > 0 && !ownerIds.has(userId)) {
-          continue;
-        }
-
-        const playlistSummary: TidalPlaylistSummary = {
-          id: String(playlist.id || ''),
-          title: String(playlist.attributes?.title || playlist.attributes?.name || ''),
-          numberOfTracks: Number(playlist.attributes?.numberOfTracks || playlist.attributes?.trackCount || 0) || undefined,
-          description: normalizePlaylistDescription(playlist.attributes?.description),
-          imageUrl: playlist.attributes?.images?.[0]?.url || playlist.attributes?.imageUrl || playlist.attributes?.image?.url,
-          ownerName: playlist.attributes?.ownerName || playlist.attributes?.creatorName,
-        };
-
-        if (playlistSummary.id && playlistSummary.title) {
-          collected.set(playlistSummary.id, playlistSummary);
-        }
+      if (userId && ownerIds.size > 0 && !ownerIds.has(userId)) {
+        continue;
       }
-    } catch (error) {
-      console.warn('[tidalAccountService] Playlist fetch failed for endpoint:', endpoint, error);
-    }
-  }
 
-  if (collected.size === 0) {
-    try {
-      const me = await getMe(token);
-      const fallbackEndpoints = [
-        `${TIDAL_API_URL}/users/me?countryCode=US&include=playlists,playlists.owners,playlists.coverArt`,
-        `${TIDAL_API_URL}/users/${encodeURIComponent(me.id || 'me')}/relationships/playlists?countryCode=US&include=coverArt,owners`,
-      ];
+      const playlistSummary: TidalPlaylistSummary = {
+        id: String(playlist.id || ''),
+        title: String(playlist.attributes?.title || playlist.attributes?.name || ''),
+        numberOfTracks: Number(playlist.attributes?.numberOfTracks || playlist.attributes?.trackCount || 0) || undefined,
+        description: normalizePlaylistDescription(playlist.attributes?.description),
+        imageUrl: playlist.attributes?.images?.[0]?.url || playlist.attributes?.imageUrl || playlist.attributes?.image?.url,
+        ownerName: playlist.attributes?.ownerName || playlist.attributes?.creatorName,
+      };
 
-      for (const endpoint of fallbackEndpoints) {
-        const documents = await fetchPlaylistDocumentPages(endpoint, token);
-        for (const playlist of documents) {
-          const playlistSummary: TidalPlaylistSummary = {
-            id: String(playlist.id || ''),
-            title: String(playlist.attributes?.title || playlist.attributes?.name || ''),
-            numberOfTracks: Number(playlist.attributes?.numberOfTracks || playlist.attributes?.trackCount || 0) || undefined,
-            description: normalizePlaylistDescription(playlist.attributes?.description),
-            imageUrl: playlist.attributes?.images?.[0]?.url || playlist.attributes?.imageUrl || playlist.attributes?.image?.url,
-            ownerName: playlist.attributes?.ownerName || playlist.attributes?.creatorName,
-          };
-
-          if (playlistSummary.id && playlistSummary.title) {
-            collected.set(playlistSummary.id, playlistSummary);
-          }
-        }
+      if (playlistSummary.id && playlistSummary.title) {
+        collected.set(playlistSummary.id, playlistSummary);
       }
-    } catch (error) {
-      console.warn('[tidalAccountService] Playlist fallback fetch failed:', error);
     }
+  } catch (error) {
+    console.warn('[tidalAccountService] Playlist fetch failed for endpoint:', endpoint, error);
   }
 
   return [...collected.values()];
@@ -236,11 +281,8 @@ async function fetchOwnedPlaylists(token: string, userId?: string): Promise<Tida
 
 async function fetchPlaylistTrackIds(playlistId: string, token: string): Promise<Set<string>> {
   try {
-    const document = await fetchJson(
-      `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=US`,
-      token
-    );
-    const items = extractResourceArray(document);
+    const items = await fetchPlaylistRelationshipItems(playlistId, token);
+    debugTidal('playlist items', { playlistId, count: items.length, items: items.slice(0, 25) });
     return new Set(items.map(item => String(item.id || '')).filter(Boolean));
   } catch (error) {
     console.warn('[tidalAccountService] Failed to read playlist items for duplicate check:', playlistId, error);
@@ -248,7 +290,35 @@ async function fetchPlaylistTrackIds(playlistId: string, token: string): Promise
   }
 }
 
+async function fetchPlaylistRelationshipItems(playlistId: string, token: string): Promise<any[]> {
+  const endpoint = `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=US&include=items`;
+  const collected: any[] = [];
+  let nextEndpoint: string | undefined = endpoint;
+
+  for (let page = 0; page < 10 && nextEndpoint; page += 1) {
+    const document = await fetchJsonWithBackoff(nextEndpoint, token);
+    const pageItems = extractResourceArray(document);
+    collected.push(...pageItems);
+    debugTidal('playlist items page', {
+      playlistId,
+      page,
+      pageCount: pageItems.length,
+      next: extractNextLink(document) || null,
+      sample: pageItems.slice(0, 3),
+    });
+    nextEndpoint = extractNextLink(document) || undefined;
+  }
+
+  return collected;
+}
+
+export async function fetchTidalPlaylistItems(playlistId: string, token: string): Promise<TidalPlaylistItem[]> {
+  const items = await fetchPlaylistRelationshipItems(playlistId, token);
+  return items as TidalPlaylistItem[];
+}
+
 async function addTrackToPlaylist(playlistId: string, trackId: string, token: string): Promise<void> {
+  debugTidal('addTrackToPlaylist request', { playlistId, trackId });
   const response = await fetch(
     `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=US`,
     {
@@ -265,40 +335,70 @@ async function addTrackToPlaylist(playlistId: string, trackId: string, token: st
   );
 
   if (!response.ok) {
-    throw new Error(`TIDAL playlist update failed (${response.status} ${response.statusText}): ${await response.text()}`);
+    const body = await response.text();
+    debugTidal('addTrackToPlaylist response error', { playlistId, trackId, status: response.status, statusText: response.statusText, body });
+    throw new Error(`TIDAL playlist update failed (${response.status} ${response.statusText}): ${body}`);
   }
 }
 
+export async function addTrackToConfiguredPlaylist(playlistId: string, trackId: string): Promise<void> {
+  const account = await refreshTidalConnectionIfNeeded();
+  if (!account.connected || !account.tokenSet?.accessToken) return;
+  await addTrackToPlaylist(playlistId, trackId, account.tokenSet.accessToken);
+}
+
+export async function removeTrackFromConfiguredPlaylist(playlistId: string, trackId: string): Promise<void> {
+  const account = await refreshTidalConnectionIfNeeded();
+  if (!account.connected || !account.tokenSet?.accessToken) return;
+  await removeTrackFromPlaylist(playlistId, trackId, account.tokenSet.accessToken);
+}
+
 async function removeTrackFromPlaylist(playlistId: string, trackId: string, token: string): Promise<void> {
-  const document = await fetchJson(
-    `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=US`,
-    token
-  );
-  const items = extractResourceArray(document);
-  const match = items.find(item => {
+  const items = await fetchPlaylistRelationshipItems(playlistId, token);
+  debugTidal('removeTrackFromPlaylist fetched document', {
+    playlistId,
+    trackId,
+    count: items.length,
+    items: items.slice(0, 25),
+  });
+  const matchingItems = items.filter(item => {
     const candidateIds = [
       item?.id,
+      item?.attributes?.id,
+      item?.attributes?.track?.id,
+      item?.relationships?.track?.data?.id,
       item?.meta?.trackId,
       item?.meta?.item?.id,
       item?.meta?.resource?.id,
-      item?.relationships?.track?.data?.id,
       item?.relationships?.item?.data?.id,
       item?.relationships?.resource?.data?.id,
       item?.attributes?.trackId,
     ];
     return candidateIds.map(value => String(value || '')).includes(trackId);
   });
-  const itemId = String(
-    match?.meta?.itemId ||
-    match?.attributes?.itemId ||
-    match?.relationships?.item?.data?.meta?.itemId ||
-    match?.id ||
-    ''
-  );
-  if (!itemId) {
-    console.warn('[tidalAccountService] Could not find TIDAL playlist itemId for track removal:', { playlistId, trackId });
-    return;
-  }
+  const remainingItems = items.filter(item => !matchingItems.includes(item));
+  const deletePayload = {
+    data: matchingItems.map(item => ({
+      type: String(item?.type || 'tracks'),
+      id: String(item?.id || trackId),
+      meta: item?.meta && typeof item.meta === 'object'
+        ? item.meta
+        : {
+            itemId: String(item?.meta?.itemId || item?.attributes?.itemId || item?.id || trackId),
+          },
+    })),
+  };
+
+  debugTidal('removeTrackFromPlaylist state', {
+    playlistId,
+    trackId,
+    totalItems: items.length,
+    matchingCount: matchingItems.length,
+    matchingItems,
+    remainingCount: remainingItems.length,
+    remainingItemsPreview: remainingItems.slice(0, 3),
+    deletePayload,
+  });
 
   const response = await fetch(
     `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=US`,
@@ -309,15 +409,138 @@ async function removeTrackFromPlaylist(playlistId: string, trackId: string, toke
         Accept: 'application/vnd.api+json',
         'Content-Type': 'application/vnd.api+json',
       },
-      body: JSON.stringify({
-        data: [{ type: 'tracks', id: trackId, meta: { itemId } }],
-      }),
+      body: JSON.stringify(deletePayload),
     }
   );
 
   if (!response.ok) {
-    throw new Error(`TIDAL playlist removal failed (${response.status} ${response.statusText}): ${await response.text()}`);
+    const body = await response.text();
+    debugTidal('removeTrackFromPlaylist response error', { playlistId, trackId, status: response.status, statusText: response.statusText, body, deletePayload });
+    throw new Error(`TIDAL playlist removal failed (${response.status} ${response.statusText}): ${body}`);
   }
+}
+
+function getTrackById(savedMusic: { id: string; title: string; artist: string; rating: number; savedAt: Date; ratingHistory?: { timestamp: string }[] }[], trackId: string) {
+  return savedMusic.find(track => track.id === trackId) || null;
+}
+
+export async function reconcileTidalRatingPlaylists(
+  savedMusic: { id: string; title: string; artist: string; rating: number; savedAt: Date; ratingHistory?: { timestamp: string }[] }[],
+  playlistId?: string
+): Promise<TidalReconcileCheckpoint> {
+  const account = await refreshTidalConnectionIfNeeded();
+  if (!account.connected || !account.tokenSet?.accessToken) {
+    return { scannedPlaylists: [], remainingPlaylists: [], issues: [], duplicateTracks: [] };
+  }
+
+  const playlists = account.ratingPlaylists || {};
+  const entries = Object.entries(playlists).filter(([, mappedPlaylistId]) => !playlistId || mappedPlaylistId === playlistId);
+  if (entries.length === 0) {
+    return {
+      scannedPlaylists: [],
+      remainingPlaylists: Object.values(playlists),
+      issues: [],
+      duplicateTracks: [],
+    };
+  }
+
+  const [rating, targetPlaylistId] = entries[0];
+  debugTidal('reconcile checkpoint start', { playlistId: targetPlaylistId, rating, totalConfigured: Object.keys(playlists).length });
+  const playlistEntries = [
+    {
+      rating,
+      playlistId: targetPlaylistId,
+      items: await fetchTidalPlaylistItems(targetPlaylistId, account.tokenSet!.accessToken),
+    },
+  ];
+
+  const trackLocations = new Map<string, Array<{ playlistId: string; rating: string; addedAt?: string; tidalTitle?: string; tidalArtist?: string }>>();
+  for (const entry of playlistEntries) {
+    for (const item of entry.items) {
+      const trackId = String(item.id || '');
+      if (!trackId) continue;
+      const locations = trackLocations.get(trackId) || [];
+      locations.push({
+        playlistId: entry.playlistId,
+        rating: entry.rating,
+        addedAt: item.meta?.addedAt,
+      });
+      trackLocations.set(trackId, locations);
+    }
+  }
+
+  const issues: TidalPlaylistSyncIssue[] = [];
+  const duplicateTracks: Array<{ trackId: string; playlists: { playlistId: string; rating: string; addedAt?: string }[] }> = [];
+
+  for (const [trackId, locations] of trackLocations.entries()) {
+    const track = getTrackById(savedMusic, trackId);
+    if (!track) {
+      issues.push({
+        trackId,
+        trackTitle: undefined,
+        artist: undefined,
+        playlistIds: locations.map(l => l.playlistId),
+        playlistRatings: locations.map(l => l.rating),
+        playlistDetails: locations,
+        conflictType: 'missing',
+      });
+      continue;
+    }
+
+    if (locations.length > 1) {
+      duplicateTracks.push({ trackId, playlists: locations });
+      issues.push({
+        trackId,
+        trackTitle: track.title,
+        artist: track.artist,
+        playlistIds: locations.map(l => l.playlistId),
+        playlistRatings: locations.map(l => l.rating),
+        playlistDetails: locations,
+        libraryRating: track.rating,
+        libraryTimestamp: new Date(getLatestRatingTimestamp(track)).toISOString(),
+        conflictType: 'duplicate',
+      });
+      continue;
+    }
+
+    const location = locations[0];
+    const playlistAddedAt = parseAddedAt(location.addedAt);
+    const latestRatingAt = getLatestRatingTimestamp(track);
+    if (Number(track.rating) !== Number(location.rating)) {
+      const titleMismatch =
+        !!location.tidalTitle &&
+        !!track.title &&
+        location.tidalTitle.toLowerCase() !== track.title.toLowerCase();
+      const artistMismatch =
+        !!location.tidalArtist &&
+        !!track.artist &&
+        location.tidalArtist.toLowerCase() !== track.artist.toLowerCase();
+      issues.push({
+        trackId,
+        trackTitle: track.title,
+        artist: track.artist,
+        playlistIds: [location.playlistId],
+        playlistRatings: [location.rating],
+        playlistDetails: [location],
+        libraryRating: track.rating,
+        libraryTimestamp: latestRatingAt ? new Date(latestRatingAt).toISOString() : undefined,
+        conflictType: 'mismatch',
+      });
+    }
+  }
+
+  debugTidal('reconcile checkpoint end', {
+    playlistId: targetPlaylistId,
+    issues: issues.length,
+    duplicates: duplicateTracks.length,
+  });
+
+  return {
+    scannedPlaylists: [targetPlaylistId],
+    remainingPlaylists: entries.slice(1).map(([, id]) => id),
+    issues,
+    duplicateTracks,
+  };
 }
 
 async function loadTidalAccountFromFirestore(): Promise<TidalAccountData> {
@@ -328,9 +551,29 @@ async function loadTidalAccountFromFirestore(): Promise<TidalAccountData> {
 
 async function saveTidalAccount(data: TidalAccountData): Promise<void> {
   const updatedAt = Date.now();
-  const payload = { ...data, updatedAt };
+  const raw = { ...data, updatedAt };
+  const payload = stripUndefined(raw);
   await setDoc(getTidalDocRef(), payload, { merge: true });
   await AsyncStorage.setItem(TIDAL_CACHE_KEY, JSON.stringify(payload));
+}
+
+function stripUndefined(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      result[key] = value.map(item =>
+        item !== null && typeof item === 'object' && !Array.isArray(item)
+          ? stripUndefined(item as Record<string, unknown>)
+          : item
+      );
+    } else if (value !== null && typeof value === 'object') {
+      result[key] = stripUndefined(value as Record<string, unknown>);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
 }
 
 function startSnapshot() {
@@ -379,7 +622,7 @@ export async function connectTidalAccountFromRedirect(url: string): Promise<Tida
   return finalizeTidalAuthorization(code, undefined);
 }
 
-export async function refreshTidalConnectionIfNeeded(data?: TidalAccountData): Promise<TidalAccountData> {
+export async function refreshTidalConnectionIfNeeded(data?: TidalAccountData, options?: { skipPlaylistRefresh?: boolean }): Promise<TidalAccountData> {
   const account = data || await getTidalAccountData();
   if (!account.connected || !account.tokenSet) return account;
 
@@ -388,14 +631,18 @@ export async function refreshTidalConnectionIfNeeded(data?: TidalAccountData): P
   }
 
   const tokenSet = await refreshAccessToken(account.tokenSet.refreshToken);
-  const playlists = await fetchOwnedPlaylists(tokenSet.accessToken, account.userId);
   const updated: TidalAccountData = {
     ...account,
     tokenSet,
-    playlists,
     lastSyncedAt: Date.now(),
     connected: true,
   };
+
+  if (!options?.skipPlaylistRefresh) {
+    const playlists = await fetchOwnedPlaylists(tokenSet.accessToken, account.userId);
+    updated.playlists = playlists;
+  }
+
   await saveTidalAccount(updated);
   return updated;
 }
@@ -447,6 +694,77 @@ export async function syncTrackToConfiguredTidalPlaylist(track: { id: string; ra
   } catch (error) {
     console.error('[tidalAccountService] Failed to sync track to TIDAL playlist:', error);
   }
+}
+
+export async function importFromConfiguredPlaylists(
+  existingTrackIds: Set<string>,
+  ratings?: number[]
+): Promise<Array<{ rating: number; tracks: MusicTrack[] }>> {
+  const account = await refreshTidalConnectionIfNeeded(undefined, { skipPlaylistRefresh: true });
+  if (!account.connected || !account.tokenSet?.accessToken) {
+    throw new Error('Please connect your TIDAL account first.');
+  }
+
+  const token = account.tokenSet.accessToken;
+  const results: Array<{ rating: number; tracks: MusicTrack[] }> = [];
+  const allMissingFromResolve: Array<{ rating: number; requestedIds: string[]; resolvedIds: string[]; missingIds: string[] }> = [];
+
+  for (const [ratingStr, playlistId] of Object.entries(account.ratingPlaylists || {})) {
+    const rating = Number(ratingStr);
+    if (!playlistId || !Number.isFinite(rating) || rating <= 0) continue;
+    if (ratings && !ratings.includes(rating)) continue;
+
+    try {
+      const items = await fetchTidalPlaylistItems(playlistId, token);
+      const allIds = items.map(item => String(item.id || '')).filter(Boolean);
+      const trackIds = allIds.filter(id => !existingTrackIds.has(id));
+      const skippedExisting = allIds.length - trackIds.length;
+
+      console.log(`[import] Rating ${rating} playlist ${playlistId}: ${allIds.length} total items, ${skippedExisting} already in library, ${trackIds.length} new to import`);
+
+      if (trackIds.length === 0) continue;
+
+      const tracks = await getTidalTracksByIds(trackIds, token);
+      const resolvedIds = new Set(tracks.map(t => t.id));
+      const missingIds = trackIds.filter(id => !resolvedIds.has(id));
+
+      if (missingIds.length > 0) {
+        console.warn(`[import] Rating ${rating}: ${missingIds.length} tracks FAILED to resolve:`, missingIds);
+        allMissingFromResolve.push({ rating, requestedIds: trackIds, resolvedIds: tracks.map(t => t.id), missingIds });
+      }
+
+      console.log(`[import] Rating ${rating}: resolved ${tracks.length}/${trackIds.length} tracks`);
+      for (const track of tracks) {
+        console.log(`[import]   ✓ ${track.title} — ${track.artist.name} — cover: ${track.album.cover ? 'YES' : 'NO'} — pos: ${track.track_position ?? 'none'}`);
+      }
+
+      if (tracks.length > 0) {
+        results.push({ rating, tracks });
+      }
+    } catch (error) {
+      console.warn('[tidalAccountService] Failed to import from playlist:', playlistId, error);
+    }
+  }
+
+  if (allMissingFromResolve.length > 0) {
+    console.warn('[import] === MISSING TRACKS SUMMARY ===');
+    console.warn('[import] These tracks were not returned by the TIDAL batch API and could not be recovered:');
+    for (const entry of allMissingFromResolve) {
+      console.warn(`[import] Rating ${entry.rating}:`);
+      for (const id of entry.missingIds) {
+        console.warn(`[import]   - TIDAL ID: ${id}  (https://tidal.com/browse/track/${id})`);
+      }
+    }
+    const allMissingIds = allMissingFromResolve.flatMap(e => e.missingIds);
+    console.warn('[import] === COPY THIS LIST ===');
+    console.warn('[import] ' + allMissingIds.join(', '));
+  }
+
+  const totalResolved = results.reduce((sum, r) => sum + r.tracks.length, 0);
+  const totalMissing = allMissingFromResolve.reduce((sum, e) => sum + e.missingIds.length, 0);
+  console.log(`[import] === IMPORT SUMMARY === ${totalResolved} resolved, ${totalMissing} missing across ${results.length} playlists`);
+
+  return results;
 }
 
 export async function disconnectTidalAccount(): Promise<void> {

@@ -31,12 +31,13 @@ export type SortMode = 'added' | 'rating' | 'release' | 'alphabetical' | 'album'
 interface SaveMusicOptions {
   rating?: number;
   tags?: string[];
+  skipTidalSync?: boolean;
 }
 
 // === CORE FUNCTIONS ===
 
 export async function saveMusic(track: MusicTrack, options: SaveMusicOptions = {}): Promise<string> {
-  const { rating = 0, tags = [] } = options;
+  const { rating = 0, tags = [], skipTidalSync = false } = options;
   
   if (!track?.id || !track?.title || !track?.artist?.name) {
     throw new Error('Invalid track data');
@@ -70,7 +71,7 @@ export async function saveMusic(track: MusicTrack, options: SaveMusicOptions = {
     const validatedMusicData = validateSavedMusicInput(musicData);
 
     const docRef = await addDoc(collection(db, COLLECTION_NAME), validatedMusicData);
-    if (rating > 0) {
+    if (rating > 0 && !skipTidalSync) {
       void syncTrackToConfiguredTidalPlaylist({
         id: track.id,
         rating,
@@ -211,9 +212,9 @@ export async function updateMusicRatingAndTags(firebaseId: string, rating: numbe
 }
 
 // === BATCH OPERATIONS ===
-export async function saveMusicBatch(tracks: MusicTrack[], rating: number = 0, tags: string[] = []): Promise<string[]> {
+export async function saveMusicBatch(tracks: MusicTrack[], rating: number = 0, tags: string[] = [], skipTidalSync: boolean = false): Promise<string[]> {
   const results = await Promise.allSettled(
-    tracks.map(track => saveMusic(track, { rating, tags }))
+    tracks.map(track => saveMusic(track, { rating, tags, skipTidalSync }))
   );
   
   const successful = results

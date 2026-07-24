@@ -1,4 +1,4 @@
-// src/Profile/ProfileConfigModal.tsx
+﻿// src/Profile/ProfileConfigModal.tsx
 // ProfileConfigModal for configuring profile settings
 import React from 'react';
 import { View, Text, Button, Modal, TouchableOpacity, Alert, ActivityIndicator, ScrollView, TextInput, FlatList } from 'react-native';
@@ -15,6 +15,13 @@ import { MusicItem } from '../components/MusicItem';
 import { getTidalTrackById } from '../services/tidal/tidalApiClient';
 
 const RATING_STEPS = Array.from({ length: 21 }, (_, i) => (i * 0.5).toFixed(1)).reverse();
+
+interface DuplicateSongGroup {
+  key: string;
+  title: string;
+  artist: string;
+  tracks: ReturnType<typeof useMusicStore>['savedMusic'];
+}
 
 interface ProfileConfigModalProps {
   visible: boolean;
@@ -44,6 +51,9 @@ export function ProfileConfigModal({
   const [migrationSearchResults, setMigrationSearchResults] = React.useState<MusicTrack[]>([]);
   const [migrationSearchLoading, setMigrationSearchLoading] = React.useState(false);
   const [isApprovingMigration, setIsApprovingMigration] = React.useState(false);
+  const [showDuplicateFinder, setShowDuplicateFinder] = React.useState(false);
+  const [duplicateGroups, setDuplicateGroups] = React.useState<Array<{ key: string; title: string; artist: string; tracks: any[] }>>([]);
+  const [duplicateTarget, setDuplicateTarget] = React.useState<any | null>(null);
   const { savedMusic } = useMusicStore();
   const migratableSavedMusic = savedMusic.filter(track => !isAlreadyTidalTrack(track));
 
@@ -116,6 +126,43 @@ export function ProfileConfigModal({
 
     return [...new Set(queries.map(item => item.trim()).filter(Boolean))];
   }, [normalizeSearchValue, splitArtistAlbumQuery, stripTrailingNoise]);
+
+  const extractTidalTrackId = React.useCallback((value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+
+    const urlMatch = trimmed.match(/tidal\.com\/track\/(\d+)/i);
+    if (urlMatch?.[1]) return urlMatch[1];
+
+    const idMatch = trimmed.match(/^(\d+)$/);
+    if (idMatch?.[1]) return idMatch[1];
+
+    return trimmed;
+  }, []);
+
+  const buildDuplicateGroups = React.useCallback(() => {
+    const groups = new Map<string, any[]>();
+    for (const track of savedMusic) {
+      const key = String(track.id || '').trim();
+      if (!key) continue;
+      const bucket = groups.get(key) || [];
+      bucket.push(track);
+      groups.set(key, bucket);
+    }
+
+    return [...groups.entries()]
+      .filter(([, tracks]) => tracks.length > 1)
+      .map(([key, tracks]) => ({
+        key,
+        title: tracks[0]?.title || 'Unknown title',
+        artist: tracks[0]?.artist || 'Unknown artist',
+        tracks: tracks.sort((a, b) => {
+          const aDate = a.ratingHistory?.[a.ratingHistory.length - 1]?.timestamp || a.savedAt?.toISOString?.() || '';
+          const bDate = b.ratingHistory?.[b.ratingHistory.length - 1]?.timestamp || b.savedAt?.toISOString?.() || '';
+          return aDate.localeCompare(bDate);
+        }),
+      }));
+  }, [savedMusic]);
 
   React.useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -219,23 +266,42 @@ export function ProfileConfigModal({
     setShowMigrationLog(false);
   };
 
+  const openDuplicateFinder = () => {
+    const groups = buildDuplicateGroups();
+    setDuplicateGroups(groups);
+    setShowDuplicateFinder(true);
+  };
+
+  const openDuplicateTarget = (track: any) => {
+    setDuplicateTarget(track);
+    setMigrationSearchQuery(String(track.id || '').trim());
+    setMigrationSearchResults([]);
+  };
+
   const openMigrationEntry = (entry: MigrationLogEntry) => {
     setSearchingMigrationEntry(entry);
-    setMigrationSearchQuery(`${entry.originalTrack.title} ${entry.originalTrack.artist}`.trim());
+    setMigrationSearchQuery(String(entry.originalTrack.id || '').trim());
     setMigrationSearchResults([]);
   };
 
   const closeMigrationSearch = () => {
     if (!isApprovingMigration && !migrationSearchLoading) {
       setSearchingMigrationEntry(null);
+      setDuplicateTarget(null);
       setMigrationSearchQuery('');
       setMigrationSearchResults([]);
     }
   };
 
+  const submitMigrationSearch = React.useCallback(() => {
+    if (!searchingMigrationEntry && !duplicateTarget) return;
+    void runMigrationSearch(migrationSearchQuery);
+  }, [duplicateTarget, migrationSearchQuery, runMigrationSearch, searchingMigrationEntry]);
+
   const runMigrationSearch = React.useCallback(async (query: string) => {
-    if (!searchingMigrationEntry) return;
+    if (!searchingMigrationEntry && !duplicateTarget) return;
     const trimmed = query.trim();
+    const exactTrackId = extractTidalTrackId(trimmed);
     setMigrationSearchQuery(query);
 
     if (!trimmed) {
@@ -246,8 +312,8 @@ export function ProfileConfigModal({
     try {
       setMigrationSearchLoading(true);
 
-      if (/^\d+$/.test(trimmed)) {
-        const track = await getTidalTrackById(trimmed);
+      if (/^\d+$/.test(exactTrackId)) {
+        const track = await getTidalTrackById(exactTrackId);
         if (track) {
           setMigrationSearchResults([track]);
           return;
@@ -291,35 +357,32 @@ export function ProfileConfigModal({
     } finally {
       setMigrationSearchLoading(false);
     }
-  }, [buildMigrationSearchQueries, normalizeSearchValue, searchingMigrationEntry, splitArtistAlbumQuery]);
-
-  React.useEffect(() => {
-    if (!searchingMigrationEntry) return;
-    const handle = setTimeout(() => {
-      runMigrationSearch(migrationSearchQuery);
-    }, 350);
-    return () => clearTimeout(handle);
-  }, [migrationSearchQuery, searchingMigrationEntry, runMigrationSearch]);
+  }, [buildMigrationSearchQueries, duplicateTarget, extractTidalTrackId, normalizeSearchValue, searchingMigrationEntry, splitArtistAlbumQuery]);
 
   const approveSelectedMigration = async (selectedTrack: MusicTrack) => {
-    if (!searchingMigrationEntry) return;
+    if (!searchingMigrationEntry && !duplicateTarget) return;
 
     setIsApprovingMigration(true);
     try {
-      await approveTidalMigration(searchingMigrationEntry.originalTrack, selectedTrack);
-      setMigrationLog(current => current.filter(entry => entry !== searchingMigrationEntry));
-      setMigrationSummary(current => current ? {
-        ...current,
-        successful: current.successful + 1,
-        failed: Math.max(0, current.failed - 1),
-        results: current.results.map(result =>
-          result.originalTrack.firebaseId === searchingMigrationEntry.originalTrack.firebaseId
-            ? { ...result, success: true, matchedTrack: selectedTrack, error: undefined }
-            : result
-        ),
-        migrationLog: current.migrationLog.filter(entry => entry !== searchingMigrationEntry),
-      } : current);
+      const targetTrack = searchingMigrationEntry?.originalTrack || duplicateTarget;
+      if (!targetTrack) return;
+      await approveTidalMigration(targetTrack, selectedTrack);
+      if (searchingMigrationEntry) {
+        setMigrationLog(current => current.filter(entry => entry !== searchingMigrationEntry));
+        setMigrationSummary(current => current ? {
+          ...current,
+          successful: current.successful + 1,
+          failed: Math.max(0, current.failed - 1),
+          results: current.results.map(result =>
+            result.originalTrack.firebaseId === searchingMigrationEntry.originalTrack.firebaseId
+              ? { ...result, success: true, matchedTrack: selectedTrack, error: undefined }
+              : result
+          ),
+          migrationLog: current.migrationLog.filter(entry => entry !== searchingMigrationEntry),
+        } : current);
+      }
       setSearchingMigrationEntry(null);
+      setDuplicateTarget(null);
       setMigrationSearchQuery('');
       setMigrationSearchResults([]);
       useMusicStore.getState().loadMusic();
@@ -429,11 +492,25 @@ export function ProfileConfigModal({
               )}
             </View>
 
+            <View style={{ marginBottom: 12 }}>
+              <Button
+                title="Review Duplicate Songs"
+                color={theme.colors.button.primary}
+                onPress={openDuplicateFinder}
+                disabled={savedMusic.length < 2}
+              />
+              {savedMusic.length < 2 && (
+                <Text style={{ color: theme.colors.text.secondary, fontSize: 12, marginTop: 4 }}>
+                  You need at least two saved songs to review duplicates.
+                </Text>
+              )}
+            </View>
+
             {/* Migration Progress */}
             {migrationProgress && isMigrating && (
-              <View style={{ marginBottom: 12, padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8 }}>
+              <View style={{ marginBottom: 12, padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8, width: '100%', alignSelf: 'stretch' }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text style={{ color: theme.colors.text.primary, fontWeight: '600' }}>
+                  <Text style={{ color: theme.colors.text.primary, fontWeight: '600', flexWrap: 'wrap' }}>
                     Migrating: {migrationProgress.current}/{migrationProgress.total}
                   </Text>
                   <ActivityIndicator size="small" color={theme.colors.button.primary} />
@@ -464,13 +541,13 @@ export function ProfileConfigModal({
 
             {/* Migration Summary */}
             {migrationSummary && !isMigrating && (
-              <View style={{ marginBottom: 12, padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8 }}>
+              <View style={{ marginBottom: 12, padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8, width: '100%', alignSelf: 'stretch' }}>
                 <Text style={{ color: theme.colors.text.primary, fontWeight: '600', marginBottom: 8 }}>
                   Migration Complete
                 </Text>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                   <Text style={{ color: theme.colors.text.secondary }}>Total Processed:</Text>
-                  <Text style={{ color: theme.colors.text.primary, fontWeight: '600' }}>{migrationSummary.total}</Text>
+                  <Text style={{ color: theme.colors.text.primary, fontWeight: '600', flexWrap: 'wrap' }}>{migrationSummary.total}</Text>
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                   <Text style={{ color: theme.colors.text.secondary }}>Successful:</Text>
@@ -498,9 +575,9 @@ export function ProfileConfigModal({
                     <Text style={styles.configSectionTitle}>Migration Log - Unmatched Songs</Text>
                     <ScrollView style={{ maxHeight: 300, width: '100%' }}>
                       {migrationLog.map((entry, index) => (
-                        <View key={index} style={{ marginBottom: 12, padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8 }}>
+                        <View key={index} style={{ marginBottom: 12, padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8, width: '100%', alignSelf: 'stretch' }}>
                           <TouchableOpacity onPress={() => openMigrationEntry(entry)} disabled={isApprovingMigration || migrationSearchLoading}>
-                            <Text style={{ color: theme.colors.text.primary, fontWeight: '600' }}>
+                            <Text style={{ color: theme.colors.text.primary, fontWeight: '600', flexWrap: 'wrap' }}>
                               {entry.originalTrack.title} - {entry.originalTrack.artist}
                             </Text>
                             <Text style={{ color: theme.colors.text.secondary, fontSize: 12, marginTop: 2 }}>
@@ -558,6 +635,8 @@ export function ProfileConfigModal({
                         placeholderTextColor={theme.colors.text.muted}
                         value={migrationSearchQuery}
                         onChangeText={setMigrationSearchQuery}
+                        onSubmitEditing={submitMigrationSearch}
+                        returnKeyType="search"
                         autoCorrect={false}
                         autoCapitalize="none"
                       />
@@ -592,6 +671,116 @@ export function ProfileConfigModal({
               </Modal>
             )}
 
+            {/* Duplicate Finder */}
+            {showDuplicateFinder && (
+              <Modal visible transparent animationType="slide" onRequestClose={() => setShowDuplicateFinder(false)}>
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    <Text style={styles.configSectionTitle}>Duplicate Songs</Text>
+                    <Text style={{ color: theme.colors.text.secondary, marginBottom: 12 }}>
+                      Pick a likely duplicate group, then choose the specific saved song you want to replace with a correct TIDAL version.
+                    </Text>
+                    <ScrollView style={{ width: '100%', maxHeight: 320 }}>
+                      {duplicateGroups.length === 0 ? (
+                        <Text style={{ color: theme.colors.text.secondary, textAlign: 'center', marginVertical: 16 }}>
+                          No likely duplicates found in your library.
+                        </Text>
+                      ) : (
+                        duplicateGroups.map(group => (
+                          <View key={group.key} style={{ marginBottom: 12, padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8, width: '100%', alignSelf: 'stretch' }}>
+                            <Text style={{ color: theme.colors.text.primary, fontWeight: "700" }}>
+                              {group.title}
+                            </Text>
+                            <Text style={{ color: theme.colors.text.secondary, fontSize: 12, marginBottom: 8 }}>
+                              {group.artist} · {group.tracks.length} versions
+                            </Text>
+                            {group.tracks.map(track => (
+                              <TouchableOpacity
+                                key={track.firebaseId || track.id}
+                                onPress={() => openDuplicateTarget(track)}
+                                style={{ paddingVertical: 10, paddingHorizontal: 10, backgroundColor: '#222', borderRadius: 6, marginBottom: 6, width: '100%', alignSelf: 'stretch' }}
+                              >
+                                <Text style={{ color: theme.colors.text.primary, fontWeight: "600", flexWrap: "wrap" }}>
+                                  {track.title}
+                                </Text>
+                                <Text style={{ color: theme.colors.text.secondary, fontSize: 11, flexWrap: "wrap" }}>
+                                  TIDAL ID: {track.id} · Rating: {track.rating} · Album: {track.album}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        ))
+                      )}
+                    </ScrollView>
+                    <TouchableOpacity onPress={() => setShowDuplicateFinder(false)} style={styles.closeButton}>
+                      <Text style={styles.closeButtonText}>Close</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+            )}
+
+            {/* Duplicate Target Search */}
+            {duplicateTarget && (
+              <Modal visible transparent animationType="slide" onRequestClose={() => setDuplicateTarget(null)}>
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    <Text style={styles.configSectionTitle}>Replace Song Version</Text>
+                    <Text style={{ color: theme.colors.text.secondary, marginBottom: 12 }}>
+                      Replace {duplicateTarget.title} by {duplicateTarget.artist}. Search TIDAL or paste an exact track ID.
+                    </Text>
+                    <View style={{ width: '100%', padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8, marginBottom: 10 }}>
+                      <Text style={{ color: theme.colors.text.primary, fontWeight: '600', marginBottom: 6 }}>Search</Text>
+                      <TextInput
+                        style={{
+                          borderWidth: 1,
+                          borderColor: theme.colors.border,
+                          borderRadius: 6,
+                          padding: 8,
+                          color: theme.colors.text.primary,
+                          backgroundColor: theme.colors.background.surface,
+                        }}
+                        autoFocus
+                        placeholder='Search TIDAL... or exact track ID'
+                        placeholderTextColor={theme.colors.text.muted}
+                        value={migrationSearchQuery}
+                        onChangeText={setMigrationSearchQuery}
+                        onSubmitEditing={submitMigrationSearch}
+                        returnKeyType="search"
+                        autoCorrect={false}
+                        autoCapitalize="none"
+                      />
+                    </View>
+                    {migrationSearchLoading ? (
+                      <ActivityIndicator size="small" color={theme.colors.button.primary} />
+                    ) : (
+                      <FlatList
+                        data={migrationSearchResults}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => (
+                          <View style={{ marginBottom: 10 }}>
+                            <MusicItem
+                              music={item}
+                              onPress={approveSelectedMigration}
+                            />
+                          </View>
+                        )}
+                        ListEmptyComponent={() => (
+                          <Text style={{ color: theme.colors.text.secondary, textAlign: 'center', marginVertical: 16 }}>
+                            No matches yet. Try a different title, artist, album, or exact TIDAL ID.
+                          </Text>
+                        )}
+                        style={{ width: '100%', maxHeight: 420 }}
+                      />
+                    )}
+                    <TouchableOpacity onPress={() => setDuplicateTarget(null)} style={styles.closeButton}>
+                      <Text style={styles.closeButtonText}>Close</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+            )}
+
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
@@ -601,3 +790,5 @@ export function ProfileConfigModal({
     </>
   );
 }
+
+

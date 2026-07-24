@@ -1,5 +1,5 @@
 // src/Search/ImportPlaylistModal.tsx
-// Modal for importing playlists from Deezer
+// Modal for importing playlists from Spotify, Deezer, or TIDAL
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TextInput, Button, TouchableOpacity } from 'react-native';
 import StarRating from 'react-native-star-rating-widget';
@@ -9,6 +9,8 @@ import { SavedMusic } from '../types/savedMusic';
 import { FlashList } from '@shopify/flash-list';
 import { DeezerDataEnricher } from '../services/deezer/deezerDataEnricher';
 import { spotifyUnifiedSearch, getSpotifyAccessToken } from '../services/spotify/spotifyApiClient';
+import { getTidalPlaylistTracksWithToken } from '../services/tidal/tidalApiClient';
+import { refreshTidalConnectionIfNeeded } from '../services/tidal/tidalAccountService';
 
 interface ImportPlaylistModalProps {
   visible: boolean;
@@ -44,6 +46,14 @@ export function ImportPlaylistModal({
   }[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+
+  const extractTidalPlaylistId = (value: string) => {
+    const trimmed = value.trim();
+    const match = trimmed.match(/tidal\.com\/playlist\/([a-zA-Z0-9-]+)/i);
+    if (match) return match[1];
+    if (/^[a-zA-Z0-9-]+$/.test(trimmed)) return trimmed;
+    return '';
+  };
 
   // Clear preview when modal is closed
   useEffect(() => {
@@ -107,6 +117,27 @@ export function ImportPlaylistModal({
         return;
       }
 
+      const tidalPlaylistId = extractTidalPlaylistId(playlistLink);
+      if (tidalPlaylistId) {
+        const account = await refreshTidalConnectionIfNeeded();
+        if (!account.connected || !account.tokenSet?.accessToken) {
+          throw new Error('Please connect your TIDAL account before importing a TIDAL playlist.');
+        }
+
+        const resolvedTracks = await getTidalPlaylistTracksWithToken(tidalPlaylistId, account.tokenSet.accessToken);
+        setPreviewTracks(resolvedTracks.map(track => ({
+          id: track.id,
+          title: track.title,
+          artist: track.artist?.name || '',
+          album: track.album?.title || '',
+          coverUrl: track.album?.cover_medium || track.album?.cover || '',
+          duration: track.duration,
+          releaseDate: track.album?.release_date || '',
+        })));
+        setPreviewLoading(false);
+        return;
+      }
+
       // Fallback to Deezer logic
       const match = playlistLink.match(/playlist\/(\d+)/);
       if (match) {
@@ -114,7 +145,7 @@ export function ImportPlaylistModal({
       } else if (/^\d+$/.test(playlistLink.trim())) {
         playlistId = playlistLink.trim();
       } else {
-        setPreviewError('Please enter a valid Spotify or Deezer playlist link or ID');
+        setPreviewError('Please enter a valid Spotify, Deezer, or TIDAL playlist link or ID');
         setPreviewLoading(false);
         return;
       }
@@ -148,7 +179,7 @@ export function ImportPlaylistModal({
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Import Playlist from Spotify or Deezer</Text>
+          <Text style={styles.modalTitle}>Import Playlist from Spotify, Deezer, or TIDAL</Text>
           <View style={styles.ratingContainer}>
             <Text style={styles.ratingLabel}>Select the rating for the imported songs:</Text>
             <Text style={styles.ratingValue}>
@@ -168,7 +199,7 @@ export function ImportPlaylistModal({
           <View style={{ position: 'relative' }}>
             <TextInput
               style={styles.modalInput}
-              placeholder="Paste Spotify or Deezer playlist link or ID"
+              placeholder="Paste Spotify, Deezer, or TIDAL playlist link or ID"
               placeholderTextColor="#888"
               value={playlistLink}
               onChangeText={onChangeLink}
