@@ -295,7 +295,7 @@ async function fetchPlaylistRelationshipItems(playlistId: string, token: string)
   const collected: any[] = [];
   let nextEndpoint: string | undefined = endpoint;
 
-  for (let page = 0; page < 10 && nextEndpoint; page += 1) {
+  for (let page = 0; page < 50 && nextEndpoint; page += 1) {
     const document = await fetchJsonWithBackoff(nextEndpoint, token);
     const pageItems = extractResourceArray(document);
     collected.push(...pageItems);
