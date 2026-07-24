@@ -114,7 +114,7 @@ export function SearchEmptyState({ loading, error, searchQuery, tracksLength, se
         </View>
         <TouchableOpacity style={styles.importButton} onPress={onImportPlaylist}>
           <Text style={styles.importButtonText}>
-            Import Playlist from Spotify, Deezer, or TIDAL
+            Import Playlist
           </Text>
         </TouchableOpacity>
       </View>
