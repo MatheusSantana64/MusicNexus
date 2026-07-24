@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../../config/firebaseConfig';
+import { showToast } from '../../utils/toast';
 import { MusicTrack } from '../../types';
 import { getTidalTracksByIds } from './tidalApiClient';
 
@@ -14,7 +15,7 @@ const TIDAL_DISCOVERY = {
   tokenEndpoint: 'https://auth.tidal.com/v1/oauth2/token',
 } as const;
 
-const TIDAL_DEBUG_ENABLED = true;
+const TIDAL_DEBUG_ENABLED = false;
 const TIDAL_REQUEST_DELAY_MS = 350;
 
 export interface TidalTokenSet {
@@ -697,12 +698,20 @@ export async function syncTrackToConfiguredTidalPlaylist(track: { id: string; ra
       ? getRatingPlaylistForRating(account, track.previousRating as number)
       : null;
 
+    const getPlaylistName = (id: string) => {
+      const found = account.playlists?.find(p => p.id === id);
+      return found?.title || `Playlist ${id.slice(0, 8)}`;
+    };
+
     if (previousPlaylistId && previousPlaylistId !== playlistId) {
       try {
         await removeTrackFromPlaylist(previousPlaylistId, track.id, accessToken);
+        showToast(`Removed from ${getPlaylistName(previousPlaylistId)}`);
         await new Promise(resolve => setTimeout(resolve, TIDAL_REQUEST_DELAY_MS));
       } catch (error) {
-        console.warn('[tidalAccountService] Failed to remove track from configured TIDAL playlist:', previousPlaylistId, error);
+        const msg = `Failed to remove from ${getPlaylistName(previousPlaylistId)}: ${error instanceof Error ? error.message : error}`;
+        console.warn('[tidalSync]', msg);
+        showToast(msg, 'error');
       }
     }
 
@@ -711,12 +720,15 @@ export async function syncTrackToConfiguredTidalPlaylist(track: { id: string; ra
     if (previousPlaylistId === playlistId) return;
 
     await addTrackToPlaylist(playlistId, track.id, accessToken);
+    showToast(`Added to ${getPlaylistName(playlistId)}`);
     await saveTidalAccount({
       ...account,
       lastSyncedAt: Date.now(),
     });
   } catch (error) {
-    console.error('[tidalAccountService] Failed to sync track to TIDAL playlist:', error);
+    const msg = `TIDAL sync failed: ${error instanceof Error ? error.message : error}`;
+    console.error('[tidalSync]', msg);
+    showToast(msg, 'error');
   }
 }
 

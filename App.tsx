@@ -8,6 +8,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { theme } from './src/styles/theme';
+import { ToastContainer } from './src/utils/toast';
 
 import LibraryScreen from './src//Library/LibraryScreen';
 import SearchScreen from './src/Search/SearchScreen';
@@ -104,6 +105,7 @@ export default function App() {
       <SafeAreaProvider>
         <NavigationContainer>
           <TabNavigator />
+          <ToastContainer />
           <StatusBar style="light" />
         </NavigationContainer>
       </SafeAreaProvider>
