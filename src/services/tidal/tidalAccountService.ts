@@ -296,6 +296,9 @@ async function fetchPlaylistRelationshipItems(playlistId: string, token: string)
   let nextEndpoint: string | undefined = endpoint;
 
   for (let page = 0; page < 50 && nextEndpoint; page += 1) {
+    if (page > 0) {
+      await new Promise(resolve => setTimeout(resolve, TIDAL_REQUEST_DELAY_MS));
+    }
     const document = await fetchJsonWithBackoff(nextEndpoint, token);
     const pageItems = extractResourceArray(document);
     collected.push(...pageItems);
@@ -406,9 +409,13 @@ async function removeTrackFromPlaylist(playlistId: string, trackId: string, toke
     deletePayload,
   });
 
-  const response = await fetch(
-    `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=US`,
-    {
+  const deleteUrl = `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=US`;
+  let lastDeleteError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (attempt > 0) {
+      await new Promise(resolve => setTimeout(resolve, TIDAL_REQUEST_DELAY_MS * (attempt + 1)));
+    }
+    const response = await fetch(deleteUrl, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -416,14 +423,22 @@ async function removeTrackFromPlaylist(playlistId: string, trackId: string, toke
         'Content-Type': 'application/vnd.api+json',
       },
       body: JSON.stringify(deletePayload),
-    }
-  );
+    });
 
-  if (!response.ok) {
+    if (response.ok) return;
+    lastDeleteError = response;
     const body = await response.text();
-    debugTidal('removeTrackFromPlaylist response error', { playlistId, trackId, status: response.status, statusText: response.statusText, body, deletePayload });
-    throw new Error(`TIDAL playlist removal failed (${response.status} ${response.statusText}): ${body}`);
+    const isTransient = response.status === 429 || response.status >= 500;
+    if (!isTransient) {
+      debugTidal('removeTrackFromPlaylist response error', { playlistId, trackId, status: response.status, statusText: response.statusText, body, deletePayload });
+      throw new Error(`TIDAL playlist removal failed (${response.status} ${response.statusText}): ${body}`);
+    }
+    debugTidal('removeTrackFromPlaylist retry', { playlistId, trackId, status: response.status, attempt: attempt + 1 });
   }
+
+  const fallback = lastDeleteError as Response;
+  const fallbackBody = fallback ? await fallback.text().catch(() => '') : '';
+  throw new Error(`TIDAL playlist removal failed after retries (${fallback?.status} ${fallback?.statusText}): ${fallbackBody}`);
 }
 
 function getTrackById(savedMusic: { id: string; title: string; artist: string; rating: number; savedAt: Date; ratingHistory?: { timestamp: string }[] }[], trackId: string) {
@@ -685,6 +700,7 @@ export async function syncTrackToConfiguredTidalPlaylist(track: { id: string; ra
     if (previousPlaylistId && previousPlaylistId !== playlistId) {
       try {
         await removeTrackFromPlaylist(previousPlaylistId, track.id, accessToken);
+        await new Promise(resolve => setTimeout(resolve, TIDAL_REQUEST_DELAY_MS));
       } catch (error) {
         console.warn('[tidalAccountService] Failed to remove track from configured TIDAL playlist:', previousPlaylistId, error);
       }
