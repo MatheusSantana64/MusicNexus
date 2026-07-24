@@ -689,7 +689,7 @@ export async function syncTrackToConfiguredTidalPlaylist(track: { id: string; ra
   try {
     const account = await refreshTidalConnectionIfNeeded();
     if (!account.connected || !account.tokenSet?.accessToken) return;
-    if (!track?.id || !Number.isFinite(track.rating) || track.rating <= 0) return;
+    if (!track?.id || !Number.isFinite(track.rating) || track.rating < 0) return;
 
     const playlistId = getRatingPlaylistForRating(account, track.rating);
     const accessToken = account.tokenSet.accessToken;
