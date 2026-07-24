@@ -59,6 +59,34 @@ export const importPlaylistModalStyles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
+  serviceSelector: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  serviceTab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#222',
+  },
+  serviceTabActive: {
+    backgroundColor: theme.colors.button.primary,
+  },
+  serviceTabText: {
+    color: theme.colors.text.secondary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  serviceTabTextActive: {
+    color: theme.colors.text.primary,
+  },
+  tidalStatus: {
+    fontSize: 12,
+    color: '#4cd964',
+    fontWeight: '600',
+  },
   modalButtonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
