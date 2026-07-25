@@ -166,33 +166,26 @@ export function LibraryHeader({
       {/* SEARCH BAR */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputWrapper}>
-          <TextInput
-            ref={searchInputRef}
-            style={[styles.searchInput, { paddingRight: 48 }]} // Right padding so text doesn't go under the X
+        <TextInput
+          ref={searchInputRef}
+          style={[styles.searchInput, { paddingRight: 40 }]}
           placeholder="Search in library..."
           placeholderTextColor={styles.placeholderText.color}
           value={searchQuery}
           onChangeText={onSearchChange}
           autoCorrect={false}
           clearButtonMode="never"
-          />
-          {searchQuery.length > 0 && (
-          <TouchableOpacity // Clear search button (X)
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity
             onPress={() => onSearchChange('')}
-            style={{
-              position: 'absolute',
-              right: 24,
-              top: 4,
-              bottom: 0,
-              justifyContent: 'center',
-              paddingHorizontal: 4,
-              paddingVertical: 4,
-            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ position: 'absolute', right: 10, top: 0, bottom: 0, justifyContent: 'center' }}
             accessibilityLabel="Clear search"
           >
-            <Text style={{ fontSize: 18, color: theme.colors.text.secondary }}>✕</Text>
+            <Ionicons name="close-circle" size={20} color={theme.colors.text.secondary} />
           </TouchableOpacity>
-          )}
+        )}
         </View>
         <TouchableOpacity
           onPress={() => setShowFilters(prev => !prev)}

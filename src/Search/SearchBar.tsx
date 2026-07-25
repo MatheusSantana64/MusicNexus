@@ -1,10 +1,12 @@
 // src/Search/SearchBar.tsx
 // SearchBar component for the music search feature
 import React from 'react';
-import { View, TextInput, TouchableOpacity, Text } from 'react-native';
+import { View, TextInput, TouchableOpacity } from 'react-native';
 import { SearchMode } from '../types';
 import { SearchFilters } from './SearchFilters';
 import { searchStyles as styles } from './styles/SearchScreen.styles';
+import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../styles/theme';
 
 interface SearchBarProps {
   searchQuery: string;
@@ -45,10 +47,11 @@ export function SearchBar({
         {searchQuery.length > 0 && (
           <TouchableOpacity
             onPress={() => onSearchChange('')}
-            style={{ paddingRight: 12, paddingBottom: 2 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ paddingRight: 10 }}
             accessibilityLabel="Clear search"
           >
-            <Text style={{ fontSize: 18, color: '#888' }}>✕</Text>
+            <Ionicons name="close-circle" size={18} color={theme.colors.text.secondary} />
           </TouchableOpacity>
         )}
       </View>
