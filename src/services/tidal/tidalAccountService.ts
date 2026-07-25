@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../../config/firebaseConfig';
-import { showToast } from '../../utils/toast';
 import { MusicTrack } from '../../types';
 import { getTidalTracksByIds } from './tidalApiClient';
 
@@ -686,50 +685,30 @@ export function getRatingPlaylistForRating(account: TidalAccountData | null | un
   return account?.ratingPlaylists?.[key] || null;
 }
 
-export async function syncTrackToConfiguredTidalPlaylist(track: { id: string; rating: number; previousRating?: number; firebaseId?: string | null }): Promise<void> {
-  try {
-    const account = await refreshTidalConnectionIfNeeded();
-    if (!account.connected || !account.tokenSet?.accessToken) return;
-    if (!track?.id || !Number.isFinite(track.rating) || track.rating < 0) return;
+export async function syncTrackToConfiguredTidalPlaylist(track: { id: string; rating: number; previousRating?: number; firebaseId?: string | null; trackName?: string }): Promise<void> {
+  const account = await refreshTidalConnectionIfNeeded();
+  if (!account.connected || !account.tokenSet?.accessToken) return;
+  if (!track?.id || !Number.isFinite(track.rating) || track.rating < 0) return;
 
-    const playlistId = getRatingPlaylistForRating(account, track.rating);
-    const accessToken = account.tokenSet.accessToken;
-    const previousPlaylistId = Number.isFinite(track.previousRating ?? NaN)
-      ? getRatingPlaylistForRating(account, track.previousRating as number)
-      : null;
+  const playlistId = getRatingPlaylistForRating(account, track.rating);
+  const accessToken = account.tokenSet.accessToken;
+  const previousPlaylistId = Number.isFinite(track.previousRating ?? NaN)
+    ? getRatingPlaylistForRating(account, track.previousRating as number)
+    : null;
 
-    const getPlaylistName = (id: string) => {
-      const found = account.playlists?.find(p => p.id === id);
-      return found?.title || `Playlist ${id.slice(0, 8)}`;
-    };
-
-    if (previousPlaylistId && previousPlaylistId !== playlistId) {
-      try {
-        await removeTrackFromPlaylist(previousPlaylistId, track.id, accessToken);
-        showToast(`Removed from ${getPlaylistName(previousPlaylistId)}`);
-        await new Promise(resolve => setTimeout(resolve, TIDAL_REQUEST_DELAY_MS));
-      } catch (error) {
-        const msg = `Failed to remove from ${getPlaylistName(previousPlaylistId)}: ${error instanceof Error ? error.message : error}`;
-        console.warn('[tidalSync]', msg);
-        showToast(msg, 'error');
-      }
-    }
-
-    if (!playlistId) return;
-
-    if (previousPlaylistId === playlistId) return;
-
-    await addTrackToPlaylist(playlistId, track.id, accessToken);
-    showToast(`Added to ${getPlaylistName(playlistId)}`);
-    await saveTidalAccount({
-      ...account,
-      lastSyncedAt: Date.now(),
-    });
-  } catch (error) {
-    const msg = `TIDAL sync failed: ${error instanceof Error ? error.message : error}`;
-    console.error('[tidalSync]', msg);
-    showToast(msg, 'error');
+  if (previousPlaylistId && previousPlaylistId !== playlistId) {
+    await removeTrackFromPlaylist(previousPlaylistId, track.id, accessToken);
+    await new Promise(resolve => setTimeout(resolve, TIDAL_REQUEST_DELAY_MS));
   }
+
+  if (!playlistId) return;
+  if (previousPlaylistId === playlistId) return;
+
+  await addTrackToPlaylist(playlistId, track.id, accessToken);
+  await saveTidalAccount({
+    ...account,
+    lastSyncedAt: Date.now(),
+  });
 }
 
 export async function importFromConfiguredPlaylists(

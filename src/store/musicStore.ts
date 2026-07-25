@@ -12,6 +12,7 @@ import { setSavedMusicMeta } from '../services/firestoreMetaHelper';
 import NetInfo from '@react-native-community/netinfo';
 import { deleteMusic, SortMode } from '../services/music/musicService';
 import { syncTrackToConfiguredTidalPlaylist } from '../services/tidal/tidalAccountService';
+import { showToast } from '../utils/toast';
 import { doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -78,6 +79,7 @@ const STORAGE_KEYS = {
   DELETED_MUSIC_IDS: 'deletedMusicIds',
   DIRTY_FLAG: 'musicStoreDirty',
   DIRTY_MUSIC_IDS: 'dirtyMusicIds',
+  TIDAL_SYNC_QUEUE: 'tidalSyncQueue',
 } as const;
 
 // ===== ASYNC STORAGE HELPERS =====
@@ -122,6 +124,38 @@ async function removeDirtyMusicId(firebaseId: string): Promise<void> {
   const dirtyIds = await getDirtyMusicIds();
   dirtyIds.delete(firebaseId);
   await setDirtyMusicIds(dirtyIds);
+}
+
+interface TidalSyncQueueItem {
+  trackId: string;
+  trackName: string;
+  rating: number;
+  previousRating?: number;
+  firebaseId: string;
+}
+
+async function getTidalSyncQueue(): Promise<TidalSyncQueueItem[]> {
+  const json = await AsyncStorage.getItem(STORAGE_KEYS.TIDAL_SYNC_QUEUE);
+  return json ? JSON.parse(json) : [];
+}
+
+async function setTidalSyncQueue(items: TidalSyncQueueItem[]): Promise<void> {
+  await AsyncStorage.setItem(STORAGE_KEYS.TIDAL_SYNC_QUEUE, JSON.stringify(items));
+}
+
+async function enqueueTidalSync(item: TidalSyncQueueItem): Promise<void> {
+  const queue = await getTidalSyncQueue();
+  const existing = queue.findIndex(q => q.firebaseId === item.firebaseId);
+  if (existing >= 0) {
+    queue[existing] = item;
+  } else {
+    queue.push(item);
+  }
+  await setTidalSyncQueue(queue);
+}
+
+async function clearTidalSyncQueue(): Promise<void> {
+  await AsyncStorage.removeItem(STORAGE_KEYS.TIDAL_SYNC_QUEUE);
 }
 
 // ===== SYNC HELPERS =====
@@ -201,10 +235,35 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
         await setCachedMusic(cachedMusic, newLastModified);
         set({ _dirty: false, lastUpdated: newLastModified });
         await setDirtyFlag(false);
-        console.log('[musicStore] ✅ Synced dirty tracks to Firestore');
       } else {
         set({ _dirty: false });
         await setDirtyFlag(false);
+      }
+
+      // Sync queued TIDAL playlist operations
+      const tidalQueue = await getTidalSyncQueue();
+      if (tidalQueue.length > 0) {
+        let failed = 0;
+        for (const item of tidalQueue) {
+          try {
+            await syncTrackToConfiguredTidalPlaylist({
+              id: item.trackId,
+              trackName: item.trackName,
+              rating: item.rating,
+              previousRating: item.previousRating,
+              firebaseId: item.firebaseId,
+            });
+          } catch (err) {
+            failed++;
+            const name = item.trackName || item.trackId;
+            showToast(`Failed to sync '${name}' to TIDAL: ${err instanceof Error ? err.message : err}`, 'error');
+          }
+        }
+        await clearTidalSyncQueue();
+        const synced = tidalQueue.length - failed;
+        if (synced > 0) {
+          showToast(`${synced} rating change(s) synced to TIDAL`);
+        }
       }
     } catch (err) {
       console.error('[musicStore] syncMusicWithFirestore failed:', err);
@@ -369,7 +428,16 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
           updateObj.ratingHistory = newRatingHistory;
         }
 
-        await updateDoc(doc(db, 'savedMusic', firebaseId), updateObj);
+        const updatedTrack = updatedMusic.find(music => music.firebaseId === firebaseId);
+        const trackName = updatedTrack ? `${updatedTrack.title} - ${updatedTrack.artist}` : 'Unknown';
+
+        try {
+          await updateDoc(doc(db, 'savedMusic', firebaseId), updateObj);
+        } catch (error) {
+          showToast(`Failed to update '${trackName}' on Firebase: ${error instanceof Error ? error.message : error}`, 'error');
+          return false;
+        }
+
         await removeDirtyMusicId(firebaseId);
 
         const dirtyIds = await getDirtyMusicIds();
@@ -383,17 +451,27 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
         await setCachedMusic(updatedMusic, syncedTimestamp);
         set({ lastUpdated: syncedTimestamp });
 
-        const updatedTrack = updatedMusic.find(music => music.firebaseId === firebaseId);
         if (updatedTrack) {
           void syncTrackToConfiguredTidalPlaylist({
             id: updatedTrack.id,
             rating,
             previousRating: prevRating,
             firebaseId,
+            trackName,
           });
         }
       } else {
         console.log('[musicStore] Offline rating update queued for sync');
+        const updatedTrack = updatedMusic.find(music => music.firebaseId === firebaseId);
+        if (updatedTrack) {
+          await enqueueTidalSync({
+            trackId: updatedTrack.id,
+            trackName: updatedTrack.title,
+            rating,
+            previousRating: prevRating,
+            firebaseId,
+          });
+        }
       }
 
       return true;
@@ -599,10 +677,11 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
 useMusicStore.getState().loadMusic();
 
 // Network listener for automatic sync when coming online
-NetInfo.addEventListener(state => {
+NetInfo.addEventListener(async state => {
   if (state.isConnected) {
     const store = useMusicStore.getState();
-    if (store._dirty) {
+    const tidalQueue = await getTidalSyncQueue();
+    if (store._dirty || tidalQueue.length > 0) {
       store.syncMusicWithFirestore();
     }
   }
