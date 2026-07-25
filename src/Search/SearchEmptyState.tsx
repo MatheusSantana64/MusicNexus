@@ -12,10 +12,11 @@ interface SearchEmptyStateProps {
   tracksLength: number;
   searchMode: SearchMode;
   onImportPlaylist?: () => void;
+  onSyncWithTidal?: () => void;
   hasSearched?: boolean;
 }
 
-export function SearchEmptyState({ loading, error, searchQuery, tracksLength, searchMode, onImportPlaylist, hasSearched }: SearchEmptyStateProps) {
+export function SearchEmptyState({ loading, error, searchQuery, tracksLength, searchMode, onImportPlaylist, onSyncWithTidal, hasSearched }: SearchEmptyStateProps) {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -117,6 +118,13 @@ export function SearchEmptyState({ loading, error, searchQuery, tracksLength, se
             Import Playlist
           </Text>
         </TouchableOpacity>
+        {onSyncWithTidal && (
+          <TouchableOpacity style={[styles.importButton, { marginTop: 8, backgroundColor: '#00570dff' }]} onPress={onSyncWithTidal}>
+            <Text style={styles.importButtonText}>
+              Sync with TIDAL
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }

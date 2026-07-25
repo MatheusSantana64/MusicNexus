@@ -20,6 +20,7 @@ import { searchStyles as styles } from './styles/SearchScreen.styles';
 import { getTags } from '../services/tagService';
 import { Tag } from '../types';
 import { ImportPlaylistModal } from './ImportPlaylistModal';
+import { SyncWithTidalModal } from './SyncWithTidalModal';
 
 export default function SearchScreen({ navigation }: { navigation?: any }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,6 +50,7 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
 
   // Import playlist modal state
   const [importModalVisible, setImportModalVisible] = useState(false);
+  const [syncModalVisible, setSyncModalVisible] = useState(false);
 
   // Fetch tags on mount
   React.useEffect(() => {
@@ -172,6 +174,10 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
     setImportModalVisible(true);
   };
 
+  const handleOpenSyncModal = () => {
+    setSyncModalVisible(true);
+  };
+
   return (
     <ErrorBoundary>
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -199,6 +205,7 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
               tracksLength={tracks.length}
               searchMode={searchMode}
               onImportPlaylist={handleOpenImportModal}
+              onSyncWithTidal={handleOpenSyncModal}
               hasSearched={hasSearched}
             />
           )}
@@ -231,6 +238,12 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
           visible={importModalVisible}
           onCancel={() => setImportModalVisible(false)}
           onImport={() => setImportModalVisible(false)}
+        />
+
+        {/* Sync with TIDAL Modal */}
+        <SyncWithTidalModal
+          visible={syncModalVisible}
+          onClose={() => setSyncModalVisible(false)}
         />
       </SafeAreaView>
     </ErrorBoundary>
