@@ -6,7 +6,7 @@ import { MusicTrack, SavedMusic } from '../types';
 import { FlashList } from '@shopify/flash-list';
 import { MusicItem } from '../components/MusicItem';
 import { useMusicStore } from '../store/musicStore';
-import { refreshTidalConnectionIfNeeded, fetchTidalPlaylistItems, addTrackToConfiguredPlaylist, removeTrackFromConfiguredPlaylist, TidalPlaylistSyncIssue, reconcileTidalRatingPlaylists } from '../services/tidal/tidalAccountService';
+import { refreshTidalConnectionIfNeeded, fetchTidalPlaylistItems, addTrackToConfiguredPlaylist, removeTrackFromConfiguredPlaylist, TidalPlaylistSyncIssue } from '../services/tidal/tidalAccountService';
 import { getTidalTracksByIds } from '../services/tidal/tidalApiClient';
 import { saveMusicBatch } from '../services/music/musicService';
 import { showToast } from '../utils/toast';
@@ -245,31 +245,91 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
     try {
       const account = await refreshTidalConnectionIfNeeded();
       if (!account.connected || !account.tokenSet?.accessToken) throw new Error('TIDAL not connected');
+      const token = account.tokenSet.accessToken;
 
-      let allIssues: TidalPlaylistSyncIssue[] = [];
+      const ratingToPlaylistId = new Map<string, string>();
+      for (const [rating, playlistId] of Object.entries(account.ratingPlaylists || {})) {
+        ratingToPlaylistId.set(playlistId, rating);
+      }
+
+      const trackLocations = new Map<string, Array<{ playlistId: string; rating: string; addedAt?: string }>>();
       let scannedCount = 0;
-      const selectedPlaylistEntries = Object.entries(account.ratingPlaylists || {})
+      const selectedEntries = Object.entries(account.ratingPlaylists || {})
         .filter(([, id]) => selectedPlaylistIds.has(id));
 
-      for (const [rating, playlistId] of selectedPlaylistEntries) {
-        setScanStatus(`Scanning rating ${rating}... (${scannedCount + 1}/${selectedPlaylistEntries.length})`);
-        const result = await reconcileTidalRatingPlaylists(
-          savedMusic.map(m => ({
-            id: m.id,
-            title: m.title,
-            artist: m.artist,
-            rating: m.rating,
-            savedAt: m.savedAt,
-            ratingHistory: m.ratingHistory,
-          })),
-          playlistId
-        );
-        allIssues = allIssues.concat(result.issues);
+      for (const [rating, playlistId] of selectedEntries) {
+        setScanStatus(`Scanning rating ${rating}... (${scannedCount + 1}/${selectedEntries.length})`);
+        const items = await fetchTidalPlaylistItems(playlistId, token);
+        for (const item of items) {
+          const trackId = String(item.id || '');
+          if (!trackId) continue;
+          const locations = trackLocations.get(trackId) || [];
+          locations.push({ playlistId, rating, addedAt: item.meta?.addedAt });
+          trackLocations.set(trackId, locations);
+        }
         scannedCount++;
       }
-      setIssues(allIssues);
-      setScanStatus(allIssues.length > 0
-        ? `Found ${allIssues.length} conflict(s)`
+
+      const savedMusicMap = new Map(savedMusic.map(m => [m.id, m]));
+      const newIssues: TidalPlaylistSyncIssue[] = [];
+
+      for (const [trackId, locations] of trackLocations.entries()) {
+        const libraryTrack = savedMusicMap.get(trackId);
+
+        if (!libraryTrack) {
+          newIssues.push({
+            trackId,
+            trackTitle: undefined,
+            artist: undefined,
+            playlistIds: locations.map(l => l.playlistId),
+            playlistRatings: locations.map(l => l.rating),
+            playlistDetails: locations,
+            conflictType: 'missing',
+          });
+          continue;
+        }
+
+        const playlistRatings = locations.map(l => Number(l.rating));
+        const uniquePlaylistRatings = [...new Set(playlistRatings)];
+
+        if (uniquePlaylistRatings.length > 1 || locations.length > 1) {
+          newIssues.push({
+            trackId,
+            trackTitle: libraryTrack.title,
+            artist: libraryTrack.artist,
+            playlistIds: locations.map(l => l.playlistId),
+            playlistRatings: locations.map(l => l.rating),
+            playlistDetails: locations,
+            libraryRating: libraryTrack.rating,
+            libraryTimestamp: libraryTrack.ratingHistory?.length
+              ? new Date(Math.max(...libraryTrack.ratingHistory.map(h => Date.parse(h.timestamp)).filter(Number.isFinite))).toISOString()
+              : libraryTrack.savedAt?.toISOString(),
+            conflictType: 'duplicate',
+          });
+          continue;
+        }
+
+        const singleLocation = locations[0];
+        if (Number(libraryTrack.rating) !== Number(singleLocation.rating)) {
+          newIssues.push({
+            trackId,
+            trackTitle: libraryTrack.title,
+            artist: libraryTrack.artist,
+            playlistIds: [singleLocation.playlistId],
+            playlistRatings: [singleLocation.rating],
+            playlistDetails: [singleLocation],
+            libraryRating: libraryTrack.rating,
+            libraryTimestamp: libraryTrack.ratingHistory?.length
+              ? new Date(Math.max(...libraryTrack.ratingHistory.map(h => Date.parse(h.timestamp)).filter(Number.isFinite))).toISOString()
+              : libraryTrack.savedAt?.toISOString(),
+            conflictType: 'mismatch',
+          });
+        }
+      }
+
+      setIssues(newIssues);
+      setScanStatus(newIssues.length > 0
+        ? `Found ${newIssues.length} conflict(s)`
         : 'No conflicts found');
     } catch (error) {
       console.error('[SyncWithTidalModal] Scan error:', error);
@@ -280,19 +340,20 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
     }
   };
 
-  const resolveIssue = async (issue: TidalPlaylistSyncIssue, keep: 'library' | 'playlist', selectedPlaylistId?: string) => {
-    const track = savedMusic.find(item => item.id === issue.trackId);
-    if (!track) {
-      Alert.alert('Missing track', 'That track is no longer in your library.');
-      return;
-    }
-
+  const resolveIssue = async (issue: TidalPlaylistSyncIssue, keep: 'library' | 'playlist' | 'skip', selectedPlaylistId?: string) => {
     setResolvingTrackIds(prev => new Set(prev).add(issue.trackId));
     try {
       const account = await refreshTidalConnectionIfNeeded();
       if (!account.connected || !account.tokenSet?.accessToken) throw new Error('TIDAL not connected');
 
-      if (keep === 'library') {
+      if (keep === 'skip') {
+        showToast('Skipped');
+      } else if (keep === 'library') {
+        const track = savedMusic.find(item => item.id === issue.trackId);
+        if (!track) {
+          Alert.alert('Missing track', 'That track is no longer in your library.');
+          return;
+        }
         const keepRatingPlaylistId = account.ratingPlaylists?.[Number(track.rating).toFixed(1)];
         for (const playlistId of issue.playlistIds) {
           await removeTrackFromConfiguredPlaylist(playlistId, issue.trackId);
@@ -302,19 +363,54 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
         }
         showToast('Kept library rating, updated TIDAL');
       } else if (keep === 'playlist' && selectedPlaylistId) {
+        const existingTrack = savedMusic.find(item => item.id === issue.trackId);
+        const selectedRating = Number(
+          Object.entries(account.ratingPlaylists || {}).find(([, id]) => id === selectedPlaylistId)?.[0] || '0'
+        );
+
         for (const playlistId of issue.playlistIds) {
           if (playlistId !== selectedPlaylistId) {
             await removeTrackFromConfiguredPlaylist(playlistId, issue.trackId);
           }
         }
-        const selectedRating = Number(
-          Object.entries(account.ratingPlaylists || {}).find(([, id]) => id === selectedPlaylistId)?.[0] || track.rating
-        );
-        if (track.firebaseId) {
-          await updateRating(track.firebaseId, selectedRating);
+
+        if (existingTrack) {
+          if (existingTrack.firebaseId) {
+            await updateRating(existingTrack.firebaseId, selectedRating);
+          }
+          await addTrackToConfiguredPlaylist(selectedPlaylistId, issue.trackId);
+          showToast('Kept TIDAL playlist version');
+        } else {
+          const tidalTracks = await getTidalTracksByIds([issue.trackId], account.tokenSet.accessToken);
+          if (tidalTracks.length > 0) {
+            const track = tidalTracks[0];
+            const firebaseIds = await saveMusicBatch([track], selectedRating, [], true);
+            if (firebaseIds[0]) {
+              const now = new Date();
+              useMusicStore.getState().addMusicBatch([{
+                id: track.id,
+                title: track.title,
+                artist: track.artist.name,
+                artistId: track.artist.id,
+                album: track.album.title,
+                albumId: track.album.id,
+                coverUrl: track.album.cover || track.album.cover_medium || track.album.cover_small || '',
+                duration: track.duration,
+                rating: selectedRating,
+                releaseDate: track.album.release_date,
+                trackPosition: track.track_position || 1,
+                diskNumber: track.disk_number || 1,
+                savedAt: now,
+                firebaseId: firebaseIds[0],
+                tags: [],
+                ratingHistory: selectedRating > 0 ? [{ rating: selectedRating, timestamp: now.toISOString() }] : [],
+              }]);
+              showToast(`Imported as rating ${selectedRating}`);
+            }
+          } else {
+            showToast('Failed to fetch track from TIDAL', 'error');
+          }
         }
-        await addTrackToConfiguredPlaylist(selectedPlaylistId, issue.trackId);
-        showToast('Kept TIDAL playlist version');
       }
       setIssues(prev => prev.filter(item => item.trackId !== issue.trackId));
     } catch (error) {
@@ -624,21 +720,33 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
 
       case 'issue': {
         const { issue, busy } = data;
-        const isDuplicate = issue.conflictType === 'duplicate';
+        const isMissing = issue.conflictType === 'missing';
         const libraryAt = issue.libraryTimestamp ? Date.parse(issue.libraryTimestamp) : 0;
         const newestPlaylistAt = Math.max(...(issue.playlistDetails || []).map((d: { addedAt?: string }) => Date.parse(d.addedAt || '')).filter(Number.isFinite), 0);
         const newestSource = libraryAt >= newestPlaylistAt ? 'library' : 'playlist';
+
+        const uniquePlaylistButtons = new Map<string, { playlistId: string; rating: string }>();
+        issue.playlistIds.forEach((playlistId: string, index: number) => {
+          const key = issue.playlistRatings[index];
+          if (!uniquePlaylistButtons.has(key)) {
+            uniquePlaylistButtons.set(key, { playlistId, rating: key });
+          }
+        });
 
         return (
           <View style={styles.issueItem} key={issue.trackId + issue.conflictType}>
             <Text style={styles.issueTitle} numberOfLines={2}>{issue.trackTitle || issue.trackId}</Text>
             <Text style={styles.issueSubtitle} numberOfLines={2}>
-              {issue.artist || 'Unknown artist'} — library {issue.libraryRating ?? 'n/a'} — playlists {issue.playlistRatings.join(', ')}
+              {issue.artist || 'Unknown artist'}
+              {!isMissing && issue.libraryRating != null && ` — library ${issue.libraryRating}`}
+              {uniquePlaylistButtons.size > 0 && ` — playlists ${issue.playlistRatings.join(', ')}`}
             </Text>
             <View style={styles.timestampRow}>
-              <Text style={[styles.timestamp, newestSource === 'library' && styles.timestampHighlight]}>
-                Library: {issue.libraryTimestamp ? formatDateTimeDDMMYY_HHMM(issue.libraryTimestamp) : 'unknown'}
-              </Text>
+              {issue.libraryTimestamp && (
+                <Text style={[styles.timestamp, newestSource === 'library' && styles.timestampHighlight]}>
+                  Library: {formatDateTimeDDMMYY_HHMM(issue.libraryTimestamp)}
+                </Text>
+              )}
               {(issue.playlistDetails || []).map((detail: { playlistId: string; rating: string; addedAt?: string }) => (
                 <Text
                   key={detail.playlistId}
@@ -648,25 +756,40 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
                 </Text>
               ))}
             </View>
-            <Text style={styles.issueType}>{isDuplicate ? 'Song is on multiple playlists.' : 'Song is on a different rating playlist than your library rating.'}</Text>
+            <Text style={styles.issueType}>
+              {isMissing ? 'Song not in library.' : issue.conflictType === 'duplicate' ? 'Song is on multiple playlists.' : 'Song is on a different rating playlist than your library rating.'}
+            </Text>
             <View style={styles.issueActions}>
-              <TouchableOpacity
-                onPress={() => resolveIssue(issue, 'library')}
-                disabled={busy}
-                style={[styles.issueActionButton, styles.issueActionButtonLibrary]}
-              >
-                <Text style={styles.issueActionButtonText}>{busy ? 'Working...' : 'Keep library'}</Text>
-              </TouchableOpacity>
-              {issue.playlistIds.map((playlistId: string, index: number) => (
+              {!isMissing && (
+                <TouchableOpacity
+                  onPress={() => resolveIssue(issue, 'library')}
+                  disabled={busy}
+                  style={[styles.issueActionButton, styles.issueActionButtonLibrary]}
+                >
+                  <Text style={styles.issueActionButtonText}>{busy ? 'Working...' : 'Keep library'}</Text>
+                </TouchableOpacity>
+              )}
+              {Array.from(uniquePlaylistButtons.values()).map(({ playlistId, rating }) => (
                 <TouchableOpacity
                   key={playlistId}
                   onPress={() => resolveIssue(issue, 'playlist', playlistId)}
                   disabled={busy}
                   style={[styles.issueActionButton, styles.issueActionButtonPlaylist]}
                 >
-                  <Text style={styles.issueActionButtonText}>Keep playlist {issue.playlistRatings[index]}</Text>
+                  <Text style={styles.issueActionButtonText}>
+                    {busy ? 'Working...' : isMissing ? `Import as ${rating}` : `Keep ${rating}`}
+                  </Text>
                 </TouchableOpacity>
               ))}
+              {isMissing && (
+                <TouchableOpacity
+                  onPress={() => resolveIssue(issue, 'skip')}
+                  disabled={busy}
+                  style={[styles.issueActionButton, styles.issueActionButtonLibrary]}
+                >
+                  <Text style={styles.issueActionButtonText}>{busy ? 'Working...' : 'Skip'}</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         );
