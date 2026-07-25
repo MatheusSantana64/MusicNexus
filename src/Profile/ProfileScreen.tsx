@@ -1,8 +1,8 @@
 // src/Profile/ProfileScreen.tsx
 // ProfileScreen for displaying user profile and statistics
 import React, { useMemo, useState } from 'react';
-import { View, Text, Alert, ScrollView } from 'react-native';
-import { theme } from '../styles/theme';
+import { View, Text, Alert, ScrollView, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useMusicStore } from '../store/musicStore';
 import { useTagStore } from '../store/tagStore';
 import { getDocs, collection, deleteDoc, doc } from 'firebase/firestore';
@@ -14,6 +14,10 @@ import { TidalAccountModal } from './TidalAccountModal';
 import { calculateProfileStats } from './profileStatsUtils';
 import { profileScreenStyles as styles } from './styles/ProfileScreen.styles';
 import { getRatingText, getRatingColor } from '../utils/ratingUtils';
+import { theme } from '../styles/theme';
+
+type DistMode = 'ratings' | 'years' | 'tags';
+const DIST_MODES: DistMode[] = ['ratings', 'years', 'tags'];
 
 async function deleteAllSongs() {
   try {
@@ -45,8 +49,41 @@ export default function ProfileScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [tipsModalVisible, setTipsModalVisible] = useState(false);
   const [accountModalVisible, setAccountModalVisible] = useState(false);
+  const [distMode, setDistMode] = useState<DistMode>('ratings');
 
   const stats = useMemo(() => calculateProfileStats(savedMusic, tags), [savedMusic, tags]);
+
+  const cycleMode = () => {
+    setDistMode(prev => DIST_MODES[(DIST_MODES.indexOf(prev) + 1) % DIST_MODES.length]);
+  };
+
+  const activeRatings = useMemo(() => {
+    return Object.entries(stats.ratingCounts)
+      .filter(([, count]) => count > 0)
+      .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]));
+  }, [stats.ratingCounts]);
+
+  const activeYears = useMemo(() => {
+    return Object.entries(stats.yearCounts)
+      .filter(([, count]) => count > 0)
+      .sort((a, b) => b[0].localeCompare(a[0]));
+  }, [stats.yearCounts]);
+
+  const activeTags = useMemo(() => {
+    return Object.entries(stats.tagCounts)
+      .filter(([, count]) => count > 0)
+      .sort((a, b) => {
+        const tagA = tags.find(t => t.name === a[0]);
+        const tagB = tags.find(t => t.name === b[0]);
+        if (tagA && tagB) return tagA.position - tagB.position;
+        if (tagA) return -1;
+        if (tagB) return 1;
+        return b[1] - a[1];
+      });
+  }, [stats.tagCounts, tags]);
+
+  const distEntries = distMode === 'ratings' ? activeRatings : distMode === 'years' ? activeYears : activeTags;
+  const maxCount = Math.max(1, ...distEntries.map(([, c]) => c));
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -69,110 +106,65 @@ export default function ProfileScreen() {
           onClose={() => setAccountModalVisible(false)}
         />
         <View style={styles.headerBar} />
-        <View style={styles.section}>
+        <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={styles.sectionTitle}>Stats</Text>
-          <View style={styles.statsRow}>
-            <Text style={[styles.sectionBody, { fontWeight: 'bold', color: 'cornflowerblue' }]}>
-              Songs: {stats.totalSongs}
-            </Text>
-            <Text style={[styles.sectionBody, { fontWeight: 'bold', color: 'lightcoral' }]}>
-              Albums: {stats.totalAlbums}
-            </Text>
-            <Text style={[styles.sectionBody, { fontWeight: 'bold', color: 'lightpink' }]}>
-              Artists: {stats.totalArtists}
-            </Text>
-          </View>
-          <View style={[styles.statsRow, {justifyContent: 'center'}]}>
-            {/* Removed Average Rating from here */}
-          </View>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', marginTop: 12 }}>
-              <View style={{ flex: 1, alignItems: 'center' }}>
-                <View>
-                  <Text
-                    style={[
-                      styles.sectionBody,
-                      styles.columnTitle,
-                      { color: theme.colors.gold }
-                    ]}
-                  >
-                    Ratings
-                  </Text>
-                  <ScrollView style={{ width: '100%' }}>
-                    {Object.entries(stats.ratingCounts)
-                      .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]))
-                      .map(([rating, count]) => (
-                        <Text
-                          key={rating}
-                          style={[
-                            styles.sectionBody,
-                            { color: getRatingColor(Number(rating)) }
-                          ]}
-                        >
-                          {getRatingText(Number(rating))}: {count}
-                        </Text>
-                      ))}
-                    <Text style={[styles.sectionBody, { marginTop: 8, fontWeight: 'bold' }]}>
-                      Average: {stats.avgRating}
-                    </Text>
-                  </ScrollView>
-                </View>
-              </View>
-              <View style={{ flex: 1, alignItems: 'center' }}>
-                <View>
-                  <Text
-                    style={[
-                      styles.sectionBody,
-                      styles.columnTitle,
-                      { color: 'mediumpurple' }
-                    ]}
-                  >
-                    Year
-                  </Text>
-                  <ScrollView style={{ width: '100%' }}>
-                    {Object.entries(stats.yearCounts)
-                      .sort((a, b) => b[0].localeCompare(a[0]))
-                      .map(([year, count]) => (
-                        <Text key={year} style={styles.sectionBody}>
-                          {year}: {count}
-                        </Text>
-                      ))}
-                  </ScrollView>
-                </View>
-              </View>
-              <View style={{ flex: 1, alignItems: 'center' }}>
-                <View>
-                  <Text
-                    style={[
-                      styles.sectionBody,
-                      styles.columnTitle,
-                      { color: 'mediumseagreen' }
-                    ]}
-                  >
-                    Tags
-                  </Text>
-                  <ScrollView style={{ width: '100%' }}>
-                    {Object.entries(stats.tagCounts)
-                      .sort((a, b) => {
-                        // Sort by tag position if possible, fallback to count
-                        const tagA = tags.find(t => t.name === a[0]);
-                        const tagB = tags.find(t => t.name === b[0]);
-                        if (tagA && tagB) return tagA.position - tagB.position;
-                        if (tagA) return -1;
-                        if (tagB) return 1;
-                        return b[1] - a[1];
-                      })
-                      .map(([tagName, count]) => (
-                        <Text key={tagName} style={styles.sectionBody}>
-                          {tagName}: {count}
-                        </Text>
-                      ))}
-                  </ScrollView>
-                </View>
-              </View>
+
+          <View style={styles.heroRow}>
+            <View style={styles.heroCard}>
+              <Ionicons name="musical-notes" size={22} color="cornflowerblue" style={{ marginBottom: 2 }} />
+              <Text style={styles.heroNumber}>{stats.totalSongs}</Text>
+              <Text style={styles.heroLabel}>Songs</Text>
+            </View>
+            <View style={styles.heroCard}>
+              <Ionicons name="disc" size={22} color="lightcoral" style={{ marginBottom: 2 }} />
+              <Text style={styles.heroNumber}>{stats.totalAlbums}</Text>
+              <Text style={styles.heroLabel}>Albums</Text>
+            </View>
+            <View style={styles.heroCard}>
+              <Ionicons name="person" size={22} color="lightpink" style={{ marginBottom: 2 }} />
+              <Text style={styles.heroNumber}>{stats.totalArtists}</Text>
+              <Text style={styles.heroLabel}>Artists</Text>
             </View>
           </View>
-        </View>
+
+          <View style={styles.ratingSection}>
+            <Pressable style={styles.ratingHeader} onPress={cycleMode}>
+              <View style={styles.ratingTitleRow}>
+                <Text style={styles.ratingSectionTitle}>
+                  {distMode === 'ratings' ? 'Rating' : distMode === 'years' ? 'Year' : 'Tag'} Distribution
+                </Text>
+                <Ionicons name="swap-horizontal" size={16} color={theme.colors.text.muted} style={{ marginLeft: 6 }} />
+              </View>
+              {distMode === 'ratings' && (
+                <View style={styles.avgBadge}>
+                  <Text style={styles.avgBadgeText}>Avg: {stats.avgRating}</Text>
+                </View>
+              )}
+            </Pressable>
+            {distEntries.map(([key, count]) => {
+              const color = distMode === 'ratings'
+                ? getRatingColor(Number(key))
+                : distMode === 'years'
+                  ? 'mediumpurple'
+                  : tags.find(t => t.name === key)?.color ?? 'mediumseagreen';
+              const label = distMode === 'ratings' ? getRatingText(Number(key)) : key;
+              return (
+                <View key={key} style={styles.ratingBarRow}>
+                  <Text style={styles.ratingBarLabel} numberOfLines={1}>{label}</Text>
+                  <View style={styles.ratingBarTrack}>
+                    <View
+                      style={[
+                        styles.ratingBarFill,
+                        { width: `${(count / maxCount) * 100}%`, backgroundColor: color },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.ratingBarCount}>{count}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
