@@ -10,20 +10,13 @@ import { getProfileData, setProfileData, subscribeToProfileChanges } from '../se
 import { useMusicStore } from '../store/musicStore';
 import { MusicTrack } from '../types';
 import { MusicSearchService } from '../services/music/musicSearchService';
-import { migrateSavedMusicToTidal, approveTidalMigration, isAlreadyTidalTrack, MigrationProgress, MigrationSummary, MigrationLogEntry } from '../services/migration/tidalMigrationService';
+import { approveTidalMigration } from '../services/migration/tidalMigrationService';
 import { MusicItem } from '../components/MusicItem';
 import { getTidalTrackById } from '../services/tidal/tidalApiClient';
 import { backupAllCollections, exportLocalBackup, importLocalBackup } from '../services/backupService';
 import { showToast } from '../utils/toast';
 
 const RATING_STEPS = Array.from({ length: 21 }, (_, i) => (i * 0.5).toFixed(1)).reverse();
-
-interface DuplicateSongGroup {
-  key: string;
-  title: string;
-  artist: string;
-  tracks: ReturnType<typeof useMusicStore>['savedMusic'];
-}
 
 interface ProfileConfigModalProps {
   visible: boolean;
@@ -43,16 +36,10 @@ export function ProfileConfigModal({
   onOpenAccount,
 }: ProfileConfigModalProps) {
   const [tooltips, setTooltips] = React.useState<{ [rating: string]: string }>({});
-  const [migrationProgress, setMigrationProgress] = React.useState<MigrationProgress | null>(null);
-  const [migrationSummary, setMigrationSummary] = React.useState<MigrationSummary | null>(null);
-  const [showMigrationLog, setShowMigrationLog] = React.useState(false);
-  const [migrationLog, setMigrationLog] = React.useState<MigrationLogEntry[]>([]);
-  const [isMigrating, setIsMigrating] = React.useState(false);
-  const [searchingMigrationEntry, setSearchingMigrationEntry] = React.useState<MigrationLogEntry | null>(null);
-  const [migrationSearchQuery, setMigrationSearchQuery] = React.useState('');
-  const [migrationSearchResults, setMigrationSearchResults] = React.useState<MusicTrack[]>([]);
-  const [migrationSearchLoading, setMigrationSearchLoading] = React.useState(false);
-  const [isApprovingMigration, setIsApprovingMigration] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchResults, setSearchResults] = React.useState<MusicTrack[]>([]);
+  const [searchLoading, setSearchLoading] = React.useState(false);
+  const [isApproving, setIsApproving] = React.useState(false);
   const [showDuplicateFinder, setShowDuplicateFinder] = React.useState(false);
   const [duplicateGroups, setDuplicateGroups] = React.useState<Array<{ key: string; title: string; artist: string; tracks: any[] }>>([]);
   const [duplicateTarget, setDuplicateTarget] = React.useState<any | null>(null);
@@ -63,7 +50,6 @@ export function ProfileConfigModal({
   const [isImporting, setIsImporting] = React.useState(false);
   const [importProgress, setImportProgress] = React.useState<{ phase: string; current: number; total: number } | null>(null);
   const { savedMusic } = useMusicStore();
-  const migratableSavedMusic = savedMusic.filter(track => !isAlreadyTidalTrack(track));
 
   const normalizeSearchValue = React.useCallback((value: string) => {
     return value
@@ -96,7 +82,7 @@ export function ProfileConfigModal({
     return { artist, album };
   }, []);
 
-  const buildMigrationSearchQueries = React.useCallback((query: string) => {
+  const buildSearchQueries = React.useCallback((query: string) => {
     const trimmed = query.trim();
     const artistAlbum = splitArtistAlbumQuery(trimmed);
     const normalized = normalizeSearchValue(trimmed);
@@ -175,27 +161,20 @@ export function ProfileConfigModal({
   React.useEffect(() => {
     let unsub: (() => void) | undefined;
     if (visible) {
-      // Load from local AsyncStorage cache first (for offline support)
       AsyncStorage.getItem('ratingTooltips').then(val => {
         if (val) setTooltips(JSON.parse(val));
       });
-      
-      // Then try to sync with Firestore and update local cache if needed
+
       getProfileData().then(data => {
         if (data.ratingTooltips) {
           setTooltips(data.ratingTooltips);
-          // Update AsyncStorage cache if it differs
           AsyncStorage.setItem('ratingTooltips', JSON.stringify(data.ratingTooltips));
         }
-      }).catch(() => {
-        // Ignore errors; local cache is already loaded
-      });
-      
-      // Subscribe to live updates while modal is visible
+      }).catch(() => {});
+
       unsub = subscribeToProfileChanges((data) => {
         if (data.ratingTooltips) {
           setTooltips(data.ratingTooltips);
-          // Update AsyncStorage cache
           AsyncStorage.setItem('ratingTooltips', JSON.stringify(data.ratingTooltips));
         }
       });
@@ -208,70 +187,7 @@ export function ProfileConfigModal({
     const updated = { ...tooltips, [rating]: text };
     setTooltips(updated);
     AsyncStorage.setItem('ratingTooltips', JSON.stringify(updated));
-    setProfileData({ ratingTooltips: updated }); // Save to Firestore
-  };
-
-  const handleMigrateToTidal = async () => {
-    if (migratableSavedMusic.length === 0) {
-      Alert.alert('No Songs to Migrate', 'All saved songs already have TIDAL artwork and will be skipped.');
-      return;
-    }
-
-    Alert.alert(
-      'Select Target Platform',
-      'Choose the platform to which your saved songs should be migrated.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'TIDAL', style: 'default', onPress: confirmTidalMigration },
-      ]
-    );
-  };
-
-  const confirmTidalMigration = () => {
-    Alert.alert(
-      'Migrate Saved Music to TIDAL',
-      `This will search TIDAL for matches to your ${migratableSavedMusic.length} non-TIDAL saved songs and update their platform metadata (track ID, artist ID, album ID, artwork, etc.) while preserving all your local MusicNexus data (ratings, tags, savedAt, ratingHistory, firebaseId).\n\nSongs that already have TIDAL artwork will be skipped. Songs that cannot be confidently matched will be logged and left unchanged.\n\nProceed with migration?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Migrate', style: 'default', onPress: () => startMigration() },
-      ]
-    );
-  };
-
-  const startMigration = async () => {
-    setIsMigrating(true);
-    setMigrationProgress(null);
-    setMigrationSummary(null);
-    setMigrationLog([]);
-
-    try {
-      await migrateSavedMusicToTidal(
-        savedMusic,
-        (progress) => {
-          setMigrationProgress(progress);
-        },
-        (summary) => {
-          setMigrationSummary(summary);
-          setMigrationLog(summary.migrationLog);
-          setIsMigrating(false);
-          if (summary.successful > 0) {
-            useMusicStore.getState().loadMusic();
-          }
-        }
-      );
-    } catch (error) {
-      console.error('Migration error:', error);
-      Alert.alert('Migration Failed', 'An error occurred during migration. Please try again.');
-      setIsMigrating(false);
-    }
-  };
-
-  const handleViewMigrationLog = () => {
-    setShowMigrationLog(true);
-  };
-
-  const handleCloseMigrationLog = () => {
-    setShowMigrationLog(false);
+    setProfileData({ ratingTooltips: updated });
   };
 
   const openDuplicateFinder = () => {
@@ -282,22 +198,15 @@ export function ProfileConfigModal({
 
   const openDuplicateTarget = (track: any) => {
     setDuplicateTarget(track);
-    setMigrationSearchQuery(String(track.id || '').trim());
-    setMigrationSearchResults([]);
+    setSearchQuery(String(track.id || '').trim());
+    setSearchResults([]);
   };
 
-  const openMigrationEntry = (entry: MigrationLogEntry) => {
-    setSearchingMigrationEntry(entry);
-    setMigrationSearchQuery(String(entry.originalTrack.id || '').trim());
-    setMigrationSearchResults([]);
-  };
-
-  const closeMigrationSearch = () => {
-    if (!isApprovingMigration && !migrationSearchLoading) {
-      setSearchingMigrationEntry(null);
+  const closeSearch = () => {
+    if (!isApproving && !searchLoading) {
       setDuplicateTarget(null);
-      setMigrationSearchQuery('');
-      setMigrationSearchResults([]);
+      setSearchQuery('');
+      setSearchResults([]);
     }
   };
 
@@ -396,34 +305,29 @@ export function ProfileConfigModal({
     }
   };
 
-  const submitMigrationSearch = React.useCallback(() => {
-    if (!searchingMigrationEntry && !duplicateTarget) return;
-    void runMigrationSearch(migrationSearchQuery);
-  }, [duplicateTarget, migrationSearchQuery, runMigrationSearch, searchingMigrationEntry]);
-
-  const runMigrationSearch = React.useCallback(async (query: string) => {
-    if (!searchingMigrationEntry && !duplicateTarget) return;
+  const runSearch = React.useCallback(async (query: string) => {
+    if (!duplicateTarget) return;
     const trimmed = query.trim();
     const exactTrackId = extractTidalTrackId(trimmed);
-    setMigrationSearchQuery(query);
+    setSearchQuery(query);
 
     if (!trimmed) {
-      setMigrationSearchResults([]);
+      setSearchResults([]);
       return;
     }
 
     try {
-      setMigrationSearchLoading(true);
+      setSearchLoading(true);
 
       if (/^\d+$/.test(exactTrackId)) {
         const track = await getTidalTrackById(exactTrackId);
         if (track) {
-          setMigrationSearchResults([track]);
+          setSearchResults([track]);
           return;
         }
       }
 
-      const queries = buildMigrationSearchQueries(trimmed);
+      const queries = buildSearchQueries(trimmed);
       const isArtistAlbumSearch = Boolean(splitArtistAlbumQuery(trimmed));
       const searchMode = isArtistAlbumSearch ? 'tidal_album' : 'tidal_quick';
       let bestResults: MusicTrack[] = [];
@@ -454,48 +358,38 @@ export function ProfileConfigModal({
         }
       }
 
-      setMigrationSearchResults(bestResults);
+      setSearchResults(bestResults);
     } catch (error) {
       Alert.alert('Search Failed', error instanceof Error ? error.message : 'Could not search TIDAL.');
     } finally {
-      setMigrationSearchLoading(false);
+      setSearchLoading(false);
     }
-  }, [buildMigrationSearchQueries, duplicateTarget, extractTidalTrackId, normalizeSearchValue, searchingMigrationEntry, splitArtistAlbumQuery]);
+  }, [buildSearchQueries, duplicateTarget, extractTidalTrackId, normalizeSearchValue, splitArtistAlbumQuery]);
 
-  const approveSelectedMigration = async (selectedTrack: MusicTrack) => {
-    if (!searchingMigrationEntry && !duplicateTarget) return;
+  const submitSearch = React.useCallback(() => {
+    if (!duplicateTarget) return;
+    void runSearch(searchQuery);
+  }, [duplicateTarget, searchQuery, runSearch]);
 
-    setIsApprovingMigration(true);
+  const approveSelectedTrack = async (selectedTrack: MusicTrack) => {
+    if (!duplicateTarget) return;
+
+    setIsApproving(true);
     try {
-      const targetTrack = searchingMigrationEntry?.originalTrack || duplicateTarget;
-      if (!targetTrack) return;
-      await approveTidalMigration(targetTrack, selectedTrack);
-      if (searchingMigrationEntry) {
-        setMigrationLog(current => current.filter(entry => entry !== searchingMigrationEntry));
-        setMigrationSummary(current => current ? {
-          ...current,
-          successful: current.successful + 1,
-          failed: Math.max(0, current.failed - 1),
-          results: current.results.map(result =>
-            result.originalTrack.firebaseId === searchingMigrationEntry.originalTrack.firebaseId
-              ? { ...result, success: true, matchedTrack: selectedTrack, error: undefined }
-              : result
-          ),
-          migrationLog: current.migrationLog.filter(entry => entry !== searchingMigrationEntry),
-        } : current);
-      }
-      setSearchingMigrationEntry(null);
+      await approveTidalMigration(duplicateTarget, selectedTrack);
       setDuplicateTarget(null);
-      setMigrationSearchQuery('');
-      setMigrationSearchResults([]);
+      setSearchQuery('');
+      setSearchResults([]);
       useMusicStore.getState().loadMusic();
-      Alert.alert('Migration Approved', 'The selected TIDAL match was applied successfully.');
+      Alert.alert('Success', 'The selected TIDAL match was applied successfully.');
     } catch (error) {
-      Alert.alert('Migration Failed', error instanceof Error ? error.message : 'The selected match could not be applied.');
+      Alert.alert('Failed', error instanceof Error ? error.message : 'The selected match could not be applied.');
     } finally {
-      setIsApprovingMigration(false);
+      setIsApproving(false);
     }
   };
+
+  const busy = isBackingUp || isExporting || isImporting;
 
   return (
     <>
@@ -553,7 +447,7 @@ export function ProfileConfigModal({
                 title={isBackingUp ? 'Backing up...' : 'Backup to Cloud'}
                 color={theme.colors.button.primary}
                 onPress={handleBackup}
-                disabled={isBackingUp || isExporting || isImporting}
+                disabled={busy}
               />
               {backupProgress && (
                 <View style={{ marginTop: 8 }}>
@@ -571,7 +465,7 @@ export function ProfileConfigModal({
                 title={isExporting ? 'Exporting...' : 'Export to File'}
                 color={theme.colors.button.primary}
                 onPress={handleExportLocal}
-                disabled={isBackingUp || isExporting || isImporting}
+                disabled={busy}
               />
               {exportProgress && (
                 <View style={{ marginTop: 8 }}>
@@ -589,7 +483,7 @@ export function ProfileConfigModal({
                 title={isImporting ? 'Restoring...' : 'Restore from File'}
                 color={theme.colors.button.delete}
                 onPress={handleImportLocal}
-                disabled={isBackingUp || isExporting || isImporting}
+                disabled={busy}
               />
               {importProgress && (
                 <View style={{ marginTop: 8 }}>
@@ -635,22 +529,7 @@ export function ProfileConfigModal({
               ))}
             </ScrollView>
 
-            {/* Migration Section */}
-            <Text style={[styles.configSectionTitle, { marginTop: 16 }]}>Migration</Text>
-            <View style={{ marginBottom: 12 }}>
-              <Button
-                title={isMigrating ? 'Migrating...' : 'Migrate Songs to Another Platform'}
-                color={theme.colors.button.primary}
-                onPress={handleMigrateToTidal}
-                disabled={isMigrating || migratableSavedMusic.length === 0}
-              />
-              {migratableSavedMusic.length === 0 && (
-                <Text style={{ color: theme.colors.text.secondary, fontSize: 12, marginTop: 4 }}>
-                  All saved songs already have TIDAL metadata
-                </Text>
-              )}
-            </View>
-
+            <Text style={[styles.configSectionTitle, { marginTop: 16 }]}>Duplicate Songs</Text>
             <View style={{ marginBottom: 12 }}>
               <Button
                 title="Review Duplicate Songs"
@@ -664,171 +543,6 @@ export function ProfileConfigModal({
                 </Text>
               )}
             </View>
-
-            {/* Migration Progress */}
-            {migrationProgress && isMigrating && (
-              <View style={{ marginBottom: 12, padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8, width: '100%', alignSelf: 'stretch' }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text style={{ color: theme.colors.text.primary, fontWeight: '600', flexWrap: 'wrap' }}>
-                    Migrating: {migrationProgress.current}/{migrationProgress.total}
-                  </Text>
-                  <ActivityIndicator size="small" color={theme.colors.button.primary} />
-                </View>
-                <Text style={{ color: theme.colors.text.secondary, fontSize: 13 }}>
-                  {migrationProgress.currentTrack}
-                </Text>
-                <View style={{ marginTop: 8 }}>
-                  <View
-                    style={{
-                      height: 6,
-                      backgroundColor: theme.colors.background.surface,
-                      borderRadius: 3,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <View
-                      style={{
-                        height: '100%',
-                        width: `${(migrationProgress.current / migrationProgress.total) * 100}%`,
-                        backgroundColor: theme.colors.button.primary,
-                      }}
-                    />
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {/* Migration Summary */}
-            {migrationSummary && !isMigrating && (
-              <View style={{ marginBottom: 12, padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8, width: '100%', alignSelf: 'stretch' }}>
-                <Text style={{ color: theme.colors.text.primary, fontWeight: '600', marginBottom: 8 }}>
-                  Migration Complete
-                </Text>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <Text style={{ color: theme.colors.text.secondary }}>Total Processed:</Text>
-                  <Text style={{ color: theme.colors.text.primary, fontWeight: '600', flexWrap: 'wrap' }}>{migrationSummary.total}</Text>
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <Text style={{ color: theme.colors.text.secondary }}>Successful:</Text>
-                  <Text style={{ color: theme.colors.text.success, fontWeight: '600' }}>{migrationSummary.successful}</Text>
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <Text style={{ color: theme.colors.text.secondary }}>Failed:</Text>
-                  <Text style={{ color: theme.colors.text.error, fontWeight: '600' }}>{migrationSummary.failed}</Text>
-                </View>
-                {migrationSummary.failed > 0 && (
-                  <Button
-                    title="View Migration Log"
-                    color={theme.colors.button.primary}
-                    onPress={handleViewMigrationLog}
-                  />
-                )}
-              </View>
-            )}
-
-            {/* Migration Log Modal */}
-            {showMigrationLog && migrationLog.length > 0 && (
-              <Modal visible={true} transparent animationType="slide" onRequestClose={handleCloseMigrationLog}>
-                <View style={styles.modalOverlay}>
-                  <View style={styles.modalContent}>
-                    <Text style={styles.configSectionTitle}>Migration Log - Unmatched Songs</Text>
-                    <ScrollView style={{ maxHeight: 300, width: '100%' }}>
-                      {migrationLog.map((entry, index) => (
-                        <View key={index} style={{ marginBottom: 12, padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8, width: '100%', alignSelf: 'stretch' }}>
-                          <TouchableOpacity onPress={() => openMigrationEntry(entry)} disabled={isApprovingMigration || migrationSearchLoading}>
-                            <Text style={{ color: theme.colors.text.primary, fontWeight: '600', flexWrap: 'wrap' }}>
-                              {entry.originalTrack.title} - {entry.originalTrack.artist}
-                            </Text>
-                            <Text style={{ color: theme.colors.text.secondary, fontSize: 12, marginTop: 2 }}>
-                              Album: {entry.originalTrack.album}
-                            </Text>
-                            <Text style={{ color: theme.colors.text.secondary, fontSize: 12 }}>
-                              Track: {entry.originalTrack.trackPosition} | Disk: {entry.originalTrack.diskNumber} | Duration: {entry.originalTrack.duration}s
-                            </Text>
-                            <Text style={{ color: theme.colors.button.delete, fontSize: 12, marginTop: 4 }}>
-                              Reason: {entry.reason}
-                            </Text>
-                            <Text style={{ color: theme.colors.text.muted, fontSize: 11, marginTop: 2 }}>
-                              {new Date(entry.timestamp).toLocaleString()}
-                            </Text>
-                          </TouchableOpacity>
-                          <Button
-                            title="Search TIDAL Matches"
-                            color={theme.colors.button.primary}
-                            onPress={() => openMigrationEntry(entry)}
-                            disabled={isApprovingMigration || migrationSearchLoading}
-                          />
-                        </View>
-                      ))}
-                    </ScrollView>
-                    <TouchableOpacity onPress={handleCloseMigrationLog} style={styles.closeButton}>
-                      <Text style={styles.closeButtonText}>Close</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </Modal>
-            )}
-
-            {/* Migration Search */}
-            {searchingMigrationEntry && (
-              <Modal visible transparent animationType="slide" onRequestClose={closeMigrationSearch}>
-                <View style={styles.modalOverlay}>
-                  <View style={styles.modalContent}>
-                    <Text style={styles.configSectionTitle}>Search TIDAL Matches</Text>
-                    <Text style={{ color: theme.colors.text.secondary, marginBottom: 12 }}>
-                      You are migrating the song {searchingMigrationEntry.originalTrack.title} by {searchingMigrationEntry.originalTrack.artist} on {searchingMigrationEntry.originalTrack.album}.
-                    </Text>
-                    <View style={{ width: '100%', padding: 12, backgroundColor: theme.colors.background.surface, borderRadius: 8, marginBottom: 10 }}>
-                      <Text style={{ color: theme.colors.text.primary, fontWeight: '600', marginBottom: 6 }}>Search</Text>
-                      <TextInput
-                        style={{
-                          borderWidth: 1,
-                          borderColor: theme.colors.border,
-                          borderRadius: 6,
-                          padding: 8,
-                          color: theme.colors.text.primary,
-                          backgroundColor: theme.colors.background.surface,
-                        }}
-                        autoFocus
-                        placeholder='Search TIDAL... or "Artist - Album"'
-                        placeholderTextColor={theme.colors.text.muted}
-                        value={migrationSearchQuery}
-                        onChangeText={setMigrationSearchQuery}
-                        onSubmitEditing={submitMigrationSearch}
-                        returnKeyType="search"
-                        autoCorrect={false}
-                        autoCapitalize="none"
-                      />
-                    </View>
-                    {migrationSearchLoading ? (
-                      <ActivityIndicator size="small" color={theme.colors.button.primary} />
-                    ) : (
-                      <FlatList
-                        data={migrationSearchResults}
-                        keyExtractor={(item) => item.id}
-                        renderItem={({ item }) => (
-                          <View style={{ marginBottom: 10 }}>
-                            <MusicItem
-                              music={item}
-                              onPress={approveSelectedMigration}
-                            />
-                          </View>
-                        )}
-                        ListEmptyComponent={() => (
-                          <Text style={{ color: theme.colors.text.secondary, textAlign: 'center', marginVertical: 16 }}>
-                            No matches yet. Try a different title, artist, album, or `Artist - Album` search.
-                          </Text>
-                        )}
-                        style={{ width: '100%', maxHeight: 420 }}
-                      />
-                    )}
-                    <TouchableOpacity onPress={closeMigrationSearch} disabled={isApprovingMigration || migrationSearchLoading} style={styles.closeButton}>
-                      <Text style={styles.closeButtonText}>Close</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </Modal>
-            )}
 
             {/* Duplicate Finder */}
             {showDuplicateFinder && (
@@ -902,25 +616,25 @@ export function ProfileConfigModal({
                         autoFocus
                         placeholder='Search TIDAL... or exact track ID'
                         placeholderTextColor={theme.colors.text.muted}
-                        value={migrationSearchQuery}
-                        onChangeText={setMigrationSearchQuery}
-                        onSubmitEditing={submitMigrationSearch}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        onSubmitEditing={submitSearch}
                         returnKeyType="search"
                         autoCorrect={false}
                         autoCapitalize="none"
                       />
                     </View>
-                    {migrationSearchLoading ? (
+                    {searchLoading ? (
                       <ActivityIndicator size="small" color={theme.colors.button.primary} />
                     ) : (
                       <FlatList
-                        data={migrationSearchResults}
+                        data={searchResults}
                         keyExtractor={(item) => item.id}
                         renderItem={({ item }) => (
                           <View style={{ marginBottom: 10 }}>
                             <MusicItem
                               music={item}
-                              onPress={approveSelectedMigration}
+                              onPress={approveSelectedTrack}
                             />
                           </View>
                         )}
@@ -950,5 +664,3 @@ export function ProfileConfigModal({
     </>
   );
 }
-
-
