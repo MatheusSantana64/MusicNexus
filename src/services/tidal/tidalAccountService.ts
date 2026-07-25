@@ -292,7 +292,7 @@ async function fetchPlaylistTrackIds(playlistId: string, token: string): Promise
 }
 
 async function fetchPlaylistRelationshipItems(playlistId: string, token: string): Promise<any[]> {
-  const endpoint = `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=US&include=items`;
+  const endpoint = `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=US&include=items&page[size]=100`;
   const collected: any[] = [];
   let nextEndpoint: string | undefined = endpoint;
 

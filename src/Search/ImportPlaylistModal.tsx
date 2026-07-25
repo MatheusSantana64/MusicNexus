@@ -31,6 +31,7 @@ export function ImportPlaylistModal({ visible, onCancel, onImport }: ImportPlayl
   const [importError, setImportError] = useState<string | null>(null);
   const [tidalConnected, setTidalConnected] = useState(false);
   const [tidalChecking, setTidalChecking] = useState(false);
+  const [previewStatus, setPreviewStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -40,6 +41,7 @@ export function ImportPlaylistModal({ visible, onCancel, onImport }: ImportPlayl
     setPreviewError(null);
     setImportError(null);
     setImportLoading(false);
+    setPreviewStatus(null);
   }, [visible]);
 
   useEffect(() => {
@@ -121,25 +123,30 @@ export function ImportPlaylistModal({ visible, onCancel, onImport }: ImportPlayl
           return;
         }
         console.log('[ImportPlaylistModal] TIDAL preview starting, playlistId:', tidalPlaylistId);
+        setPreviewStatus('Connecting to TIDAL...');
         const account = await refreshTidalConnectionIfNeeded(undefined, { skipPlaylistRefresh: true });
         console.log('[ImportPlaylistModal] TIDAL account refreshed, connected:', account.connected, 'hasToken:', !!account.tokenSet?.accessToken);
         if (!account.connected || !account.tokenSet?.accessToken) {
           setPreviewError('Please connect your TIDAL account first.');
           setPreviewLoading(false);
+          setPreviewStatus(null);
           return;
         }
         const token = account.tokenSet.accessToken;
         console.log('[ImportPlaylistModal] Fetching TIDAL playlist items...');
+        setPreviewStatus('Fetching playlist items...');
         const items = await fetchTidalPlaylistItems(tidalPlaylistId, token);
         const trackIds = items.map(item => String(item.id || '')).filter(Boolean);
         console.log('[ImportPlaylistModal] Found', trackIds.length, 'track IDs, resolving...');
         if (trackIds.length === 0) {
           setPreviewTracks([]);
+          setPreviewStatus(null);
           return;
         }
-        const tracks = await getTidalTracksByIds(trackIds, token);
+        const tracks = await getTidalTracksByIds(trackIds, token, (status) => setPreviewStatus(status));
         console.log('[ImportPlaylistModal] TIDAL tracks resolved:', tracks.length);
         setPreviewTracks(tracks);
+        setPreviewStatus(null);
         return;
       }
 
@@ -171,6 +178,7 @@ export function ImportPlaylistModal({ visible, onCancel, onImport }: ImportPlayl
     } catch (err: any) {
       console.error('[ImportPlaylistModal] Preview failed:', err);
       setPreviewError(err.message || 'Failed to preview playlist');
+      setPreviewStatus(null);
     } finally {
       setPreviewLoading(false);
     }
@@ -303,7 +311,10 @@ export function ImportPlaylistModal({ visible, onCancel, onImport }: ImportPlayl
             )}
           </View>
 
-          {previewLoading && (
+          {previewLoading && previewStatus && (
+            <Text style={styles.ratingLabel}>{previewStatus}</Text>
+          )}
+          {previewLoading && !previewStatus && (
             <Text style={styles.ratingLabel}>Loading playlist tracks...</Text>
           )}
           {previewError && <Text style={styles.errorText}>{previewError}</Text>}

@@ -237,7 +237,8 @@ async function fetchTidalResourcesByIds(
   resourceType: 'tracks' | 'albums' | 'artists',
   ids: string[],
   include: string,
-  token: string
+  token: string,
+  onProgress?: (status: string) => void
 ): Promise<TidalCollectionDocument> {
   const uniqueIds = [...new Set(ids)];
   const documents: TidalCollectionDocument[] = [];
@@ -246,6 +247,7 @@ async function fetchTidalResourcesByIds(
 
   for (let i = 0; i < batches.length; i++) {
     const batch = batches[i];
+    onProgress?.(`Fetching ${resourceType} batch ${i + 1}/${batches.length}`);
     const url = `/${resourceType}?filter%5Bid%5D=${encodeURIComponent(batch.join(','))}&countryCode=${TIDAL_COUNTRY_CODE}&include=${include}`;
     try {
       const doc = await fetchTidalCollection(url, token);
@@ -270,10 +272,13 @@ async function fetchTidalResourcesByIds(
 async function fetchTidalAlbumTrackPositions(
   albumIds: string[],
   trackIds: Set<string>,
-  token: string
+  token: string,
+  onProgress?: (completed: number) => void
 ): Promise<Map<string, number>> {
   const positionMap = new Map<string, number>();
-  for (const albumId of albumIds) {
+  for (let i = 0; i < albumIds.length; i++) {
+    const albumId = albumIds[i];
+    onProgress?.(i);
     try {
       const doc = await fetchTidalCollection(
         `/albums/${encodeURIComponent(albumId)}/relationships/items?countryCode=${TIDAL_COUNTRY_CODE}`,
@@ -479,13 +484,14 @@ export async function getTidalTrackById(trackId: string): Promise<MusicTrack | n
   return tracks[0] || null;
 }
 
-export async function getTidalTracksByIds(trackIds: string[], token: string): Promise<MusicTrack[]> {
+export async function getTidalTracksByIds(trackIds: string[], token: string, onProgress?: (status: string) => void): Promise<MusicTrack[]> {
   const uniqueIds = [...new Set(trackIds)].filter(Boolean);
   if (uniqueIds.length === 0) return [];
 
   console.log(`[tidal] getTidalTracksByIds: ${uniqueIds.length} unique IDs requested`);
+  onProgress?.(`Fetching ${uniqueIds.length} tracks`);
 
-  const tracksDocument = await fetchTidalResourcesByIds('tracks', uniqueIds, 'albums,artists', token);
+  const tracksDocument = await fetchTidalResourcesByIds('tracks', uniqueIds, 'albums,artists', token, onProgress);
   const fetchedTracks = tracksDocument.data || [];
   console.log(`[tidal] getTidalTracksByIds: ${fetchedTracks.length}/${uniqueIds.length} tracks returned from API`);
 
@@ -502,13 +508,14 @@ export async function getTidalTracksByIds(trackIds: string[], token: string): Pr
     .filter((id): id is string => Boolean(id));
 
   console.log(`[tidal] getTidalTracksByIds: enriching ${albumIds.length} albums, ${artistIds.length} artists`);
+  onProgress?.(`Enriching ${albumIds.length} albums`);
 
   const [albumDocument, artistDocument] = await Promise.all([
     albumIds.length > 0
-      ? fetchTidalResourcesByIds('albums', albumIds, 'coverArt,artists', token)
+      ? fetchTidalResourcesByIds('albums', albumIds, 'coverArt,artists', token, onProgress)
       : Promise.resolve({ data: [], included: [] }),
     artistIds.length > 0
-      ? fetchTidalResourcesByIds('artists', artistIds, 'profileArt', token)
+      ? fetchTidalResourcesByIds('artists', artistIds, 'profileArt', token, onProgress)
       : Promise.resolve({ data: [], included: [] }),
   ]);
 
@@ -536,7 +543,17 @@ export async function getTidalTracksByIds(trackIds: string[], token: string): Pr
   if (missingPosition.length > 0) {
     console.log(`[tidal] getTidalTracksByIds: ${missingPosition.length} tracks missing track_position, fetching album tracklists...`);
     const albumIdsForPositions = [...new Set(missingPosition.map(t => t.album.id).filter(Boolean))];
-    const positionMap = await fetchTidalAlbumTrackPositions(albumIdsForPositions, new Set(missingPosition.map(t => t.id)), token);
+    let albumTracklistProgress = 0;
+    const totalAlbums = albumIdsForPositions.length;
+    const positionMap = await fetchTidalAlbumTrackPositions(
+      albumIdsForPositions,
+      new Set(missingPosition.map(t => t.id)),
+      token,
+      (completed) => {
+        albumTracklistProgress = completed;
+        onProgress?.(`Fetching album tracklists (${albumTracklistProgress}/${totalAlbums})`);
+      }
+    );
     console.log(`[tidal] getTidalTracksByIds: resolved ${positionMap.size}/${missingPosition.length} track positions from album tracklists`);
     for (const track of missingPosition) {
       const pos = positionMap.get(track.id);
@@ -551,6 +568,7 @@ export async function getTidalTracksByIds(trackIds: string[], token: string): Pr
   const failedConversion = uniqueIds.filter(id => fetchedById.has(id) && !resolvedIds.has(id));
   if (notFoundInFetch.length > 0) {
     console.warn(`[tidal] getTidalTracksByIds: ${notFoundInFetch.length} IDs not in fetch result, retrying individually:`, notFoundInFetch);
+    onProgress?.(`Retrying ${notFoundInFetch.length} missing tracks`);
     for (const missingId of notFoundInFetch) {
       try {
         const singleDoc = await fetchTidalTrackById(missingId, token);
@@ -593,7 +611,7 @@ export async function getTidalPlaylistTracks(playlistId: string): Promise<MusicT
   const token = await getTidalAccessToken();
 
   const itemIds: string[] = [];
-  let nextUrl: string | undefined = `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=${TIDAL_COUNTRY_CODE}`;
+  let nextUrl: string | undefined = `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=${TIDAL_COUNTRY_CODE}&page[size]=100`;
 
   while (nextUrl) {
     const response: Response = await fetch(nextUrl, {
@@ -628,7 +646,7 @@ export async function getTidalPlaylistTracks(playlistId: string): Promise<MusicT
 
 export async function getTidalPlaylistTracksWithToken(playlistId: string, token: string): Promise<MusicTrack[]> {
   const itemIds: string[] = [];
-  let nextUrl: string | undefined = `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=${TIDAL_COUNTRY_CODE}`;
+  let nextUrl: string | undefined = `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=${TIDAL_COUNTRY_CODE}&page[size]=100`;
 
   while (nextUrl) {
     const response: Response = await fetch(nextUrl, {
