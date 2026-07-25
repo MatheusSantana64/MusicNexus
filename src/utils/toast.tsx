@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Text, TouchableOpacity, Animated } from 'react-native';
+import { Modal, Text, TouchableOpacity, Animated, TouchableWithoutFeedback } from 'react-native';
 
 interface ToastMessage {
   id: number;
@@ -120,18 +120,21 @@ export function ToastContainer() {
   if (visible.length === 0) return null;
 
   return (
-    <Animated.View
-      style={{
-        position: 'absolute',
-        bottom: 120,
-        left: 16,
-        right: 16,
-        zIndex: 9999,
-      }}
-    >
-      {visible.map(item => (
-        <ToastItem key={item.id} item={item} onDismiss={dismissWithAnimation} />
-      ))}
-    </Animated.View>
+    <Modal transparent animationType="none" statusBarTranslucent>
+      <TouchableWithoutFeedback onPress={() => visible.forEach(t => dismissWithAnimation(t.id))}>
+        <Animated.View
+          style={{
+            flex: 1,
+            justifyContent: 'flex-end',
+            paddingBottom: 120,
+            paddingHorizontal: 16,
+          }}
+        >
+          {visible.map(item => (
+            <ToastItem key={item.id} item={item} onDismiss={dismissWithAnimation} />
+          ))}
+        </Animated.View>
+      </TouchableWithoutFeedback>
+    </Modal>
   );
 }
