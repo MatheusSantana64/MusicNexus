@@ -13,7 +13,7 @@ import { MusicSearchService } from '../services/music/musicSearchService';
 import { migrateSavedMusicToTidal, approveTidalMigration, isAlreadyTidalTrack, MigrationProgress, MigrationSummary, MigrationLogEntry } from '../services/migration/tidalMigrationService';
 import { MusicItem } from '../components/MusicItem';
 import { getTidalTrackById } from '../services/tidal/tidalApiClient';
-import { backupAllCollections } from '../services/backupService';
+import { backupAllCollections, exportLocalBackup, importLocalBackup } from '../services/backupService';
 import { showToast } from '../utils/toast';
 
 const RATING_STEPS = Array.from({ length: 21 }, (_, i) => (i * 0.5).toFixed(1)).reverse();
@@ -58,6 +58,10 @@ export function ProfileConfigModal({
   const [duplicateTarget, setDuplicateTarget] = React.useState<any | null>(null);
   const [isBackingUp, setIsBackingUp] = React.useState(false);
   const [backupProgress, setBackupProgress] = React.useState<{ phase: string; current: number; total: number } | null>(null);
+  const [isExporting, setIsExporting] = React.useState(false);
+  const [exportProgress, setExportProgress] = React.useState<{ phase: string; current: number; total: number } | null>(null);
+  const [isImporting, setIsImporting] = React.useState(false);
+  const [importProgress, setImportProgress] = React.useState<{ phase: string; current: number; total: number } | null>(null);
   const { savedMusic } = useMusicStore();
   const migratableSavedMusic = savedMusic.filter(track => !isAlreadyTidalTrack(track));
 
@@ -300,7 +304,7 @@ export function ProfileConfigModal({
   const handleBackup = () => {
     Alert.alert(
       'Backup Firestore Data',
-      `This will create a backup of savedMusic, tags, and userProfile collections with timestamped names (e.g. savedMusicBackupYYMMDD).\n\nFor ~${savedMusic.length} songs this uses ~${savedMusic.length} reads and ~${savedMusic.length} writes — well within the free tier daily limit.\n\nProceed?`,
+      'This will create a cloud backup of all your data with a timestamped collection name.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Backup', style: 'default', onPress: startBackup },
@@ -326,6 +330,69 @@ export function ProfileConfigModal({
       setIsBackingUp(false);
       setBackupProgress(null);
       showToast('Backup failed. Check console for details.', 'error');
+    }
+  };
+
+  const handleExportLocal = () => {
+    Alert.alert(
+      'Export Local Backup',
+      'This will save all your data to a JSON file you can share or store.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Export', style: 'default', onPress: startExport },
+      ]
+    );
+  };
+
+  const startExport = async () => {
+    setIsExporting(true);
+    setExportProgress(null);
+    try {
+      await exportLocalBackup((progress) => {
+        setExportProgress(progress);
+      });
+      setIsExporting(false);
+      setExportProgress(null);
+      showToast('Backup file ready', 'success');
+    } catch (error) {
+      console.error('Export error:', error);
+      setIsExporting(false);
+      setExportProgress(null);
+      showToast('Export failed. Check console for details.', 'error');
+    }
+  };
+
+  const handleImportLocal = () => {
+    Alert.alert(
+      'Restore from Backup',
+      'This will overwrite your current data with the contents of the backup file.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Restore', style: 'destructive', onPress: startImport },
+      ]
+    );
+  };
+
+  const startImport = async () => {
+    setIsImporting(true);
+    setImportProgress(null);
+    try {
+      const result = await importLocalBackup((progress) => {
+        setImportProgress(progress);
+      });
+      setIsImporting(false);
+      setImportProgress(null);
+      useMusicStore.getState().loadMusic();
+      showToast(
+        `Restore complete: ${result.savedMusic} songs, ${result.tags} tags, ${result.userProfile} profiles`,
+        'success',
+      );
+    } catch (error) {
+      console.error('Import error:', error);
+      setIsImporting(false);
+      setImportProgress(null);
+      if (error instanceof Error && error.message === 'cancelled') return;
+      showToast('Restore failed. Check console for details.', 'error');
     }
   };
 
@@ -446,6 +513,7 @@ export function ProfileConfigModal({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.configSectionTitle}>Configurations</Text>
             <View style={{ marginBottom: 12 }}>
               <Button
@@ -482,10 +550,10 @@ export function ProfileConfigModal({
             <Text style={[styles.configSectionTitle, { marginTop: 16 }]}>Backup</Text>
             <View style={{ marginBottom: 12 }}>
               <Button
-                title={isBackingUp ? 'Backing up...' : 'Backup Firestore Data'}
+                title={isBackingUp ? 'Backing up...' : 'Backup to Cloud'}
                 color={theme.colors.button.primary}
                 onPress={handleBackup}
-                disabled={isBackingUp}
+                disabled={isBackingUp || isExporting || isImporting}
               />
               {backupProgress && (
                 <View style={{ marginTop: 8 }}>
@@ -494,6 +562,42 @@ export function ProfileConfigModal({
                   </Text>
                   <View style={{ marginTop: 4, height: 4, backgroundColor: theme.colors.background.surface, borderRadius: 2, overflow: 'hidden' }}>
                     <View style={{ height: '100%', width: `${(backupProgress.current / backupProgress.total) * 100}%`, backgroundColor: theme.colors.button.primary }} />
+                  </View>
+                </View>
+              )}
+            </View>
+            <View style={{ marginBottom: 12 }}>
+              <Button
+                title={isExporting ? 'Exporting...' : 'Export to File'}
+                color={theme.colors.button.primary}
+                onPress={handleExportLocal}
+                disabled={isBackingUp || isExporting || isImporting}
+              />
+              {exportProgress && (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={{ color: theme.colors.text.secondary, fontSize: 12 }}>
+                    {exportProgress.phase}: {exportProgress.current}/{exportProgress.total}
+                  </Text>
+                  <View style={{ marginTop: 4, height: 4, backgroundColor: theme.colors.background.surface, borderRadius: 2, overflow: 'hidden' }}>
+                    <View style={{ height: '100%', width: `${(exportProgress.current / exportProgress.total) * 100}%`, backgroundColor: theme.colors.button.primary }} />
+                  </View>
+                </View>
+              )}
+            </View>
+            <View style={{ marginBottom: 12 }}>
+              <Button
+                title={isImporting ? 'Restoring...' : 'Restore from File'}
+                color={theme.colors.button.delete}
+                onPress={handleImportLocal}
+                disabled={isBackingUp || isExporting || isImporting}
+              />
+              {importProgress && (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={{ color: theme.colors.text.secondary, fontSize: 12 }}>
+                    {importProgress.phase}: {importProgress.current}/{importProgress.total}
+                  </Text>
+                  <View style={{ marginTop: 4, height: 4, backgroundColor: theme.colors.background.surface, borderRadius: 2, overflow: 'hidden' }}>
+                    <View style={{ height: '100%', width: `${(importProgress.current / importProgress.total) * 100}%`, backgroundColor: theme.colors.button.delete }} />
                   </View>
                 </View>
               )}
@@ -839,6 +943,7 @@ export function ProfileConfigModal({
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>

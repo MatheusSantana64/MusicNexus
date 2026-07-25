@@ -34,7 +34,10 @@
     "reanimated-color-picker": "^4.1.0",
     "zod": "^4.0.5",
     "zustand": "^5.0.6",
-    "expo-crypto": "~14.1.5"
+    "expo-crypto": "~14.1.5",
+    "expo-file-system": "~18.1.11",
+    "expo-sharing": "~13.1.5",
+    "expo-document-picker": "~13.1.6"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

@@ -77,6 +77,7 @@ export const profileScreenStyles = StyleSheet.create({
     borderWidth: 1,
     padding: 24,
     width: '85%',
+    maxHeight: '80%',
     alignItems: 'center',
   },
   configSectionTitle: {
