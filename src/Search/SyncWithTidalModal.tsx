@@ -266,7 +266,7 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
         }
         showToast('Removed from playlist(s)');
       } else if (keep === 'library') {
-        const track = savedMusic.find(item => item.id === issue.trackId);
+        const track = useMusicStore.getState().savedMusic.find(item => item.id === issue.trackId);
         if (!track) {
           Alert.alert('Missing track', 'That track is no longer in your library.');
           return;
@@ -280,7 +280,8 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
         }
         showToast('Kept library rating, updated TIDAL');
       } else if (keep === 'playlist' && selectedPlaylistId) {
-        const existingTrack = savedMusic.find(item => item.id === issue.trackId);
+        const currentSavedMusic = useMusicStore.getState().savedMusic;
+        const existingTrack = currentSavedMusic.find(item => item.id === issue.trackId);
         const selectedRating = Number(
           Object.entries(account.ratingPlaylists || {}).find(([, id]) => id === selectedPlaylistId)?.[0] || '0'
         );
@@ -292,7 +293,7 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
         }
 
         if (existingTrack) {
-          if (existingTrack.firebaseId) {
+          if (existingTrack.firebaseId && Number(existingTrack.rating) !== selectedRating) {
             await updateRating(existingTrack.firebaseId, selectedRating);
           }
           await addTrackToConfiguredPlaylist(selectedPlaylistId, issue.trackId);
