@@ -8,9 +8,24 @@ import { FlashList } from '@shopify/flash-list';
 import { DeezerDataEnricher } from '../services/deezer/deezerDataEnricher';
 import { getSpotifyAccessToken } from '../services/spotify/spotifyApiClient';
 import { getTidalTracksByIds } from '../services/tidal/tidalApiClient';
-import { refreshTidalConnectionIfNeeded, getTidalAccountData, fetchTidalPlaylistItems } from '../services/tidal/tidalAccountService';
+import { refreshTidalConnectionIfNeeded, fetchTidalPlaylistItems } from '../services/tidal/tidalAccountService';
 import { saveMusicBatch } from '../services/music/musicService';
 import { useMusicStore } from '../store/musicStore';
+
+function savedMusicToTrack(music: SavedMusic): MusicTrack {
+  return {
+    id: music.id,
+    title: music.title,
+    title_short: music.title,
+    artist: { id: music.artistId, name: music.artist, picture: '', picture_small: '', picture_medium: '' },
+    album: { id: music.albumId, title: music.album, cover: music.coverUrl, cover_small: music.coverUrl, cover_medium: music.coverUrl, cover_big: music.coverUrl, release_date: music.releaseDate },
+    duration: music.duration,
+    rank: 0,
+    track_position: music.trackPosition,
+    disk_number: music.diskNumber,
+    release_date: music.releaseDate,
+  };
+}
 
 type ImportService = 'spotify' | 'deezer' | 'tidal';
 
@@ -32,6 +47,7 @@ export function ImportPlaylistModal({ visible, onCancel, onImport }: ImportPlayl
   const [tidalConnected, setTidalConnected] = useState(false);
   const [tidalChecking, setTidalChecking] = useState(false);
   const [previewStatus, setPreviewStatus] = useState<string | null>(null);
+  const [existingCount, setExistingCount] = useState(0);
 
   useEffect(() => {
     if (!visible) return;
@@ -42,6 +58,7 @@ export function ImportPlaylistModal({ visible, onCancel, onImport }: ImportPlayl
     setImportError(null);
     setImportLoading(false);
     setPreviewStatus(null);
+    setExistingCount(0);
   }, [visible]);
 
   useEffect(() => {
@@ -137,15 +154,37 @@ export function ImportPlaylistModal({ visible, onCancel, onImport }: ImportPlayl
         setPreviewStatus('Fetching playlist items...');
         const items = await fetchTidalPlaylistItems(tidalPlaylistId, token);
         const trackIds = items.map(item => String(item.id || '')).filter(Boolean);
-        console.log('[ImportPlaylistModal] Found', trackIds.length, 'track IDs, resolving...');
-        if (trackIds.length === 0) {
-          setPreviewTracks([]);
-          setPreviewStatus(null);
-          return;
+        console.log('[ImportPlaylistModal] Found', trackIds.length, 'track IDs, checking library...');
+        
+        // Check which tracks are already in library
+        const savedMusic = useMusicStore.getState().savedMusic;
+        const existingById = new Map(savedMusic.map(m => [m.id, m]));
+        const alreadyInLibrary = trackIds.filter(id => existingById.has(id)).length;
+        const missingIds = trackIds.filter(id => !existingById.has(id));
+        
+        console.log('[ImportPlaylistModal]', alreadyInLibrary, 'of', trackIds.length, 'already in library,', missingIds.length, 'need fetching');
+        setPreviewStatus(`Found ${alreadyInLibrary}/${trackIds.length} in library, fetching ${missingIds.length}...`);
+        setExistingCount(alreadyInLibrary);
+        
+        let tidalTracks: MusicTrack[] = [];
+        if (missingIds.length > 0) {
+          tidalTracks = await getTidalTracksByIds(missingIds, token, (status) => setPreviewStatus(status), true);
         }
-        const tracks = await getTidalTracksByIds(trackIds, token, (status) => setPreviewStatus(status));
-        console.log('[ImportPlaylistModal] TIDAL tracks resolved:', tracks.length);
-        setPreviewTracks(tracks);
+        
+        // Combine: existing tracks from library + new tracks from TIDAL
+        const allTracks: MusicTrack[] = [];
+        for (const id of trackIds) {
+          const existing = existingById.get(id);
+          if (existing) {
+            allTracks.push(savedMusicToTrack(existing));
+          } else {
+            const tidalTrack = tidalTracks.find(t => t.id === id);
+            if (tidalTrack) allTracks.push(tidalTrack);
+          }
+        }
+        
+        console.log('[ImportPlaylistModal] Total tracks resolved:', allTracks.length);
+        setPreviewTracks(allTracks);
         setPreviewStatus(null);
         return;
       }
@@ -320,7 +359,9 @@ export function ImportPlaylistModal({ visible, onCancel, onImport }: ImportPlayl
           {previewError && <Text style={styles.errorText}>{previewError}</Text>}
           {previewTracks.length > 0 && (
             <View style={{ height: '55%', marginBottom: 8 }}>
-              <Text style={styles.ratingLabel}>Preview: {previewTracks.length} track(s)</Text>
+              <Text style={styles.ratingLabel}>
+                Preview: {previewTracks.length} tracks {existingCount > 0 ? `(${existingCount} already in library)` : ''}
+              </Text>
               <FlashList
                 data={previewTracks}
                 keyExtractor={track => track.id}

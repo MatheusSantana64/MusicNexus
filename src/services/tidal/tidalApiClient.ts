@@ -285,11 +285,11 @@ async function fetchTidalAlbumTrackPositions(
         token
       );
       const items = doc.data || [];
-      for (let i = 0; i < items.length; i++) {
-        const itemId = String(items[i].id || '');
+      for (let j = 0; j < items.length; j++) {
+        const itemId = String(items[j].id || '');
         if (trackIds.has(itemId) && !positionMap.has(itemId)) {
-          const attrs = items[i].attributes || {};
-          const pos = Number(attrs.trackNumber || i + 1);
+          const attrs = items[j].attributes || {};
+          const pos = Number(attrs.trackNumber || j + 1);
           if (pos > 0) {
             positionMap.set(itemId, pos);
           }
@@ -484,7 +484,12 @@ export async function getTidalTrackById(trackId: string): Promise<MusicTrack | n
   return tracks[0] || null;
 }
 
-export async function getTidalTracksByIds(trackIds: string[], token: string, onProgress?: (status: string) => void): Promise<MusicTrack[]> {
+export async function getTidalTracksByIds(
+  trackIds: string[],
+  token: string,
+  onProgress?: (status: string) => void,
+  skipTrackPositions?: boolean
+): Promise<MusicTrack[]> {
   const uniqueIds = [...new Set(trackIds)].filter(Boolean);
   if (uniqueIds.length === 0) return [];
 
@@ -539,26 +544,28 @@ export async function getTidalTracksByIds(trackIds: string[], token: string, onP
 
   console.log(`[tidal] getTidalTracksByIds: ${resolved.length}/${uniqueIds.length} tracks resolved to MusicTrack`);
 
-  const missingPosition = resolved.filter(t => !t.track_position);
-  if (missingPosition.length > 0) {
-    console.log(`[tidal] getTidalTracksByIds: ${missingPosition.length} tracks missing track_position, fetching album tracklists...`);
-    const albumIdsForPositions = [...new Set(missingPosition.map(t => t.album.id).filter(Boolean))];
-    let albumTracklistProgress = 0;
-    const totalAlbums = albumIdsForPositions.length;
-    const positionMap = await fetchTidalAlbumTrackPositions(
-      albumIdsForPositions,
-      new Set(missingPosition.map(t => t.id)),
-      token,
-      (completed) => {
-        albumTracklistProgress = completed;
-        onProgress?.(`Fetching album tracklists (${albumTracklistProgress}/${totalAlbums})`);
-      }
-    );
-    console.log(`[tidal] getTidalTracksByIds: resolved ${positionMap.size}/${missingPosition.length} track positions from album tracklists`);
-    for (const track of missingPosition) {
-      const pos = positionMap.get(track.id);
-      if (pos) {
-        track.track_position = pos;
+  if (!skipTrackPositions) {
+    const missingPosition = resolved.filter(t => !t.track_position);
+    if (missingPosition.length > 0) {
+      console.log(`[tidal] getTidalTracksByIds: ${missingPosition.length} tracks missing track_position, fetching album tracklists...`);
+      const albumIdsForPositions = [...new Set(missingPosition.map(t => t.album.id).filter(Boolean))];
+      let albumTracklistProgress = 0;
+      const totalAlbums = albumIdsForPositions.length;
+      const positionMap = await fetchTidalAlbumTrackPositions(
+        albumIdsForPositions,
+        new Set(missingPosition.map(t => t.id)),
+        token,
+        (completed) => {
+          albumTracklistProgress = completed;
+          onProgress?.(`Fetching album tracklists (${albumTracklistProgress}/${totalAlbums})`);
+        }
+      );
+      console.log(`[tidal] getTidalTracksByIds: resolved ${positionMap.size}/${missingPosition.length} track positions from album tracklists`);
+      for (const track of missingPosition) {
+        const pos = positionMap.get(track.id);
+        if (pos) {
+          track.track_position = pos;
+        }
       }
     }
   }
