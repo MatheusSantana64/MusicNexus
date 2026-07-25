@@ -13,6 +13,8 @@ import { MusicSearchService } from '../services/music/musicSearchService';
 import { migrateSavedMusicToTidal, approveTidalMigration, isAlreadyTidalTrack, MigrationProgress, MigrationSummary, MigrationLogEntry } from '../services/migration/tidalMigrationService';
 import { MusicItem } from '../components/MusicItem';
 import { getTidalTrackById } from '../services/tidal/tidalApiClient';
+import { backupAllCollections } from '../services/backupService';
+import { showToast } from '../utils/toast';
 
 const RATING_STEPS = Array.from({ length: 21 }, (_, i) => (i * 0.5).toFixed(1)).reverse();
 
@@ -54,6 +56,8 @@ export function ProfileConfigModal({
   const [showDuplicateFinder, setShowDuplicateFinder] = React.useState(false);
   const [duplicateGroups, setDuplicateGroups] = React.useState<Array<{ key: string; title: string; artist: string; tracks: any[] }>>([]);
   const [duplicateTarget, setDuplicateTarget] = React.useState<any | null>(null);
+  const [isBackingUp, setIsBackingUp] = React.useState(false);
+  const [backupProgress, setBackupProgress] = React.useState<{ phase: string; current: number; total: number } | null>(null);
   const { savedMusic } = useMusicStore();
   const migratableSavedMusic = savedMusic.filter(track => !isAlreadyTidalTrack(track));
 
@@ -293,6 +297,38 @@ export function ProfileConfigModal({
     }
   };
 
+  const handleBackup = () => {
+    Alert.alert(
+      'Backup Firestore Data',
+      `This will create a backup of savedMusic, tags, and userProfile collections with timestamped names (e.g. savedMusicBackupYYMMDD).\n\nFor ~${savedMusic.length} songs this uses ~${savedMusic.length} reads and ~${savedMusic.length} writes — well within the free tier daily limit.\n\nProceed?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Backup', style: 'default', onPress: startBackup },
+      ]
+    );
+  };
+
+  const startBackup = async () => {
+    setIsBackingUp(true);
+    setBackupProgress(null);
+    try {
+      const result = await backupAllCollections((progress) => {
+        setBackupProgress(progress);
+      });
+      setIsBackingUp(false);
+      setBackupProgress(null);
+      showToast(
+        `Backup complete: ${result.savedMusic} songs, ${result.tags} tags, ${result.userProfile} profiles`,
+        'success',
+      );
+    } catch (error) {
+      console.error('Backup error:', error);
+      setIsBackingUp(false);
+      setBackupProgress(null);
+      showToast('Backup failed. Check console for details.', 'error');
+    }
+  };
+
   const submitMigrationSearch = React.useCallback(() => {
     if (!searchingMigrationEntry && !duplicateTarget) return;
     void runMigrationSearch(migrationSearchQuery);
@@ -442,6 +478,25 @@ export function ProfileConfigModal({
                   )
                 }
               />
+            </View>
+            <Text style={[styles.configSectionTitle, { marginTop: 16 }]}>Backup</Text>
+            <View style={{ marginBottom: 12 }}>
+              <Button
+                title={isBackingUp ? 'Backing up...' : 'Backup Firestore Data'}
+                color={theme.colors.button.primary}
+                onPress={handleBackup}
+                disabled={isBackingUp}
+              />
+              {backupProgress && (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={{ color: theme.colors.text.secondary, fontSize: 12 }}>
+                    {backupProgress.phase}: {backupProgress.current}/{backupProgress.total}
+                  </Text>
+                  <View style={{ marginTop: 4, height: 4, backgroundColor: theme.colors.background.surface, borderRadius: 2, overflow: 'hidden' }}>
+                    <View style={{ height: '100%', width: `${(backupProgress.current / backupProgress.total) * 100}%`, backgroundColor: theme.colors.button.primary }} />
+                  </View>
+                </View>
+              )}
             </View>
             <Text style={[styles.configSectionTitle, { marginTop: 16 }]}>Rating Tooltips</Text>
             <ScrollView style={{ maxHeight: 220, alignSelf: 'stretch', width: '100%' }}>
