@@ -395,7 +395,7 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { width: '92%', maxHeight: '88%', paddingBottom: 0, overflow: 'hidden' }]}>
+        <View style={[styles.modalContent, { paddingBottom: 0, overflow: 'hidden' }]}>
           <ScrollView
             style={{ width: '100%' }}
             contentContainerStyle={{ paddingBottom: 18 }}

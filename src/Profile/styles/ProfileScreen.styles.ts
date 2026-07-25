@@ -64,21 +64,22 @@ export const profileScreenStyles = StyleSheet.create({
     right: 16,
     zIndex: 10,
   },
+  headerBar: {
+    height: 56,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
-    alignItems: 'center',
   },
   modalContent: {
     backgroundColor: theme.colors.background.amoled,
     borderRadius: 16,
     borderColor: theme.colors.border,
     borderWidth: 1,
-    padding: 24,
-    width: '85%',
-    maxHeight: '80%',
-    alignItems: 'center',
+    padding: 12,
+    width: '100%',
+    maxHeight: '88%',
   },
   configSectionTitle: {
     fontSize: 18,
@@ -87,16 +88,18 @@ export const profileScreenStyles = StyleSheet.create({
     marginBottom: 12,
   },
   closeButton: {
-    marginTop: 24,
+    marginTop: 8,
     backgroundColor: theme.colors.button.cancel,
     paddingVertical: 10,
     paddingHorizontal: 32,
     borderRadius: 8,
+    alignSelf: 'center',
   },
   closeButtonText: {
     color: theme.colors.text.primary,
     fontWeight: 'bold',
     fontSize: 16,
+    textAlign: 'center',
   },
   columnTitle: {
     fontSize: 20,

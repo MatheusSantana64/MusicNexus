@@ -1,20 +1,19 @@
 // src/Profile/ProfileScreen.tsx
 // ProfileScreen for displaying user profile and statistics
-import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, Alert, TextInput, KeyboardAvoidingView, Keyboard, ScrollView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, Alert, ScrollView } from 'react-native';
 import { theme } from '../styles/theme';
 import { useMusicStore } from '../store/musicStore';
 import { useTagStore } from '../store/tagStore';
 import { getDocs, collection, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProfileConfigModal } from './ProfileConfigModal';
+import { RatingTipsModal } from './RatingTipsModal';
 import { TidalAccountModal } from './TidalAccountModal';
 import { calculateProfileStats } from './profileStatsUtils';
 import { profileScreenStyles as styles } from './styles/ProfileScreen.styles';
 import { getRatingText, getRatingColor } from '../utils/ratingUtils';
-import { getProfileData, setProfileData } from '../services/profileService';
 
 async function deleteAllSongs() {
   try {
@@ -44,32 +43,8 @@ export default function ProfileScreen() {
   const { savedMusic } = useMusicStore();
   const { tags } = useTagStore();
   const [modalVisible, setModalVisible] = useState(false);
+  const [tipsModalVisible, setTipsModalVisible] = useState(false);
   const [accountModalVisible, setAccountModalVisible] = useState(false);
-
-  const [notes, setNotes] = useState('');
-  const [keyboardUp, setKeyboardUp] = useState(false);
-
-  useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardUp(true));
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardUp(false));
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
-
-  React.useEffect(() => {
-    // Load notes from Firestore first, fallback to AsyncStorage
-    getProfileData().then(data => {
-      if (data.notes !== undefined) setNotes(data.notes);
-      else AsyncStorage.getItem('profileNotes').then(val => { if (val !== null) setNotes(val); });
-    });
-  }, []);
-  const handleNotesChange = (text: string) => {
-    setNotes(text);
-    AsyncStorage.setItem('profileNotes', text);
-    setProfileData({ notes: text }); // Save to Firestore
-  };
 
   const stats = useMemo(() => calculateProfileStats(savedMusic, tags), [savedMusic, tags]);
 
@@ -81,28 +56,19 @@ export default function ProfileScreen() {
           onOpen={() => setModalVisible(true)}
           onClose={() => setModalVisible(false)}
           onOpenAccount={() => setAccountModalVisible(true)}
+          onOpenTips={() => setTipsModalVisible(true)}
           onDeleteAllSongs={deleteAllSongs}
           onDeleteAllTags={deleteAllTags}
+        />
+        <RatingTipsModal
+          visible={tipsModalVisible}
+          onClose={() => setTipsModalVisible(false)}
         />
         <TidalAccountModal
           visible={accountModalVisible}
           onClose={() => setAccountModalVisible(false)}
         />
-        <KeyboardAvoidingView
-          behavior="padding"
-          keyboardVerticalOffset={12}
-          style={styles.notesContainer}
-        >
-          <Text style={[styles.sectionTitle, { marginBottom: 6 }]}>Notes</Text>
-          <TextInput
-            style={styles.notesInput}
-            placeholder="Write your notes here..."
-            placeholderTextColor={theme.colors.text.secondary}
-            multiline
-            value={notes}
-            onChangeText={handleNotesChange}
-          />
-        </KeyboardAvoidingView>
+        <View style={styles.headerBar} />
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Stats</Text>
           <View style={styles.statsRow}>

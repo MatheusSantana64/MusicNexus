@@ -1,17 +1,13 @@
 ﻿// src/Profile/ProfileConfigModal.tsx
 // ProfileConfigModal for configuring profile settings
 import React from 'react';
-import { View, Text, Button, Modal, TouchableOpacity, Alert, ScrollView, TextInput } from 'react-native';
+import { View, Text, Button, Modal, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import { profileScreenStyles as styles } from './styles/ProfileScreen.styles';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getProfileData, setProfileData, subscribeToProfileChanges } from '../services/profileService';
 import { useMusicStore } from '../store/musicStore';
 import { backupAllCollections, exportLocalBackup, importLocalBackup } from '../services/backupService';
 import { showToast } from '../utils/toast';
-
-const RATING_STEPS = Array.from({ length: 21 }, (_, i) => (i * 0.5).toFixed(1)).reverse();
 
 interface ProfileConfigModalProps {
   visible: boolean;
@@ -20,6 +16,7 @@ interface ProfileConfigModalProps {
   onDeleteAllTags: () => void;
   onOpen: () => void;
   onOpenAccount: () => void;
+  onOpenTips: () => void;
 }
 
 export function ProfileConfigModal({
@@ -29,46 +26,14 @@ export function ProfileConfigModal({
   onDeleteAllTags,
   onOpen,
   onOpenAccount,
+  onOpenTips,
 }: ProfileConfigModalProps) {
-  const [tooltips, setTooltips] = React.useState<{ [rating: string]: string }>({});
   const [isBackingUp, setIsBackingUp] = React.useState(false);
   const [backupProgress, setBackupProgress] = React.useState<{ phase: string; current: number; total: number } | null>(null);
   const [isExporting, setIsExporting] = React.useState(false);
   const [exportProgress, setExportProgress] = React.useState<{ phase: string; current: number; total: number } | null>(null);
   const [isImporting, setIsImporting] = React.useState(false);
   const [importProgress, setImportProgress] = React.useState<{ phase: string; current: number; total: number } | null>(null);
-
-  React.useEffect(() => {
-    let unsub: (() => void) | undefined;
-    if (visible) {
-      AsyncStorage.getItem('ratingTooltips').then(val => {
-        if (val) setTooltips(JSON.parse(val));
-      });
-
-      getProfileData().then(data => {
-        if (data.ratingTooltips) {
-          setTooltips(data.ratingTooltips);
-          AsyncStorage.setItem('ratingTooltips', JSON.stringify(data.ratingTooltips));
-        }
-      }).catch(() => {});
-
-      unsub = subscribeToProfileChanges((data) => {
-        if (data.ratingTooltips) {
-          setTooltips(data.ratingTooltips);
-          AsyncStorage.setItem('ratingTooltips', JSON.stringify(data.ratingTooltips));
-        }
-      });
-    }
-
-    return () => { if (unsub) unsub(); };
-  }, [visible]);
-
-  const handleTooltipChange = (rating: string, text: string) => {
-    const updated = { ...tooltips, [rating]: text };
-    setTooltips(updated);
-    AsyncStorage.setItem('ratingTooltips', JSON.stringify(updated));
-    setProfileData({ ratingTooltips: updated });
-  };
 
   const handleBackup = () => {
     Alert.alert(
@@ -169,8 +134,11 @@ export function ProfileConfigModal({
 
   return (
     <>
-      <TouchableOpacity onPress={onOpenAccount} style={[styles.gearIcon, { right: 56 }]}>
+      <TouchableOpacity onPress={onOpenAccount} style={[styles.gearIcon, { right: 88 }]}>
           <Ionicons name="person-circle-outline" size={28} color={theme.colors.text.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onOpenTips} style={[styles.gearIcon, { right: 52 }]}>
+          <Ionicons name="document-text-outline" size={28} color={theme.colors.text.primary} />
         </TouchableOpacity>
         <TouchableOpacity onPress={onOpen} style={styles.gearIcon}>
           <Ionicons name="settings-outline" size={28} color={theme.colors.text.primary} />
@@ -272,36 +240,6 @@ export function ProfileConfigModal({
                 </View>
               )}
             </View>
-            <Text style={[styles.configSectionTitle, { marginTop: 16 }]}>Rating Tooltips</Text>
-              {RATING_STEPS.map(rating => (
-                <View
-                  key={rating}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginBottom: 8,
-                    width: '100%',
-                  }}
-                >
-                  <Text style={{ width: 40, color: theme.colors.text.primary, marginRight: 8 }}>{rating}</Text>
-                  <TextInput
-                    style={{
-                      flex: 1,
-                      borderWidth: 1,
-                      borderColor: '#333',
-                      borderRadius: 6,
-                      padding: 4,
-                      color: theme.colors.text.primary,
-                      backgroundColor: theme.colors.background.surface,
-                      fontSize: 15,
-                    }}
-                    placeholder={`Tooltip for ${rating}`}
-                    placeholderTextColor="#888"
-                    value={tooltips[rating] || ''}
-                    onChangeText={text => handleTooltipChange(rating, text)}
-                  />
-                </View>
-              ))}
 
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>Close</Text>
