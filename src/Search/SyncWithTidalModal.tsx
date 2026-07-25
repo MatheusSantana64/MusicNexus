@@ -22,7 +22,7 @@ type SectionType = 'playlists' | 'issues';
 
 interface ListItem {
   id: string;
-  type: 'header' | 'playlist' | 'issue' | 'action' | 'status' | 'empty';
+  type: 'header' | 'playlistPair' | 'issue' | 'action' | 'status' | 'empty';
   section: SectionType;
   data?: any;
   sticky?: boolean;
@@ -31,6 +31,31 @@ interface ListItem {
 interface SyncWithTidalModalProps {
   visible: boolean;
   onClose: () => void;
+}
+
+function PlaylistCard({ playlist, selected, onPress }: { playlist: PlaylistOption; selected: boolean; onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      style={[styles.playlistCard, selected && styles.playlistCardSelected]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.playlistCardHeader}>
+        <View style={[styles.checkmark, selected && styles.checkmarkSelected]}>
+          {selected && <Ionicons name="checkmark" size={14} color={theme.colors.text.primary} />}
+        </View>
+        <Text
+          style={[styles.playlistCardTitle, selected && styles.playlistCardTitleSelected]}
+          numberOfLines={2}
+        >
+          {playlist.title}
+        </Text>
+      </View>
+      {playlist.trackCount != null && (
+        <Text style={styles.playlistCardMeta}>{playlist.trackCount} tracks</Text>
+      )}
+    </TouchableOpacity>
+  );
 }
 
 export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps) {
@@ -354,16 +379,19 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
       type: 'header',
       section: 'playlists',
       sticky: true,
-      data: { title: 'Select playlists', showSelectAll: true },
+      data: { title: 'Sync with TIDAL', showSelectAll: true },
     });
 
-    playlists.forEach(pl => {
-      items.push({
-        id: `playlist-${pl.playlistId}`,
-        type: 'playlist',
-        section: 'playlists',
-        data: { playlist: pl, selected: selectedPlaylistIds.has(pl.playlistId) },
-      });
+    playlists.forEach((pl, index) => {
+      if (index % 2 === 0) {
+        const next = playlists[index + 1];
+        items.push({
+          id: `playlistPair-${pl.playlistId}-${next?.playlistId || ''}`,
+          type: 'playlistPair',
+          section: 'playlists',
+          data: { left: pl, right: next || null },
+        });
+      }
     });
 
     items.push({
@@ -449,22 +477,23 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
           </View>
         );
 
-      case 'playlist': {
-        const { playlist, selected } = data;
+      case 'playlistPair': {
+        const { left, right } = data;
         return (
-          <TouchableOpacity
-            style={[styles.playlistItem, selected && styles.playlistItemSelected]}
-            onPress={() => togglePlaylist(playlist.playlistId)}
-          >
-            <View style={styles.playlistItemLeft}>
-              <View style={[styles.checkmark, selected && styles.checkmarkSelected]} />
-              <Text style={[styles.playlistTitle, selected && styles.playlistTitleSelected]}>{playlist.title}</Text>
-            </View>
-            <View style={styles.playlistItemRight}>
-              <Text style={styles.playlistRating}>Rating: {playlist.rating}</Text>
-              {playlist.trackCount && <Text style={styles.playlistTrackCount}>{playlist.trackCount} tracks</Text>}
-            </View>
-          </TouchableOpacity>
+          <View style={styles.playlistPairRow}>
+            <PlaylistCard
+              playlist={left}
+              selected={selectedPlaylistIds.has(left.playlistId)}
+              onPress={() => togglePlaylist(left.playlistId)}
+            />
+            {right && (
+              <PlaylistCard
+                playlist={right}
+                selected={selectedPlaylistIds.has(right.playlistId)}
+                onPress={() => togglePlaylist(right.playlistId)}
+              />
+            )}
+          </View>
         );
       }
 
@@ -639,16 +668,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
+    padding: 16,
   },
   modalContent: {
     flex: 1,
     backgroundColor: theme.colors.background.amoled,
-    borderTopLeftRadius: theme.borderRadius.lg,
-    borderTopRightRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.lg,
     borderColor: theme.colors.border,
     borderWidth: 1,
     maxHeight: '90%',
-    width: '100%',
     overflow: 'hidden',
   },
   stickyHeader: {
@@ -656,14 +684,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.divider,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     zIndex: 10,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: theme.sizes.medium,
@@ -679,29 +706,34 @@ const styles = StyleSheet.create({
     fontSize: theme.sizes.small,
     fontWeight: theme.weights.medium,
   },
-  playlistItem: {
+  playlistPairRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
+    paddingHorizontal: 12,
+    gap: 10,
+    marginTop: 10,
+  },
+  playlistCard: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     backgroundColor: theme.colors.background.surface,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
-  playlistItemSelected: {
+  playlistCardSelected: {
     borderColor: theme.colors.button.primary,
     backgroundColor: '#001a3a',
   },
-  playlistItemLeft: {
+  playlistCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   checkmark: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: theme.colors.border,
     alignItems: 'center',
@@ -711,22 +743,18 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.button.primary,
     borderColor: theme.colors.button.primary,
   },
-  playlistTitle: {
+  playlistCardTitle: {
+    flex: 1,
     color: theme.colors.text.primary,
-    fontSize: theme.sizes.body,
+    fontSize: theme.sizes.small,
     fontWeight: theme.weights.medium,
   },
-  playlistTitleSelected: {
+  playlistCardTitleSelected: {
     color: theme.colors.text.primary,
   },
-  playlistItemRight: {
-    alignItems: 'flex-end',
-  },
-  playlistRating: {
-    color: theme.colors.text.secondary,
-    fontSize: theme.sizes.small,
-  },
-  playlistTrackCount: {
+  playlistCardMeta: {
+    marginTop: 6,
+    marginLeft: 28,
     color: theme.colors.text.muted,
     fontSize: theme.sizes.xsmall,
   },
