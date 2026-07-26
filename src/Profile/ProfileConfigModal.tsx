@@ -102,7 +102,19 @@ export function ProfileConfigModal({
       'This will overwrite your current data with the contents of the backup file.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Restore', style: 'destructive', onPress: startImport },
+        {
+          text: 'Restore',
+          style: 'destructive',
+          onPress: () =>
+            Alert.alert(
+              'Are you absolutely sure?',
+              'Your current data will be replaced. Any unsaved changes will be lost.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Restore', style: 'destructive', onPress: startImport },
+              ]
+            ),
+        },
       ]
     );
   };
@@ -163,7 +175,19 @@ export function ProfileConfigModal({
                     'Are you sure you want to delete all songs? This cannot be undone.',
                     [
                       { text: 'Cancel', style: 'cancel' },
-                      { text: 'Delete', style: 'destructive', onPress: onDeleteAllSongs },
+                      {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress: () =>
+                          Alert.alert(
+                            'Are you absolutely sure?',
+                            'This will permanently remove every song from your library.',
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              { text: 'Delete', style: 'destructive', onPress: onDeleteAllSongs },
+                            ]
+                          ),
+                      },
                     ]
                   )
                 }
@@ -179,7 +203,19 @@ export function ProfileConfigModal({
                     'Are you sure you want to delete all tags? This cannot be undone.',
                     [
                       { text: 'Cancel', style: 'cancel' },
-                      { text: 'Delete', style: 'destructive', onPress: onDeleteAllTags },
+                      {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress: () =>
+                          Alert.alert(
+                            'Are you absolutely sure?',
+                            'This will permanently remove every tag from your library.',
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              { text: 'Delete', style: 'destructive', onPress: onDeleteAllTags },
+                            ]
+                          ),
+                      },
                     ]
                   )
                 }

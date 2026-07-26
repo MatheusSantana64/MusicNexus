@@ -147,16 +147,42 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
   };
 
   const handleDisconnect = async () => {
-    setDisconnecting(true);
-    try {
-      await disconnectTidalAccount();
-      setAccount({ connected: false });
-      Alert.alert('Disconnected', 'Your TIDAL account has been disconnected.');
-    } catch (error) {
-      Alert.alert('Disconnect failed', error instanceof Error ? error.message : 'Unable to disconnect TIDAL.');
-    } finally {
-      setDisconnecting(false);
-    }
+    Alert.alert(
+      'Disconnect TIDAL',
+      'Are you sure you want to disconnect your TIDAL account? Your rating playlists configuration will be lost.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, disconnect',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Are you absolutely sure?',
+              'This cannot be undone. You will need to reconnect and reconfigure everything.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Disconnect',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setDisconnecting(true);
+                    try {
+                      await disconnectTidalAccount();
+                      setAccount({ connected: false });
+                      Alert.alert('Disconnected', 'Your TIDAL account has been disconnected.');
+                    } catch (error) {
+                      Alert.alert('Disconnect failed', error instanceof Error ? error.message : 'Unable to disconnect TIDAL.');
+                    } finally {
+                      setDisconnecting(false);
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
   };
 
   const ratingKeys = getTidalRatingKeys();
