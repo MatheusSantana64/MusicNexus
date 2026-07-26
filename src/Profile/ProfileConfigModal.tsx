@@ -164,7 +164,62 @@ export function ProfileConfigModal({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.configSectionTitle}>Configurations</Text>
+            <Text style={styles.configSectionTitle}>Backup</Text>
+            <View style={{ marginBottom: 12 }}>
+              <Button
+                title={isBackingUp ? 'Backing up...' : 'Backup to Cloud'}
+                color={theme.colors.button.primary}
+                onPress={handleBackup}
+                disabled={busy}
+              />
+              {backupProgress && (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={{ color: theme.colors.text.secondary, fontSize: 12 }}>
+                    {backupProgress.phase}: {backupProgress.current}/{backupProgress.total}
+                  </Text>
+                  <View style={{ marginTop: 4, height: 4, backgroundColor: theme.colors.background.surface, borderRadius: 2, overflow: 'hidden' }}>
+                    <View style={{ height: '100%', width: `${(backupProgress.current / backupProgress.total) * 100}%`, backgroundColor: theme.colors.button.primary }} />
+                  </View>
+                </View>
+              )}
+            </View>
+            <View style={{ marginBottom: 12 }}>
+              <Button
+                title={isExporting ? 'Exporting...' : 'Export to File'}
+                color={theme.colors.button.primary}
+                onPress={handleExportLocal}
+                disabled={busy}
+              />
+              {exportProgress && (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={{ color: theme.colors.text.secondary, fontSize: 12 }}>
+                    {exportProgress.phase}: {exportProgress.current}/{exportProgress.total}
+                  </Text>
+                  <View style={{ marginTop: 4, height: 4, backgroundColor: theme.colors.background.surface, borderRadius: 2, overflow: 'hidden' }}>
+                    <View style={{ height: '100%', width: `${(exportProgress.current / exportProgress.total) * 100}%`, backgroundColor: theme.colors.button.primary }} />
+                  </View>
+                </View>
+              )}
+            </View>
+            <View style={{ marginBottom: 12 }}>
+              <Button
+                title={isImporting ? 'Restoring...' : 'Restore from File'}
+                color={theme.colors.button.delete}
+                onPress={handleImportLocal}
+                disabled={busy}
+              />
+              {importProgress && (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={{ color: theme.colors.text.secondary, fontSize: 12 }}>
+                    {importProgress.phase}: {importProgress.current}/{importProgress.total}
+                  </Text>
+                  <View style={{ marginTop: 4, height: 4, backgroundColor: theme.colors.background.surface, borderRadius: 2, overflow: 'hidden' }}>
+                    <View style={{ height: '100%', width: `${(importProgress.current / importProgress.total) * 100}%`, backgroundColor: theme.colors.button.delete }} />
+                  </View>
+                </View>
+              )}
+            </View>
+            <Text style={[styles.configSectionTitle, { marginTop: 16 }]}>Data</Text>
             <View style={{ marginBottom: 12 }}>
               <Button
                 title="Delete All Songs"
@@ -220,61 +275,6 @@ export function ProfileConfigModal({
                   )
                 }
               />
-            </View>
-            <Text style={[styles.configSectionTitle, { marginTop: 16 }]}>Backup</Text>
-            <View style={{ marginBottom: 12 }}>
-              <Button
-                title={isBackingUp ? 'Backing up...' : 'Backup to Cloud'}
-                color={theme.colors.button.primary}
-                onPress={handleBackup}
-                disabled={busy}
-              />
-              {backupProgress && (
-                <View style={{ marginTop: 8 }}>
-                  <Text style={{ color: theme.colors.text.secondary, fontSize: 12 }}>
-                    {backupProgress.phase}: {backupProgress.current}/{backupProgress.total}
-                  </Text>
-                  <View style={{ marginTop: 4, height: 4, backgroundColor: theme.colors.background.surface, borderRadius: 2, overflow: 'hidden' }}>
-                    <View style={{ height: '100%', width: `${(backupProgress.current / backupProgress.total) * 100}%`, backgroundColor: theme.colors.button.primary }} />
-                  </View>
-                </View>
-              )}
-            </View>
-            <View style={{ marginBottom: 12 }}>
-              <Button
-                title={isExporting ? 'Exporting...' : 'Export to File'}
-                color={theme.colors.button.primary}
-                onPress={handleExportLocal}
-                disabled={busy}
-              />
-              {exportProgress && (
-                <View style={{ marginTop: 8 }}>
-                  <Text style={{ color: theme.colors.text.secondary, fontSize: 12 }}>
-                    {exportProgress.phase}: {exportProgress.current}/{exportProgress.total}
-                  </Text>
-                  <View style={{ marginTop: 4, height: 4, backgroundColor: theme.colors.background.surface, borderRadius: 2, overflow: 'hidden' }}>
-                    <View style={{ height: '100%', width: `${(exportProgress.current / exportProgress.total) * 100}%`, backgroundColor: theme.colors.button.primary }} />
-                  </View>
-                </View>
-              )}
-            </View>
-            <View style={{ marginBottom: 12 }}>
-              <Button
-                title={isImporting ? 'Restoring...' : 'Restore from File'}
-                color={theme.colors.button.delete}
-                onPress={handleImportLocal}
-                disabled={busy}
-              />
-              {importProgress && (
-                <View style={{ marginTop: 8 }}>
-                  <Text style={{ color: theme.colors.text.secondary, fontSize: 12 }}>
-                    {importProgress.phase}: {importProgress.current}/{importProgress.total}
-                  </Text>
-                  <View style={{ marginTop: 4, height: 4, backgroundColor: theme.colors.background.surface, borderRadius: 2, overflow: 'hidden' }}>
-                    <View style={{ height: '100%', width: `${(importProgress.current / importProgress.total) * 100}%`, backgroundColor: theme.colors.button.delete }} />
-                  </View>
-                </View>
-              )}
             </View>
 
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
