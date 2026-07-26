@@ -5,11 +5,12 @@ import { theme } from '../styles/theme';
 import { MusicTrack } from '../types';
 import { FlashList } from '@shopify/flash-list';
 import { useMusicStore } from '../store/musicStore';
-import { refreshTidalConnectionIfNeeded, fetchTidalPlaylistItems, addTrackToConfiguredPlaylist, removeTrackFromConfiguredPlaylist, TidalPlaylistSyncIssue } from '../services/tidal/tidalAccountService';
+import { refreshTidalConnectionIfNeeded, fetchTidalPlaylistItems, fetchTidalPlaylistMetadata, addTrackToConfiguredPlaylist, removeTrackFromConfiguredPlaylist, TidalPlaylistSyncIssue } from '../services/tidal/tidalAccountService';
 import { getTidalTracksByIds } from '../services/tidal/tidalApiClient';
 import { saveMusicBatch } from '../services/music/musicService';
 import { showToast } from '../utils/toast';
 import { formatDateTimeDDMMYY_HHMM } from '../utils/dateUtils';
+import { getPlaylistLastModifiedMap, updatePlaylistCacheBatch } from '../services/tidal/tidalPlaylistCache';
 
 interface PlaylistOption {
   rating: string;
@@ -142,19 +143,57 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
     setScanLoading(true);
     setIssues([]);
     setMissingTracksMap(new Map());
-    setScanStatus('Scanning...');
+    setScanStatus('Checking playlists...');
     try {
       const account = await refreshTidalConnectionIfNeeded();
       if (!account.connected || !account.tokenSet?.accessToken) throw new Error('TIDAL not connected');
       const token = account.tokenSet.accessToken;
 
-      const trackLocations = new Map<string, Array<{ playlistId: string; rating: string; addedAt?: string }>>();
-      let scannedCount = 0;
       const selectedEntries = Object.entries(account.ratingPlaylists || {})
         .filter(([, id]) => selectedPlaylistIds.has(id));
 
-      for (const [rating, playlistId] of selectedEntries) {
-        setScanStatus(`Scanning rating ${rating}... (${scannedCount + 1}/${selectedEntries.length})`);
+      const cachedMap = await getPlaylistLastModifiedMap(selectedEntries.map(([, id]) => id));
+      const cacheUpdates: Array<{ playlistId: string; lastModifiedAt: string }> = [];
+
+      const metadataResults = await Promise.all(
+        selectedEntries.map(async ([rating, playlistId]) => {
+          setScanStatus(`Checking rating ${rating}...`);
+          const meta = await fetchTidalPlaylistMetadata(playlistId, token);
+          return { rating, playlistId, meta };
+        })
+      );
+
+      const entriesToScan: Array<[string, string]> = [];
+      let skippedCount = 0;
+
+      for (const { rating, playlistId, meta } of metadataResults) {
+        if (meta?.lastModifiedAt) {
+          const cached = cachedMap.get(playlistId);
+          if (cached && cached === meta.lastModifiedAt) {
+            skippedCount++;
+            continue;
+          }
+          cacheUpdates.push({ playlistId, lastModifiedAt: meta.lastModifiedAt });
+        }
+        entriesToScan.push([rating, playlistId]);
+      }
+
+      if (skippedCount > 0 && entriesToScan.length > 0) {
+        setScanStatus(`Skipped ${skippedCount} unchanged playlist(s). Scanning ${entriesToScan.length}...`);
+      } else if (entriesToScan.length === 0) {
+        setScanStatus('All selected playlists are up to date. No changes detected.');
+        await updatePlaylistCacheBatch(cacheUpdates);
+        setScanLoading(false);
+        return;
+      } else {
+        setScanStatus(`Scanning ${entriesToScan.length} playlist(s)...`);
+      }
+
+      const trackLocations = new Map<string, Array<{ playlistId: string; rating: string; addedAt?: string }>>();
+      let scannedCount = 0;
+
+      for (const [rating, playlistId] of entriesToScan) {
+        setScanStatus(`Scanning rating ${rating}... (${scannedCount + 1}/${entriesToScan.length})`);
         const items = await fetchTidalPlaylistItems(playlistId, token);
         for (const item of items) {
           const trackId = String(item.id || '');
@@ -165,6 +204,8 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
         }
         scannedCount++;
       }
+
+      await updatePlaylistCacheBatch(cacheUpdates);
 
       const savedMusicMap = new Map(savedMusic.map(m => [m.id, m]));
       const newIssues: TidalPlaylistSyncIssue[] = [];
@@ -240,9 +281,10 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
       }
 
       setIssues(newIssues);
+      const skippedMsg = skippedCount > 0 ? ` (${skippedCount} skipped)` : '';
       setScanStatus(newIssues.length > 0
-        ? `Found ${newIssues.length} conflict(s)`
-        : 'No conflicts found');
+        ? `Found ${newIssues.length} conflict(s)${skippedMsg}`
+        : `No conflicts found${skippedMsg}`);
     } catch (error) {
       console.error('[SyncWithTidalModal] Scan error:', error);
       setScanStatus('Scan failed');

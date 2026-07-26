@@ -315,6 +315,22 @@ async function fetchPlaylistRelationshipItems(playlistId: string, token: string)
   return collected;
 }
 
+export async function fetchTidalPlaylistMetadata(playlistId: string, token: string): Promise<{ lastModifiedAt: string | null; numberOfTracks: number | null } | null> {
+  try {
+    const doc = await fetchJsonWithBackoff(
+      `/playlists/${playlistId}?countryCode=US`,
+      token
+    );
+    const attr = doc?.data?.attributes;
+    return {
+      lastModifiedAt: attr?.lastModifiedAt ?? null,
+      numberOfTracks: attr?.numberOfTracks ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchTidalPlaylistItems(playlistId: string, token: string): Promise<TidalPlaylistItem[]> {
   const items = await fetchPlaylistRelationshipItems(playlistId, token);
   return items as TidalPlaylistItem[];
