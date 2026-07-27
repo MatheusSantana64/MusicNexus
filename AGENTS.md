@@ -73,6 +73,11 @@ All modals use `useModal()` hook → returns `{ showModal, modalProps }`. Spread
 - TIDAL Account modal: "Import All from TIDAL Playlists" button imports all configured playlists
 - Both use `skipTidalSync: true` and filter duplicates via `existingIds` set before saving
 
+### Backup Service
+- `src/services/backupService.ts` backs up Firestore collections to timestamped backup collections
+- Backups include `_meta` documents (used for cache invalidation tracking)
+- `backupAllCollections()` backs up `savedMusic`, `tags`, `userProfile` collections
+
 ## Conventions
 
 - **Dark theme only** — AMOLED black backgrounds (`theme.colors.background.amoled = '#000000'`). All styling via `theme` object in `src/styles/theme.ts`
@@ -92,3 +97,4 @@ All modals use `useModal()` hook → returns `{ showModal, modalProps }`. Spread
 - `getTidalTracksByIds` does 3-step enrichment (tracks → albums with coverArt → artists with profileArt) and batches in groups of 20
 - `addTrackToPlaylist` checks for duplicates before POSTing
 - `removeTrackFromConfiguredPlaylist` fetches all playlist items to find the matching one — can be slow for large playlists
+- `@ts-ignore` on Firebase auth import — `getReactNativePersistence` resolves at runtime via Metro but not in TypeScript types
