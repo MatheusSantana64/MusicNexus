@@ -156,6 +156,17 @@ async function enqueueTidalSync(item: TidalSyncQueueItem): Promise<void> {
   await setTidalSyncQueue(queue);
 }
 
+async function removeFromTidalSyncQueue(firebaseId: string): Promise<void> {
+  const queue = await getTidalSyncQueue();
+  const updated = queue.filter(item => item.firebaseId !== firebaseId);
+  if (updated.length === queue.length) return;
+  if (updated.length === 0) {
+    await AsyncStorage.removeItem(STORAGE_KEYS.TIDAL_SYNC_QUEUE);
+  } else {
+    await setTidalSyncQueue(updated);
+  }
+}
+
 async function clearTidalSyncQueue(): Promise<void> {
   await AsyncStorage.removeItem(STORAGE_KEYS.TIDAL_SYNC_QUEUE);
 }
@@ -268,6 +279,7 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
             previousRating: item.previousRating,
             firebaseId: item.firebaseId,
           });
+          await removeFromTidalSyncQueue(item.firebaseId);
         } catch (err) {
           failed++;
           const name = item.trackName || item.trackId;
@@ -277,7 +289,6 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
           await new Promise(resolve => setTimeout(resolve, 350));
         }
       }
-      await clearTidalSyncQueue();
       const synced = tidalQueue.length - failed;
       if (synced > 0) {
         showToast(`${synced} rating change(s) synced to TIDAL`);
