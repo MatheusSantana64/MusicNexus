@@ -108,64 +108,60 @@ export function useLibrary(ratingFilter?: [number, number]) {
         }
       };
 
-      const showTidalDeleteOptions = async (deleteFromApp: () => void) => {
-        let tidalPlaylistName: string | null = null;
-        let tidalPlaylistId: string | null = null;
-        try {
-          const account = await refreshTidalConnectionIfNeeded(undefined, { skipPlaylistRefresh: true });
-          if (account.connected && account.tokenSet?.accessToken) {
-            const playlistId = getRatingPlaylistForRating(account, music.rating);
-            if (playlistId) {
-              tidalPlaylistId = playlistId;
-              const found = account.playlists?.find(p => p.id === playlistId);
-              tidalPlaylistName = found?.title || `Playlist ${playlistId.slice(0, 8)}`;
-            }
+      let tidalPlaylistName: string | null = null;
+      let tidalPlaylistId: string | null = null;
+      try {
+        const account = await refreshTidalConnectionIfNeeded(undefined, { skipPlaylistRefresh: true });
+        if (account.connected && account.tokenSet?.accessToken) {
+          const playlistId = getRatingPlaylistForRating(account, music.rating);
+          if (playlistId) {
+            tidalPlaylistId = playlistId;
+            const found = account.playlists?.find(p => p.id === playlistId);
+            tidalPlaylistName = found?.title || `Playlist ${playlistId.slice(0, 8)}`;
           }
-        } catch {}
-
-        if (tidalPlaylistId) {
-          showModal({
-            title: 'Remove Music',
-            message: `Remove "${music.title}" from:`,
-            actions: [
-              {
-                text: `App & ${tidalPlaylistName}`,
-                style: 'destructive',
-                onPress: async () => {
-                  await deleteFromApp();
-                  try {
-                    await removeTrackFromConfiguredPlaylist(tidalPlaylistId!, music.id);
-                    showToast(`Removed from ${tidalPlaylistName}`);
-                  } catch (err) {
-                    showToast(`Failed to remove from TIDAL: ${err instanceof Error ? err.message : err}`, 'error');
-                  }
-                },
-              },
-              {
-                text: 'App only',
-                style: 'default',
-                onPress: deleteFromApp,
-              },
-              { text: 'Cancel', style: 'cancel', onPress: () => {} },
-            ],
-          });
-        } else {
-          deleteFromApp();
         }
-      };
+      } catch {}
 
-      showModal({
-        title: 'Remove Music',
-        message: `Are you sure you want to remove "${music.title}" from your library?`,
-        actions: [
-          {
-            text: 'Remove',
-            style: 'destructive',
-            onPress: () => showTidalDeleteOptions(deleteFromLibrary),
-          },
-          { text: 'Cancel', style: 'cancel', onPress: () => {} },
-        ],
-      });
+      if (tidalPlaylistId) {
+        showModal({
+          title: 'Remove Music',
+          message: `Remove "${music.title}" from:`,
+          actions: [
+            {
+              text: 'App & TIDAL',
+              style: 'destructive',
+              onPress: async () => {
+                await deleteFromLibrary();
+                try {
+                  await removeTrackFromConfiguredPlaylist(tidalPlaylistId!, music.id);
+                  showToast(`Removed from ${tidalPlaylistName}`);
+                } catch (err) {
+                  showToast(`Failed to remove from TIDAL: ${err instanceof Error ? err.message : err}`, 'error');
+                }
+              },
+            },
+            {
+              text: 'App only',
+              style: 'default',
+              onPress: deleteFromLibrary,
+            },
+            { text: 'Cancel', style: 'cancel', onPress: () => {} },
+          ],
+        });
+      } else {
+        showModal({
+          title: 'Remove Music',
+          message: `Remove "${music.title}" from your library?`,
+          actions: [
+            {
+              text: 'Remove',
+              style: 'destructive',
+              onPress: deleteFromLibrary,
+            },
+            { text: 'Cancel', style: 'cancel', onPress: () => {} },
+          ],
+        });
+      }
     }
   }, [deleteMusic, showModal]);
 

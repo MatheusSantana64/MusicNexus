@@ -73,6 +73,7 @@ interface MusicState {
 interface InternalMusicState extends MusicState {
   _dirty: boolean;
   syncMusicWithFirestore: () => Promise<void>;
+  drainTidalSyncQueue: () => Promise<void>;
 }
 
 // ===== ASYNC STORAGE KEYS =====
@@ -241,33 +242,48 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
         await setDirtyFlag(false);
       }
 
-      // Sync queued TIDAL playlist operations
-      const tidalQueue = await getTidalSyncQueue();
-      if (tidalQueue.length > 0) {
-        let failed = 0;
-        for (const item of tidalQueue) {
-          try {
-            await syncTrackToConfiguredTidalPlaylist({
-              id: item.trackId,
-              trackName: item.trackName,
-              rating: item.rating,
-              previousRating: item.previousRating,
-              firebaseId: item.firebaseId,
-            });
-          } catch (err) {
-            failed++;
-            const name = item.trackName || item.trackId;
-            showToast(`Failed to sync '${name}' to TIDAL: ${err instanceof Error ? err.message : err}`, 'error');
-          }
-        }
-        await clearTidalSyncQueue();
-        const synced = tidalQueue.length - failed;
-        if (synced > 0) {
-          showToast(`${synced} rating change(s) synced to TIDAL`);
-        }
-      }
+      // Sync queued TIDAL playlist operations in background
+      void get().drainTidalSyncQueue();
     } catch (err) {
       console.error('[musicStore] syncMusicWithFirestore failed:', err);
+    }
+  },
+
+  drainTidalSyncQueue: async () => {
+    try {
+      const state = await NetInfo.fetch();
+      if (!state.isConnected) return;
+
+      const tidalQueue = await getTidalSyncQueue();
+      if (tidalQueue.length === 0) return;
+
+      let failed = 0;
+      for (let i = 0; i < tidalQueue.length; i++) {
+        const item = tidalQueue[i];
+        try {
+          await syncTrackToConfiguredTidalPlaylist({
+            id: item.trackId,
+            trackName: item.trackName,
+            rating: item.rating,
+            previousRating: item.previousRating,
+            firebaseId: item.firebaseId,
+          });
+        } catch (err) {
+          failed++;
+          const name = item.trackName || item.trackId;
+          showToast(`Failed to sync '${name}' to TIDAL: ${err instanceof Error ? err.message : err}`, 'error');
+        }
+        if (i < tidalQueue.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 350));
+        }
+      }
+      await clearTidalSyncQueue();
+      const synced = tidalQueue.length - failed;
+      if (synced > 0) {
+        showToast(`${synced} rating change(s) synced to TIDAL`);
+      }
+    } catch (err) {
+      console.error('[musicStore] drainTidalSyncQueue failed:', err);
     }
   },
 
@@ -336,6 +352,8 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
         refreshing: false,
         lastUpdated: Date.now()
       });
+
+      void get().drainTidalSyncQueue();
     } catch (error) {
       console.error('[musicStore] loadMusic error:', error);
       set({ 
