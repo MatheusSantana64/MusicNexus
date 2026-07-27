@@ -73,7 +73,7 @@ export async function saveMusic(track: MusicTrack, options: SaveMusicOptions = {
     const validatedMusicData = validateSavedMusicInput(musicData);
 
     const docRef = await addDoc(collection(db, COLLECTION_NAME), validatedMusicData);
-    if (rating > 0 && !skipTidalSync) {
+    if (!skipTidalSync) {
       void syncTrackToConfiguredTidalPlaylist({
         id: track.id,
         rating,

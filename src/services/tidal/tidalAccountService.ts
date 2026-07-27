@@ -65,7 +65,7 @@ export interface TidalPlaylistSyncIssue {
   playlistDetails: Array<{ playlistId: string; rating: string; addedAt?: string }>;
   libraryRating?: number;
   libraryTimestamp?: string;
-  conflictType: 'missing' | 'mismatch' | 'duplicate';
+  conflictType: 'missing' | 'mismatch' | 'duplicate' | 'not_in_playlist';
 }
 
 export interface TidalReconcileCheckpoint {

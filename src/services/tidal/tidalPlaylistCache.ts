@@ -1,5 +1,5 @@
 // src/services/tidal/tidalPlaylistCache.ts
-// Cache for TIDAL playlist lastModifiedAt timestamps to avoid re-scanning unchanged playlists
+// Cache for TIDAL playlist metadata and track IDs to avoid re-scanning unchanged playlists
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CACHE_KEY = 'tidalPlaylistCache';
@@ -7,11 +7,12 @@ const CACHE_KEY = 'tidalPlaylistCache';
 export interface PlaylistCacheEntry {
   lastModifiedAt: string;
   cachedAt: number;
+  trackIds?: string[];
 }
 
 export type PlaylistCache = Record<string, PlaylistCacheEntry>;
 
-async function loadCache(): Promise<PlaylistCache> {
+export async function loadCache(): Promise<PlaylistCache> {
   try {
     const raw = await AsyncStorage.getItem(CACHE_KEY);
     return raw ? JSON.parse(raw) : {};
@@ -24,32 +25,16 @@ async function saveCache(cache: PlaylistCache): Promise<void> {
   await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(cache));
 }
 
-export async function getCachedLastModified(playlistId: string): Promise<string | null> {
+export async function getCachedPlaylistEntry(playlistId: string): Promise<PlaylistCacheEntry | null> {
   const cache = await loadCache();
-  return cache[playlistId]?.lastModifiedAt ?? null;
+  return cache[playlistId] ?? null;
 }
 
-export async function getPlaylistLastModifiedMap(playlistIds: string[]): Promise<Map<string, string>> {
-  const cache = await loadCache();
-  const map = new Map<string, string>();
-  for (const id of playlistIds) {
-    const entry = cache[id];
-    if (entry) map.set(id, entry.lastModifiedAt);
-  }
-  return map;
-}
-
-export async function updatePlaylistCache(playlistId: string, lastModifiedAt: string): Promise<void> {
-  const cache = await loadCache();
-  cache[playlistId] = { lastModifiedAt, cachedAt: Date.now() };
-  await saveCache(cache);
-}
-
-export async function updatePlaylistCacheBatch(entries: Array<{ playlistId: string; lastModifiedAt: string }>): Promise<void> {
+export async function updatePlaylistCacheBatch(entries: Array<{ playlistId: string; lastModifiedAt: string; trackIds?: string[] }>): Promise<void> {
   const cache = await loadCache();
   const now = Date.now();
-  for (const { playlistId, lastModifiedAt } of entries) {
-    cache[playlistId] = { lastModifiedAt, cachedAt: now };
+  for (const { playlistId, lastModifiedAt, trackIds } of entries) {
+    cache[playlistId] = { lastModifiedAt, cachedAt: now, trackIds: trackIds ?? cache[playlistId]?.trackIds };
   }
   await saveCache(cache);
 }
