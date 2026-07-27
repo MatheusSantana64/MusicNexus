@@ -50,13 +50,13 @@ function PlaylistCard({ playlist, selected, onPress, lastSyncedAt }: { playlist:
           numberOfLines={2}
         >
           {playlist.title}
+          {lastSyncedAt != null && lastSyncedAt > 0 && (
+            <Text style={styles.playlistCardTimestamp}> ({formatDateTimeDDMMYY_HHMM(new Date(lastSyncedAt).toISOString())})</Text>
+          )}
         </Text>
       </View>
       {playlist.trackCount != null && (
         <Text style={styles.playlistCardMeta}>{playlist.trackCount} tracks</Text>
-      )}
-      {lastSyncedAt != null && lastSyncedAt > 0 && (
-        <Text style={styles.playlistCardMeta}>Synced: {formatDateTimeDDMMYY_HHMM(new Date(lastSyncedAt).toISOString())}</Text>
       )}
     </TouchableOpacity>
   );
@@ -337,7 +337,7 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
     }
   };
 
-  const resolveIssue = async (issue: TidalPlaylistSyncIssue, keep: 'library' | 'playlist' | 'skip' | 'remove' | 'add_to_playlist', selectedPlaylistId?: string) => {
+  const resolveIssue = async (issue: TidalPlaylistSyncIssue, keep: 'library' | 'playlist' | 'skip' | 'remove' | 'add_to_playlist' | 'remove_from_app', selectedPlaylistId?: string) => {
     setResolvingTrackIds(prev => new Set(prev).add(issue.trackId));
     try {
       const account = await refreshTidalConnectionIfNeeded();
@@ -349,10 +349,16 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
         for (const playlistId of issue.playlistIds) {
           await removeTrackFromConfiguredPlaylist(playlistId, issue.trackId);
         }
-        showToast('Removed from playlist(s)');
+        showToast('Removed from TIDAL playlist(s)');
+      } else if (keep === 'remove_from_app') {
+        const track = useMusicStore.getState().savedMusic.find(m => m.id === issue.trackId);
+        if (track?.firebaseId) {
+          await useMusicStore.getState().deleteMusic(track.firebaseId);
+          showToast(`Removed '${track.title}' from library`);
+        }
       } else if (keep === 'add_to_playlist' && selectedPlaylistId) {
         await addTrackToConfiguredPlaylist(selectedPlaylistId, issue.trackId);
-        showToast('Added to playlist');
+        showToast('Added to TIDAL playlist');
       } else if (keep === 'library') {
         const track = useMusicStore.getState().savedMusic.find(item => item.id === issue.trackId);
         if (!track) {
@@ -444,9 +450,11 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
       for (const issue of snapshot) {
         setBulkProgress(`Syncing ${resolved + 1}/${snapshot.length}...`);
         try {
+          const name = issue.trackTitle || issue.trackId;
           if (issue.conflictType === 'not_in_playlist') {
             const playlistId = issue.playlistIds[0];
             if (playlistId) await addTrackToConfiguredPlaylist(playlistId, issue.trackId);
+            showToast(`Added '${name}' to rating ${issue.playlistRatings[0]} playlist`);
           } else if (issue.conflictType === 'missing') {
             const rating = Number(issue.playlistRatings[0] || '0');
             const tidalTracks = await getTidalTracksByIds([issue.trackId], account.tokenSet.accessToken, undefined, true);
@@ -473,6 +481,7 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
                   tags: [],
                   ratingHistory: rating > 0 ? [{ rating, timestamp: now.toISOString() }] : [],
                 }]);
+                showToast(`Imported '${track.title}' as rating ${rating}`);
               }
             }
           } else if (issue.conflictType === 'mismatch' || issue.conflictType === 'duplicate') {
@@ -487,6 +496,7 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
                   if (pid !== keepRatingPlaylistId) await removeTrackFromConfiguredPlaylist(pid, issue.trackId);
                 }
                 if (keepRatingPlaylistId) await addTrackToConfiguredPlaylist(keepRatingPlaylistId, issue.trackId);
+                showToast(`Kept library rating for '${name}' (${Number(track.rating)})`);
               }
             } else {
               const newestDetail = (issue.playlistDetails || []).find(d => Date.parse(d.addedAt || '') === newestPlaylistAt);
@@ -501,6 +511,7 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
                     await updateRating(existingTrack.firebaseId, selectedRating);
                   }
                   await addTrackToConfiguredPlaylist(newestDetail.playlistId, issue.trackId);
+                  showToast(`Kept TIDAL rating for '${name}' (${selectedRating})`);
                 } else {
                   const tidalTracks = await getTidalTracksByIds([issue.trackId], account.tokenSet.accessToken, undefined, true);
                   if (tidalTracks.length > 0) {
@@ -526,6 +537,7 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
                         tags: [],
                         ratingHistory: selectedRating > 0 ? [{ rating: selectedRating, timestamp: now.toISOString() }] : [],
                       }]);
+                      showToast(`Imported '${track.title}' as rating ${selectedRating}`);
                     }
                   }
                 }
@@ -541,7 +553,6 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
       }
 
       setBulkProgress(null);
-      if (resolved > 0) showToast(`${resolved}/${snapshot.length} conflict(s) synced`);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Bulk sync failed', 'error');
     } finally {
@@ -799,16 +810,25 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
             </Text>
             <View style={styles.issueActions}>
               {issue.conflictType === 'not_in_playlist' ? (
-                Array.from(uniquePlaylistButtons.values()).map(({ playlistId, rating }) => (
+                <>
+                  {Array.from(uniquePlaylistButtons.values()).map(({ playlistId, rating }) => (
+                    <TouchableOpacity
+                      key={playlistId}
+                      onPress={() => resolveIssue(issue, 'add_to_playlist', playlistId)}
+                      disabled={busy}
+                      style={[styles.issueActionButton, styles.issueActionButtonPlaylist]}
+                    >
+                      <Text style={styles.issueActionButtonText}>{busy ? 'Working...' : `Add to TIDAL with rating ${rating}`}</Text>
+                    </TouchableOpacity>
+                  ))}
                   <TouchableOpacity
-                    key={playlistId}
-                    onPress={() => resolveIssue(issue, 'add_to_playlist', playlistId)}
+                    onPress={() => resolveIssue(issue, 'remove_from_app')}
                     disabled={busy}
-                    style={[styles.issueActionButton, styles.issueActionButtonPlaylist]}
+                    style={[styles.issueActionButton, styles.issueActionButtonRemove]}
                   >
-                    <Text style={styles.issueActionButtonText}>{busy ? 'Working...' : `Add to ${rating}`}</Text>
+                    <Text style={styles.issueActionButtonText}>{busy ? 'Working...' : 'Remove from app'}</Text>
                   </TouchableOpacity>
-                ))
+                </>
               ) : (
                 <>
                   {!isMissing && (
@@ -828,7 +848,7 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
                       style={[styles.issueActionButton, styles.issueActionButtonPlaylist]}
                     >
                       <Text style={styles.issueActionButtonText}>
-                        {busy ? 'Working...' : isMissing ? `Import as ${rating}` : `Keep ${rating}`}
+                        {busy ? 'Working...' : isMissing ? `Import to app with rating ${rating}` : `Keep ${rating}`}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -838,7 +858,7 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
                       disabled={busy}
                       style={[styles.issueActionButton, styles.issueActionButtonRemove]}
                     >
-                      <Text style={styles.issueActionButtonText}>{busy ? 'Working...' : 'Remove'}</Text>
+                      <Text style={styles.issueActionButtonText}>{busy ? 'Working...' : 'Remove from TIDAL'}</Text>
                     </TouchableOpacity>
                   )}
                 </>
@@ -907,6 +927,9 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
             contentContainerStyle={{ paddingBottom: 20 }}
             nestedScrollEnabled
           />
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -926,8 +949,19 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     borderColor: theme.colors.border,
     borderWidth: 1,
-    maxHeight: '90%',
+    maxHeight: '95%',
     overflow: 'hidden',
+  },
+  closeButton: {
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.divider,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: theme.colors.text.primary,
+    fontSize: theme.sizes.body,
+    fontWeight: theme.weights.bold,
   },
   stickyHeader: {
     backgroundColor: theme.colors.background.amoled,
@@ -976,11 +1010,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 12,
     gap: 10,
-    marginTop: 10,
+    marginTop: 8,
   },
   playlistCard: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     backgroundColor: theme.colors.background.surface,
     borderRadius: theme.borderRadius.md,
@@ -1023,6 +1057,10 @@ const styles = StyleSheet.create({
     marginLeft: 28,
     color: theme.colors.text.muted,
     fontSize: theme.sizes.xsmall,
+  },
+  playlistCardTimestamp: {
+    color: theme.colors.text.muted,
+    fontSize: 9,
   },
   actionButton: {
     backgroundColor: theme.colors.button.primary,

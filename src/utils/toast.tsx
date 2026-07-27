@@ -9,7 +9,7 @@ interface ToastMessage {
 }
 
 const MAX_VISIBLE = 3;
-const SUCCESS_DURATION = 2500;
+const SUCCESS_DURATION = 4500;
 
 let nextId = 0;
 let listeners: Array<(msg: ToastMessage) => void> = [];
