@@ -440,12 +440,19 @@ export async function searchTidalTracks(
     const includedTracks = albumDocument.included?.filter(resource => resource.type === 'tracks') || [];
     const includedById = new Map(includedTracks.map(track => [track.id, track]));
     const orderedTracks: TidalResource[] = [];
+    const albumTrackPositions = new Map<string, number>();
 
     for (const album of albumResources) {
       const items = album.relationships?.items?.data;
+      let pos = 0;
       for (const item of Array.isArray(items) ? items : []) {
+        pos++;
         const track = includedById.get(item.id);
-        if (track) orderedTracks.push(track);
+        if (track) {
+          orderedTracks.push(track);
+          const itemPos = Number(item.attributes?.trackNumber || 0) || pos;
+          albumTrackPositions.set(item.id, itemPos);
+        }
       }
     }
 
@@ -462,6 +469,13 @@ export async function searchTidalTracks(
       token,
       orderedTracks.length
     );
+
+    for (const track of result) {
+      if (!track.track_position) {
+        const pos = albumTrackPositions.get(track.id);
+        if (pos) track.track_position = pos;
+      }
+    }
 
     searchCache.set(cacheKey, { tracks: result, timestamp: Date.now() });
     if (searchCache.size > SEARCH_CACHE_MAX) {
@@ -490,6 +504,19 @@ export async function searchTidalTracks(
     if (oldestKey !== undefined) searchCache.delete(oldestKey);
   }
   return result;
+}
+
+export async function ensureTrackPosition(track: MusicTrack): Promise<MusicTrack> {
+  if (track.track_position || !track.album?.id) return track;
+  const token = await getTidalAccessToken();
+  const positionMap = await fetchTidalAlbumTrackPositions(
+    [track.album.id],
+    new Set([track.id]),
+    token
+  );
+  const pos = positionMap.get(track.id);
+  if (pos) track.track_position = pos;
+  return track;
 }
 
 export async function getTidalTrackById(trackId: string): Promise<MusicTrack | null> {

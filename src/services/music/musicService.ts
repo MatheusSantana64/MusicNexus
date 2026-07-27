@@ -17,6 +17,7 @@ import { db } from '../../config/firebaseConfig';
 import { SavedMusic, MusicTrack } from '../../types';
 import { MusicSearchService } from './musicSearchService';
 import { syncTrackToConfiguredTidalPlaylist } from '../tidal/tidalAccountService';
+import { ensureTrackPosition } from '../tidal/tidalApiClient';
 import { 
   validateSavedMusicInput,
   safeParseFirebaseMusicDocument,
@@ -48,20 +49,21 @@ export async function saveMusic(track: MusicTrack, options: SaveMusicOptions = {
   }
 
   try {
+    const enriched = await ensureTrackPosition(track);
     const now = new Date().toISOString();
     const musicData: Omit<SavedMusic, 'firebaseId'> = {
-      id: track.id,
-      title: track.title,
-      artist: track.artist.name,
-      artistId: track.artist.id,
-      album: track.album.title,
-      albumId: track.album.id,
-      coverUrl: track.album.cover_small,
-      duration: track.duration,
+      id: enriched.id,
+      title: enriched.title,
+      artist: enriched.artist.name,
+      artistId: enriched.artist.id,
+      album: enriched.album.title,
+      albumId: enriched.album.id,
+      coverUrl: enriched.album.cover_small,
+      duration: enriched.duration,
       rating,
-      releaseDate: MusicSearchService.getTrackReleaseDate(track) || DEFAULT_RELEASE_DATE,
-      trackPosition: track.track_position || 0,
-      diskNumber: track.disk_number || 1,
+      releaseDate: MusicSearchService.getTrackReleaseDate(enriched) || DEFAULT_RELEASE_DATE,
+      trackPosition: enriched.track_position || 0,
+      diskNumber: enriched.disk_number || 1,
       savedAt: new Date(),
       tags,
       ratingHistory: rating > 0 ? [{ rating, timestamp: now }] : [],
