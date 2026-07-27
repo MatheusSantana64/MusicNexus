@@ -11,6 +11,7 @@ import { LibraryEmptyState } from '../Library/LibraryEmptyState';
 import { LibraryHeader } from '../Library/LibraryHeader';
 import { StarRatingModal } from '../components/StarRatingModal';
 import { OptionsModal } from '../components/OptionsModal';
+import { EditSongModal } from '../components/EditSongModal';
 import { useLibrary } from './useLibrary';
 import { useModal } from '../hooks/useModal';
 import { libraryStyles as styles } from './styles/LibraryScreen.styles';
@@ -59,6 +60,10 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
   const [historyModalVisible, setHistoryModalVisible] = useState(false);
   const [historyMusic, setHistoryMusic] = useState<SavedMusic | null>(null);
 
+  // Edit song modal state
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editMusic, setEditMusic] = useState<SavedMusic | null>(null);
+
   const handleShowHistory = useCallback((music: SavedMusic) => {
     setHistoryMusic(music);
     setHistoryModalVisible(true);
@@ -77,6 +82,12 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
           icon: { name: 'time-outline', color: '#006effff' },
           style: 'default',
           onPress: () => handleShowHistory(music),
+        },
+        {
+          text: 'Edit',
+          icon: { name: 'create-outline', color: '#006effff' },
+          style: 'default',
+          onPress: () => { setEditMusic(music); setEditModalVisible(true); },
         },
         {
           text: 'Delete',
@@ -139,6 +150,13 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
         : prev
     );
   }, []);
+
+  const handleEditSave = useCallback(async (updates: Partial<SavedMusic>) => {
+    if (!editMusic?.firebaseId) return;
+    await useMusicStore.getState().updateSong(editMusic.firebaseId, updates);
+    setEditModalVisible(false);
+    setEditMusic(null);
+  }, [editMusic]);
 
   const searchInputRef = useRef<TextInput>(null);
 
@@ -240,6 +258,16 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
           music={historyMusic}
           onClose={() => setHistoryModalVisible(false)}
           onDeleteEntry={handleDeleteHistoryEntry}
+        />
+      )}
+
+      {/* EDIT SONG MODAL */}
+      {editMusic && (
+        <EditSongModal
+          visible={editModalVisible}
+          music={editMusic}
+          onSave={handleEditSave}
+          onCancel={() => { setEditModalVisible(false); setEditMusic(null); }}
         />
       )}
     </SafeAreaView>

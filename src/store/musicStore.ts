@@ -42,6 +42,7 @@ interface MusicState {
   addMusic: (music: SavedMusic) => void;
   addMusicBatch: (musics: SavedMusic[]) => void;
   updateRating: (firebaseId: string, rating: number, tags?: string[]) => Promise<boolean>;
+  updateSong: (firebaseId: string, updates: Partial<SavedMusic>) => Promise<boolean>;
   deleteMusic: (firebaseId: string) => Promise<boolean>;
   refresh: (sortMode?: SortMode) => void;
   clearError: () => void;
@@ -522,6 +523,54 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
       return false;
     } finally {
       get().finishMusicDelete(firebaseId);
+    }
+  },
+
+  updateSong: async (firebaseId: string, updates: Partial<SavedMusic>): Promise<boolean> => {
+    try {
+      const { savedMusic } = get();
+      const existing = savedMusic.find(m => m.firebaseId === firebaseId);
+      if (!existing) return false;
+
+      const updated = { ...existing, ...updates };
+      const updatedMusic = savedMusic.map(m => m.firebaseId === firebaseId ? updated : m);
+      const newLastModified = Date.now();
+
+      set({
+        savedMusic: updatedMusic,
+        lastUpdated: newLastModified,
+        _dirty: true,
+      });
+
+      await setDirtyFlag(true);
+      await addDirtyMusicId(firebaseId);
+      await setCachedMusic(updatedMusic, newLastModified);
+
+      const state = await NetInfo.fetch();
+      if (state.isConnected) {
+        try {
+          await updateDoc(doc(db, 'savedMusic', firebaseId), updates as any);
+          await removeDirtyMusicId(firebaseId);
+
+          const dirtyIds = await getDirtyMusicIds();
+          if (dirtyIds.size === 0) {
+            set({ _dirty: false });
+            await setDirtyFlag(false);
+          }
+
+          const syncedTimestamp = Date.now();
+          await setSavedMusicMeta(syncedTimestamp);
+          await setCachedMusic(updatedMusic, syncedTimestamp);
+          set({ lastUpdated: syncedTimestamp });
+        } catch (error) {
+          showToast(`Failed to update song on Firebase: ${error instanceof Error ? error.message : error}`, 'error');
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[musicStore] updateSong error:', error);
+      return false;
     }
   },
 
