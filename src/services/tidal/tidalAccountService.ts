@@ -80,6 +80,38 @@ type TidalDocListener = (data: TidalAccountData) => void;
 let tidalAccountSnapshotUnsub: (() => void) | null = null;
 const tidalAccountListeners = new Set<TidalDocListener>();
 
+let cachedAccountData: TidalAccountData | null = null;
+let cachedAccountDataTimestamp = 0;
+let accountDataDirty = false;
+
+const ACCOUNT_DATA_TTL = 30_000;
+
+const playlistItemCache = new Map<string, { itemIds: Set<string>; fullItems: any[]; fetchedAt: number }>();
+const PLAYLIST_ITEM_CACHE_TTL = 60_000;
+
+function getCachedPlaylistItems(playlistId: string): { itemIds: Set<string>; fullItems: any[] } | null {
+  const entry = playlistItemCache.get(playlistId);
+  if (!entry) return null;
+  if (Date.now() - entry.fetchedAt > PLAYLIST_ITEM_CACHE_TTL) {
+    playlistItemCache.delete(playlistId);
+    return null;
+  }
+  return { itemIds: entry.itemIds, fullItems: entry.fullItems };
+}
+
+function cachePlaylistItems(playlistId: string, items: any[]): void {
+  const itemIds = new Set(items.map(item => String(item?.id || '')).filter(Boolean));
+  playlistItemCache.set(playlistId, { itemIds, fullItems: items, fetchedAt: Date.now() });
+}
+
+export function invalidatePlaylistItemCache(playlistId?: string): void {
+  if (playlistId) {
+    playlistItemCache.delete(playlistId);
+  } else {
+    playlistItemCache.clear();
+  }
+}
+
 function getTidalConfig() {
   const extra = Constants.expoConfig?.extra || {};
   return {
@@ -333,16 +365,23 @@ export async function fetchTidalPlaylistMetadata(playlistId: string, token: stri
 
 export async function fetchTidalPlaylistItems(playlistId: string, token: string): Promise<TidalPlaylistItem[]> {
   const items = await fetchPlaylistRelationshipItems(playlistId, token);
+  cachePlaylistItems(playlistId, items);
   return items as TidalPlaylistItem[];
 }
 
 async function addTrackToPlaylist(playlistId: string, trackId: string, token: string): Promise<void> {
-  debugTidal('addTrackToPlaylist request', { playlistId, trackId });
-  const existingItems = await fetchPlaylistRelationshipItems(playlistId, token);
-  const alreadyExists = existingItems.some(item => String(item?.id || '') === trackId);
-  if (alreadyExists) {
-    debugTidal('addTrackToPlaylist skip duplicate', { playlistId, trackId });
+  const cached = getCachedPlaylistItems(playlistId);
+  if (cached && cached.itemIds.has(trackId)) {
+    debugTidal('addTrackToPlaylist skip cached duplicate', { playlistId, trackId });
     return;
+  }
+  if (!cached) {
+    const items = await fetchPlaylistRelationshipItems(playlistId, token);
+    if (items.some(item => String(item?.id || '') === trackId)) {
+      cachePlaylistItems(playlistId, items);
+      debugTidal('addTrackToPlaylist skip duplicate', { playlistId, trackId });
+      return;
+    }
   }
   const response = await fetch(
     `${TIDAL_API_URL}/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=US`,
@@ -358,12 +397,12 @@ async function addTrackToPlaylist(playlistId: string, trackId: string, token: st
       }),
     }
   );
-
   if (!response.ok) {
     const body = await response.text();
     debugTidal('addTrackToPlaylist response error', { playlistId, trackId, status: response.status, statusText: response.statusText, body });
     throw new Error(`TIDAL playlist update failed (${response.status} ${response.statusText}): ${body}`);
   }
+  invalidatePlaylistItemCache(playlistId);
 }
 
 export async function addTrackToConfiguredPlaylist(playlistId: string, trackId: string): Promise<void> {
@@ -379,7 +418,14 @@ export async function removeTrackFromConfiguredPlaylist(playlistId: string, trac
 }
 
 async function removeTrackFromPlaylist(playlistId: string, trackId: string, token: string): Promise<void> {
-  const items = await fetchPlaylistRelationshipItems(playlistId, token);
+  let items: any[];
+  const cached = getCachedPlaylistItems(playlistId);
+  if (cached) {
+    items = cached.fullItems;
+  } else {
+    items = await fetchPlaylistRelationshipItems(playlistId, token);
+    cachePlaylistItems(playlistId, items);
+  }
   debugTidal('removeTrackFromPlaylist fetched document', {
     playlistId,
     trackId,
@@ -441,7 +487,10 @@ async function removeTrackFromPlaylist(playlistId: string, trackId: string, toke
       body: JSON.stringify(deletePayload),
     });
 
-    if (response.ok) return;
+    if (response.ok) {
+      invalidatePlaylistItemCache(playlistId);
+      return;
+    }
     lastDeleteError = response;
     const body = await response.text();
     const isTransient = response.status === 429 || response.status >= 500;
@@ -592,6 +641,9 @@ async function saveTidalAccount(data: TidalAccountData): Promise<void> {
   const payload = stripUndefined(raw);
   await setDoc(getTidalDocRef(), payload, { merge: true });
   await AsyncStorage.setItem(TIDAL_CACHE_KEY, JSON.stringify(payload));
+  cachedAccountData = payload as unknown as TidalAccountData;
+  cachedAccountDataTimestamp = Date.now();
+  accountDataDirty = false;
 }
 
 function stripUndefined(obj: Record<string, unknown>): Record<string, unknown> {
@@ -618,6 +670,9 @@ function startSnapshot() {
   tidalAccountSnapshotUnsub = onSnapshot(getTidalDocRef(), snap => {
     const data = snap.exists() ? (snap.data() as TidalAccountData) : { connected: false };
     AsyncStorage.setItem(TIDAL_CACHE_KEY, JSON.stringify(data));
+    cachedAccountData = data;
+    cachedAccountDataTimestamp = Date.now();
+    accountDataDirty = false;
     tidalAccountListeners.forEach(cb => {
       try { cb(data); } catch (error) { console.error('[tidalAccountService] listener error', error); }
     });
@@ -640,14 +695,28 @@ export function subscribeToTidalAccountChanges(callback: TidalDocListener) {
   };
 }
 
+export function markAccountDataDirty(): void {
+  accountDataDirty = true;
+}
+
+export function invalidateAccountCache(): void {
+  accountDataDirty = true;
+}
+
 export async function getTidalAccountData(): Promise<TidalAccountData> {
+  if (!accountDataDirty && cachedAccountData && Date.now() - cachedAccountDataTimestamp < ACCOUNT_DATA_TTL) {
+    return cachedAccountData;
+  }
   const cacheJson = await AsyncStorage.getItem(TIDAL_CACHE_KEY);
   const cache = cacheJson ? JSON.parse(cacheJson) as TidalAccountData : null;
   const firestoreData = await loadTidalAccountFromFirestore();
-  if (firestoreData.updatedAt && (!cache?.updatedAt || firestoreData.updatedAt > cache.updatedAt)) {
-    return firestoreData;
-  }
-  return cache || firestoreData;
+  const result = (firestoreData.updatedAt && (!cache?.updatedAt || firestoreData.updatedAt > cache.updatedAt))
+    ? firestoreData
+    : cache || firestoreData;
+  cachedAccountData = result;
+  cachedAccountDataTimestamp = Date.now();
+  accountDataDirty = false;
+  return result;
 }
 
 export async function connectTidalAccountFromRedirect(url: string): Promise<TidalAccountData> {
@@ -693,6 +762,7 @@ export async function updateTidalRatingPlaylists(ratingPlaylists: Record<string,
     updatedAt: Date.now(),
   };
   await saveTidalAccount(updated);
+  markAccountDataDirty();
   return updated;
 }
 
@@ -811,6 +881,10 @@ export async function disconnectTidalAccount(): Promise<void> {
     updatedAt: Date.now(),
   }, { merge: false });
   await AsyncStorage.removeItem(TIDAL_CACHE_KEY);
+  cachedAccountData = null;
+  cachedAccountDataTimestamp = 0;
+  accountDataDirty = false;
+  playlistItemCache.clear();
 }
 
 export function isTidalAuthRedirect(url: string): boolean {
@@ -883,6 +957,7 @@ export async function refreshTidalPlaylistsOnly(): Promise<TidalAccountData> {
     updatedAt: Date.now(),
   };
   await saveTidalAccount(updated);
+  markAccountDataDirty();
   return updated;
 }
 

@@ -3,6 +3,7 @@
 import Constants from 'expo-constants';
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+// @ts-ignore - getReactNativePersistence is available at runtime via Metro's react-native module resolution
 import { initializeAuth, getReactNativePersistence } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 

@@ -10,6 +10,14 @@ const TIDAL_COUNTRY_CODE = 'US';
 let tidalAccessToken: string | null = null;
 let tokenExpiresAt = 0;
 
+const searchCache = new Map<string, { tracks: MusicTrack[]; timestamp: number }>();
+const SEARCH_CACHE_TTL = 120_000;
+const SEARCH_CACHE_MAX = 50;
+
+const trackMetadataCache = new Map<string, { track: MusicTrack; timestamp: number }>();
+const TRACK_CACHE_TTL = 300_000;
+const TRACK_CACHE_MAX = 500;
+
 function getTidalCredentials() {
   const extra = Constants.expoConfig?.extra || {};
   return {
@@ -84,7 +92,7 @@ type TidalCollectionDocument = {
 };
 
 function findIncluded(
-  document: TidalSearchDocument,
+  document: { included?: TidalResource[] },
   type: string,
   id: string
 ): TidalResource | undefined {
@@ -304,7 +312,7 @@ async function fetchTidalAlbumTrackPositions(
 
 async function enrichTidalTracks(
   trackResources: TidalResource[],
-  document: TidalSearchDocument,
+  document: { included?: TidalResource[] },
   token: string,
   limit: number
 ): Promise<MusicTrack[]> {
@@ -359,6 +367,14 @@ export async function searchTidalTracks(
   limit: number = 25,
   albumMode = false
 ): Promise<MusicTrack[]> {
+  const cacheKey = `${query.trim().toLowerCase()}|${albumMode}|${limit}`;
+  const cached = searchCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL) {
+    searchCache.delete(cacheKey);
+    searchCache.set(cacheKey, { tracks: cached.tracks, timestamp: cached.timestamp });
+    return cached.tracks;
+  }
+
   const token = await getTidalAccessToken();
   const encodedQuery = encodeURIComponent(query.trim());
   const include = albumMode ? 'albums' : 'tracks';
@@ -433,7 +449,7 @@ export async function searchTidalTracks(
       }
     }
 
-    return enrichTidalTracks(
+    const result = await enrichTidalTracks(
       orderedTracks,
       {
         ...document,
@@ -446,6 +462,13 @@ export async function searchTidalTracks(
       token,
       orderedTracks.length
     );
+
+    searchCache.set(cacheKey, { tracks: result, timestamp: Date.now() });
+    if (searchCache.size > SEARCH_CACHE_MAX) {
+      const oldestKey = searchCache.keys().next().value;
+      if (oldestKey !== undefined) searchCache.delete(oldestKey);
+    }
+    return result;
   }
 
   const tracksRelationship = document.data?.relationships?.tracks?.data;
@@ -460,7 +483,13 @@ export async function searchTidalTracks(
     pages += 1;
   }
 
-  return enrichTidalTracks(allTrackRefs, document, token, limit);
+  const result = await enrichTidalTracks(allTrackRefs, document, token, limit);
+  searchCache.set(cacheKey, { tracks: result, timestamp: Date.now() });
+  if (searchCache.size > SEARCH_CACHE_MAX) {
+    const oldestKey = searchCache.keys().next().value;
+    if (oldestKey !== undefined) searchCache.delete(oldestKey);
+  }
+  return result;
 }
 
 export async function getTidalTrackById(trackId: string): Promise<MusicTrack | null> {
@@ -477,7 +506,7 @@ export async function getTidalTrackById(trackId: string): Promise<MusicTrack | n
     included: [
       ...(document.included || []),
       ...(Array.isArray(document.data) ? document.data : [document.data]),
-    ],
+    ].filter((r): r is TidalResource => r !== undefined),
   };
 
   const tracks = await enrichTidalTracks([track], enrichedDocument, token, 1);
@@ -493,12 +522,27 @@ export async function getTidalTracksByIds(
   const uniqueIds = [...new Set(trackIds)].filter(Boolean);
   if (uniqueIds.length === 0) return [];
 
-  console.log(`[tidal] getTidalTracksByIds: ${uniqueIds.length} unique IDs requested`);
-  onProgress?.(`Fetching ${uniqueIds.length} tracks`);
+  const now = Date.now();
+  const cachedTracks: MusicTrack[] = [];
+  const uncachedIds: string[] = [];
+  for (const id of uniqueIds) {
+    const cached = trackMetadataCache.get(id);
+    if (cached && now - cached.timestamp < TRACK_CACHE_TTL) {
+      cachedTracks.push(cached.track);
+    } else {
+      uncachedIds.push(id);
+    }
+  }
+  if (uncachedIds.length === 0) {
+    return cachedTracks;
+  }
 
-  const tracksDocument = await fetchTidalResourcesByIds('tracks', uniqueIds, 'albums,artists', token, onProgress);
+  console.log(`[tidal] getTidalTracksByIds: ${uncachedIds.length} unique IDs requested (${cachedTracks.length} from cache)`);
+  onProgress?.(`Fetching ${uncachedIds.length} tracks`);
+
+  const tracksDocument = await fetchTidalResourcesByIds('tracks', uncachedIds, 'albums,artists', token, onProgress);
   const fetchedTracks = tracksDocument.data || [];
-  console.log(`[tidal] getTidalTracksByIds: ${fetchedTracks.length}/${uniqueIds.length} tracks returned from API`);
+  console.log(`[tidal] getTidalTracksByIds: ${fetchedTracks.length}/${uncachedIds.length} tracks returned from API`);
 
   if (fetchedTracks.length > 0) {
     const sample = fetchedTracks[0];
@@ -536,13 +580,13 @@ export async function getTidalTracksByIds(
   };
 
   const fetchedById = new Map(fetchedTracks.map(track => [track.id, track]));
-  const resolved = uniqueIds
+  const resolved = uncachedIds
     .map(id => fetchedById.get(id))
     .filter((track): track is TidalResource => Boolean(track))
     .map(track => toMusicTrack(track, enrichedDocument))
     .filter((track): track is MusicTrack => Boolean(track && track.duration > 0));
 
-  console.log(`[tidal] getTidalTracksByIds: ${resolved.length}/${uniqueIds.length} tracks resolved to MusicTrack`);
+  console.log(`[tidal] getTidalTracksByIds: ${resolved.length}/${uncachedIds.length} tracks resolved to MusicTrack`);
 
   if (!skipTrackPositions) {
     const missingPosition = resolved.filter(t => !t.track_position);
@@ -571,8 +615,8 @@ export async function getTidalTracksByIds(
   }
 
   const resolvedIds = new Set(resolved.map(t => t.id));
-  const notFoundInFetch = uniqueIds.filter(id => !fetchedById.has(id));
-  const failedConversion = uniqueIds.filter(id => fetchedById.has(id) && !resolvedIds.has(id));
+  const notFoundInFetch = uncachedIds.filter(id => !fetchedById.has(id));
+  const failedConversion = uncachedIds.filter(id => fetchedById.has(id) && !resolvedIds.has(id));
   if (notFoundInFetch.length > 0) {
     console.warn(`[tidal] getTidalTracksByIds: ${notFoundInFetch.length} IDs not in fetch result, retrying individually:`, notFoundInFetch);
     onProgress?.(`Retrying ${notFoundInFetch.length} missing tracks`);
@@ -611,7 +655,19 @@ export async function getTidalTracksByIds(
     }
   }
 
-  return resolved;
+  for (const track of resolved) {
+    trackMetadataCache.set(track.id, { track, timestamp: Date.now() });
+  }
+  if (trackMetadataCache.size > TRACK_CACHE_MAX) {
+    const oldestKey = trackMetadataCache.keys().next().value;
+    if (oldestKey !== undefined) trackMetadataCache.delete(oldestKey);
+  }
+
+  const resolvedById = new Map(resolved.map(t => [t.id, t]));
+  const cachedById = new Map(cachedTracks.map(t => [t.id, t]));
+  return uniqueIds
+    .map(id => resolvedById.get(id) || cachedById.get(id))
+    .filter((t): t is MusicTrack => t !== undefined);
 }
 
 export async function getTidalPlaylistTracks(playlistId: string): Promise<MusicTrack[]> {
@@ -684,4 +740,12 @@ export async function getTidalPlaylistTracksWithToken(playlistId: string, token:
     .filter((track): track is TidalResource => Boolean(track))
     .map(track => toMusicTrack(track, { included: [...(tracksDocument.included || []), ...(tracksDocument.data || [])] }))
     .filter((track): track is MusicTrack => Boolean(track && track.duration > 0));
+}
+
+export function invalidateTrackMetadataCache(): void {
+  trackMetadataCache.clear();
+}
+
+export function invalidateSearchCache(): void {
+  searchCache.clear();
 }
