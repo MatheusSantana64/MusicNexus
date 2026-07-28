@@ -11,11 +11,12 @@ import {
 import { setSavedMusicMeta } from '../services/firestoreMetaHelper';
 import NetInfo from '@react-native-community/netinfo';
 import { deleteMusic, SortMode } from '../services/music/musicService';
-import { syncTrackToConfiguredTidalPlaylist } from '../services/tidal/tidalAccountService';
+import { syncTrackToConfiguredTidalPlaylist, addTrackToConfiguredPlaylist, removeTrackFromConfiguredPlaylist } from '../services/tidal/tidalAccountService';
 import { showToast } from '../utils/toast';
 import { doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTagStore } from './tagStore';
 
 // ===== TYPES =====
 interface OperationState {
@@ -215,6 +216,40 @@ async function syncDirtyMusic(cachedMusic: SavedMusic[]): Promise<boolean> {
   
   await clearDirtyMusicIds();
   return true;
+}
+
+async function syncTagTidalPlaylists(
+  trackId: string,
+  oldTags: string[],
+  newTags: string[]
+): Promise<void> {
+  const addedTags = newTags.filter(t => !oldTags.includes(t));
+  const removedTags = oldTags.filter(t => !newTags.includes(t));
+  if (addedTags.length === 0 && removedTags.length === 0) return;
+
+  const allTags = useTagStore.getState().tags;
+
+  for (const tagId of addedTags) {
+    const tag = allTags.find(t => t.id === tagId);
+    if (tag?.tidalPlaylistId) {
+      try {
+        await addTrackToConfiguredPlaylist(tag.tidalPlaylistId, trackId);
+      } catch (err) {
+        console.error('[musicStore] Failed to add track to tag playlist:', tagId, err);
+      }
+    }
+  }
+
+  for (const tagId of removedTags) {
+    const tag = allTags.find(t => t.id === tagId);
+    if (tag?.tidalPlaylistId) {
+      try {
+        await removeTrackFromConfiguredPlaylist(tag.tidalPlaylistId, trackId);
+      } catch (err) {
+        console.error('[musicStore] Failed to remove track from tag playlist:', tagId, err);
+      }
+    }
+  }
 }
 
 // ===== ZUSTAND STORE =====
@@ -456,10 +491,12 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
       const now = new Date().toISOString();
       let newRatingHistory: RatingHistoryEntry[] = [];
       let prevRating: number | undefined;
+      let prevTags: string[] = [];
 
       const updatedMusic = savedMusic.map(music => {
         if (music.firebaseId === firebaseId) {
           prevRating = music.rating;
+          prevTags = music.tags;
           newRatingHistory = music.rating !== rating
             ? [...(music.ratingHistory || []), { rating, timestamp: now }]
             : music.ratingHistory || [];
@@ -532,6 +569,10 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
           }).finally(() => {
             get().finishTidalSync(updatedTrack.id);
           });
+
+          if (tags) {
+            void syncTagTidalPlaylists(updatedTrack.id, prevTags, tags);
+          }
         }
       } else {
         console.log('[musicStore] Offline rating update queued for sync');
@@ -604,6 +645,7 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
       const existing = savedMusic.find(m => m.firebaseId === firebaseId);
       if (!existing) return false;
 
+      const prevTags = existing.tags;
       const updated = { ...existing, ...updates };
       const updatedMusic = savedMusic.map(m => m.firebaseId === firebaseId ? updated : m);
       const newLastModified = Date.now();
@@ -636,6 +678,10 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
           set({ lastUpdated: syncedTimestamp });
         } catch (error) {
           showToast(`Failed to update song on Firebase: ${error instanceof Error ? error.message : error}`, 'error');
+        }
+
+        if (updates.tags && existing.id) {
+          void syncTagTidalPlaylists(existing.id, prevTags, updates.tags);
         }
       }
 

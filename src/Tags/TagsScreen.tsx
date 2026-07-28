@@ -1,11 +1,12 @@
 // src/Tags/TagsScreen.tsx
 // TagsScreen component for managing music tags
 import React, { useState } from 'react';
-import { View, Text, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { TouchableOpacity as RNGHTouchableOpacity } from 'react-native-gesture-handler';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import { theme } from '../styles/theme';
 import { TagColorPicker } from './TagColorPicker';
+import { TagTidalConfigModal } from './TagTidalConfigModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { tagsScreenStyles as styles } from './styles/TagsScreen.styles';
@@ -16,12 +17,14 @@ function TagRow({
   tag,
   onEdit,
   onDelete,
+  onConfig,
   drag,
   isActive,
 }: {
   tag: Tag;
   onEdit: (tag: Tag) => void;
   onDelete: (id: string) => void;
+  onConfig: (tag: Tag) => void;
   drag: () => void;
   isActive: boolean;
 }) {
@@ -36,13 +39,14 @@ function TagRow({
           <Ionicons name="reorder-three" size={20} color={isActive ? theme.colors.text.primary : theme.colors.text.placeholder} />
         </RNGHTouchableOpacity>
         <Text style={[styles.tagName, { backgroundColor: tag.color }]}>{tag.name}</Text>
-        <TouchableOpacity onPress={() => onEdit(tag)} style={styles.editButton}>
-          <Ionicons name="pencil" size={16} color={theme.colors.text.blue} style={styles.icon} />
-          <Text style={styles.editText}>Edit</Text>
+        <TouchableOpacity onPress={() => onEdit(tag)} style={styles.actionButton}>
+          <Ionicons name="pencil" size={16} color={theme.colors.text.blue} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onDelete(tag.id)} style={styles.deleteButton}>
-          <Ionicons name="trash" size={16} color={theme.colors.text.error} style={styles.icon} />
-          <Text style={styles.deleteText}>Delete</Text>
+        <TouchableOpacity onPress={() => onConfig(tag)} style={styles.actionButton}>
+          <Ionicons name="settings-outline" size={16} color={tag.tidalPlaylistId ? theme.colors.text.success : theme.colors.text.muted} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => onDelete(tag.id)} style={styles.actionButton}>
+          <Ionicons name="trash" size={16} color={theme.colors.text.error} />
         </TouchableOpacity>
       </View>
     </ScaleDecorator>
@@ -67,6 +71,7 @@ export default function TagsScreen() {
   const [inputColor, setInputColor] = useState('#002a55');
   const [inputVisible, setInputVisible] = useState(false);
   const [colorPickerVisible, setColorPickerVisible] = useState(false);
+  const [configTag, setConfigTag] = useState<Tag | null>(null);
 
   // Open create or edit
   const openCreate = () => {
@@ -110,6 +115,20 @@ export default function TagsScreen() {
 
   const handleDeleteTag = async (id: string) => {
     await deleteTag(id);
+    refresh();
+  };
+
+  const handleSaveTidalPlaylist = async (playlistId: string) => {
+    if (!configTag) return;
+    await updateTag(configTag.id, { tidalPlaylistId: playlistId });
+    setConfigTag(null);
+    refresh();
+  };
+
+  const handleRemoveTidalPlaylist = async () => {
+    if (!configTag) return;
+    await updateTag(configTag.id, { tidalPlaylistId: undefined });
+    setConfigTag(null);
     refresh();
   };
 
@@ -173,6 +192,15 @@ export default function TagsScreen() {
           onClose={() => setColorPickerVisible(false)}
         />
 
+        <TagTidalConfigModal
+          visible={configTag !== null}
+          tagName={configTag?.name ?? ''}
+          currentPlaylistId={configTag?.tidalPlaylistId ?? ''}
+          onSave={handleSaveTidalPlaylist}
+          onRemove={handleRemoveTidalPlaylist}
+          onCancel={() => setConfigTag(null)}
+        />
+
         {loading ? (
           <ActivityIndicator size="large" color={theme.colors.text.primary} style={{ marginTop: 32 }} />
         ) : tags.length === 0 ? (
@@ -192,6 +220,7 @@ export default function TagsScreen() {
                 tag={item}
                 onEdit={openEdit}
                 onDelete={handleDeleteTag}
+                onConfig={(tag) => setConfigTag(tag)}
                 drag={drag}
                 isActive={isActive}
               />

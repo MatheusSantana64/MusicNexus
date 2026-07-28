@@ -91,23 +91,11 @@ export const tagsScreenStyles = StyleSheet.create({
         padding: 2,
         textAlign: 'center',
     },
-    editButton: {
-        marginHorizontal: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    editText: {
-        color: theme.colors.text.blue,
-        marginLeft: 4,
-    },
-    deleteButton: {
+    actionButton: {
+        marginHorizontal: 4,
+        padding: 4,
         alignItems: 'center',
         justifyContent: 'center',
-        flexDirection: 'row',
-    },
-    deleteText: {
-        color: theme.colors.text.error,
-        marginLeft: 4,
     },
     icon: {
         marginRight: 0,

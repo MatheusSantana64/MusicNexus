@@ -5,4 +5,5 @@ export interface Tag {
   position: number;
   name: string;
   color: string;
+  tidalPlaylistId?: string;
 }
