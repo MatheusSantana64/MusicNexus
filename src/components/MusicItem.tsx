@@ -38,7 +38,8 @@ export function MusicItem<T extends MusicTrack | SavedMusic>({
     getSavedMusicById, 
     isTrackSaving, 
     isRatingUpdating, 
-    isMusicDeleting 
+    isMusicDeleting,
+    isTidalSyncing 
   } = useMusicStore();
   
   const isSavedMusic = (item: MusicTrack | SavedMusic): item is SavedMusic => {
@@ -61,6 +62,8 @@ export function MusicItem<T extends MusicTrack | SavedMusic>({
     
     return false;
   };
+
+  const tidalSyncing = isTidalSyncing(music.id);
 
   const getCommonData = () => {
     const savedMusicData = getSavedMusicById(music.id);
@@ -161,18 +164,26 @@ export function MusicItem<T extends MusicTrack | SavedMusic>({
 
   return (
     <TouchableOpacity
-      style={[styles.container, isOperationInProgress() && { opacity: 0.6 }]}
+      style={[styles.container, isOperationInProgress() && { opacity: 0.6 }, tidalSyncing && { opacity: 0.7 }]}
       onPress={() => !isOperationInProgress() && onPress(music)}
       onLongPress={handleLongPress}
       activeOpacity={isOperationInProgress() ? 1 : 0.7}
       disabled={isOperationInProgress()}
     >
-      <Image
-        source={data.coverUrl ? { uri: data.coverUrl } : require('../../assets/icon.png')}
-        style={styles.albumCover}
-        defaultSource={require('../../assets/icon.png')}
-      />
-      
+      <View>
+        <Image
+          source={data.coverUrl ? { uri: data.coverUrl } : require('../../assets/icon.png')}
+          style={[styles.albumCover, tidalSyncing && { opacity: 0.5 }]}
+          defaultSource={require('../../assets/icon.png')}
+        />
+        {tidalSyncing && (
+          <ActivityIndicator
+            size="small"
+            color="#ffffffcc"
+            style={{ position: 'absolute', top: 20, left: 20 }}
+          />
+        )}
+      </View>
       <View style={styles.contentContainer}>
         <View style={styles.musicInfo}>
           <View style={styles.titleRow}>

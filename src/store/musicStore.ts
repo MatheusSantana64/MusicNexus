@@ -36,6 +36,8 @@ interface MusicState {
   
   // Operations state
   operations: OperationState;
+  tidalSyncingIds: Set<string>;
+  isOnline: boolean;
   
   // Core actions
   loadMusic: (sortMode?: SortMode) => Promise<void>;
@@ -66,6 +68,9 @@ interface MusicState {
   isRatingUpdating: (firebaseId: string) => boolean;
   isMusicDeleting: (firebaseId: string) => boolean;
   isAnyOperationInProgress: () => boolean;
+  startTidalSync: (trackId: string) => void;
+  finishTidalSync: (trackId: string) => void;
+  isTidalSyncing: (trackId: string) => boolean;
   updateRatingHistory: (firebaseId: string, entryIdx: number) => Promise<void>;
 }
 
@@ -85,6 +90,7 @@ const STORAGE_KEYS = {
 } as const;
 
 // ===== ASYNC STORAGE HELPERS =====
+let tidalDrainInProgress = false;
 async function getDeletedMusicIds(): Promise<string[]> {
   const json = await AsyncStorage.getItem(STORAGE_KEYS.DELETED_MUSIC_IDS);
   return json ? JSON.parse(json) : [];
@@ -227,6 +233,8 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
     deletingMusic: new Set(),
   },
   _dirty: false,
+  tidalSyncingIds: new Set<string>(),
+  isOnline: true,
 
   // ===== SYNC LOGIC =====
   syncMusicWithFirestore: async () => {
@@ -261,6 +269,8 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
   },
 
   drainTidalSyncQueue: async () => {
+    if (tidalDrainInProgress) return;
+    tidalDrainInProgress = true;
     try {
       const state = await NetInfo.fetch();
       if (!state.isConnected) return;
@@ -268,9 +278,12 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
       const tidalQueue = await getTidalSyncQueue();
       if (tidalQueue.length === 0) return;
 
-      let failed = 0;
+      const succeeded: TidalSyncQueueItem[] = [];
+      const failed: { item: TidalSyncQueueItem; error: string }[] = [];
+
       for (let i = 0; i < tidalQueue.length; i++) {
         const item = tidalQueue[i];
+        get().startTidalSync(item.trackId);
         try {
           await syncTrackToConfiguredTidalPlaylist({
             id: item.trackId,
@@ -280,21 +293,37 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
             firebaseId: item.firebaseId,
           });
           await removeFromTidalSyncQueue(item.firebaseId);
+          succeeded.push(item);
         } catch (err) {
-          failed++;
-          const name = item.trackName || item.trackId;
-          showToast(`Failed to sync '${name}' to TIDAL: ${err instanceof Error ? err.message : err}`, 'error');
+          console.error(`[musicStore] TIDAL sync failed for '${item.trackName}':`, err);
+          failed.push({ item, error: err instanceof Error ? err.message : String(err) });
+        } finally {
+          get().finishTidalSync(item.trackId);
         }
         if (i < tidalQueue.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 350));
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
-      const synced = tidalQueue.length - failed;
-      if (synced > 0) {
-        showToast(`${synced} rating change(s) synced to TIDAL`);
+
+      for (const item of succeeded) {
+        const name = item.trackName || 'Unknown';
+        if (item.previousRating != null && item.previousRating !== item.rating) {
+          showToast(`${name}: ${item.previousRating} → ${item.rating}`);
+        } else if (item.rating === 0) {
+          showToast(`${name}: removed from playlist`);
+        } else {
+          showToast(`${name}: synced to rating ${item.rating}`);
+        }
+      }
+
+      if (failed.length > 0) {
+        const names = failed.map(f => f.item.trackName || 'Unknown').join(', ');
+        showToast(`Failed to sync: ${names}`, 'error');
       }
     } catch (err) {
       console.error('[musicStore] drainTidalSyncQueue failed:', err);
+    } finally {
+      tidalDrainInProgress = false;
     }
   },
 
@@ -482,12 +511,26 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
         set({ lastUpdated: syncedTimestamp });
 
         if (updatedTrack) {
+          await enqueueTidalSync({
+            trackId: updatedTrack.id,
+            trackName: updatedTrack.title,
+            rating,
+            previousRating: prevRating,
+            firebaseId,
+          });
+          get().startTidalSync(updatedTrack.id);
           void syncTrackToConfiguredTidalPlaylist({
             id: updatedTrack.id,
             rating,
             previousRating: prevRating,
             firebaseId,
             trackName,
+          }).then(async () => {
+            await removeFromTidalSyncQueue(firebaseId);
+          }).catch((err) => {
+            console.error('[musicStore] Online TIDAL sync failed (queued for retry):', err);
+          }).finally(() => {
+            get().finishTidalSync(updatedTrack.id);
           });
         }
       } else {
@@ -695,6 +738,25 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
     }
   },
 
+  startTidalSync: (trackId: string) => {
+    const current = get().tidalSyncingIds;
+    if (!current.has(trackId)) {
+      set({ tidalSyncingIds: new Set(current).add(trackId) });
+    }
+  },
+
+  finishTidalSync: (trackId: string) => {
+    const current = get().tidalSyncingIds;
+    if (current.has(trackId)) {
+      const newSet = new Set(current);
+      newSet.delete(trackId);
+      set({ tidalSyncingIds: newSet });
+    }
+  },
+
+  isTidalSyncing: (trackId: string) =>
+    get().isOnline && get().tidalSyncingIds.has(trackId),
+
   // ===== HELPER FUNCTIONS =====
   updateRatingHistory: async (firebaseId: string, entryIdx: number) => {
     const { savedMusic } = get();
@@ -756,6 +818,7 @@ useMusicStore.getState().loadMusic();
 
 // Network listener for automatic sync when coming online
 NetInfo.addEventListener(async state => {
+  useMusicStore.setState({ isOnline: !!state.isConnected });
   if (state.isConnected) {
     const store = useMusicStore.getState();
     const tidalQueue = await getTidalSyncQueue();

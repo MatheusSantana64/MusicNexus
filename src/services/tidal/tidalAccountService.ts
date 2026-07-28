@@ -447,6 +447,11 @@ async function removeTrackFromPlaylist(playlistId: string, trackId: string, toke
     ];
     return candidateIds.map(value => String(value || '')).includes(trackId);
   });
+  if (matchingItems.length === 0) {
+    debugTidal('removeTrackFromPlaylist no matching items, already removed', { playlistId, trackId });
+    invalidatePlaylistItemCache(playlistId);
+    return;
+  }
   const remainingItems = items.filter(item => !matchingItems.includes(item));
   const deletePayload = {
     data: matchingItems.map(item => ({
