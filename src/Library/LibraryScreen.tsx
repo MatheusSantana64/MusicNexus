@@ -2,7 +2,7 @@
 // Screen for displaying music library
 import React, { useCallback, useState, useRef } from 'react';
 import { RatingHistoryModal } from '../components/RatingHistoryModal';
-import { RefreshControl, TextInput } from 'react-native';
+import { RefreshControl, TextInput, Linking, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SavedMusic } from '../types';
@@ -10,13 +10,14 @@ import { MusicItem } from '../components/MusicItem';
 import { LibraryEmptyState } from '../Library/LibraryEmptyState';
 import { LibraryHeader } from '../Library/LibraryHeader';
 import { StarRatingModal } from '../components/StarRatingModal';
-import { OptionsModal } from '../components/OptionsModal';
+import { OptionsModal, ModalAction } from '../components/OptionsModal';
 import { EditSongModal } from '../components/EditSongModal';
 import { useLibrary } from './useLibrary';
 import { useModal } from '../hooks/useModal';
 import { libraryStyles as styles } from './styles/LibraryScreen.styles';
 import { useTagStore } from '../store/tagStore';
 import { useMusicStore } from '../store/musicStore';
+import { refreshTidalConnectionIfNeeded } from '../services/tidal/tidalAccountService';
 import { formatDateTimeDDMMYY_HHMM } from '../utils/dateUtils';
 
 export default function LibraryScreen({ navigation }: { navigation?: any }) {
@@ -53,6 +54,9 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
   // Options modal for long press actions
   const { showModal: showOptionsModal, modalProps: optionsModalProps } = useModal();
   
+  // Open on TIDAL sub-modal
+  const { showModal: showOpenTidalModal, modalProps: openTidalModalProps } = useModal();
+
   // Info modal for MusicItem fallback
   const { showModal: showInfoModal, modalProps: infoModalProps } = useModal();
 
@@ -69,6 +73,73 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
     setHistoryModalVisible(true);
   }, []);
 
+  const handleOpenOnTidal = useCallback(async (music: SavedMusic) => {
+    const openUrl = (url: string) => Linking.openURL(url).catch(() => {
+      Linking.openURL(url.replace('tidal://', 'https://tidal.com/browse/'));
+    });
+
+    const actions: ModalAction[] = [
+      {
+        text: 'Song',
+        color: '#4CD964',
+        icon: { name: 'musical-note', color: '#4CD964' },
+        style: 'default',
+        onPress: () => openUrl(`tidal://track/${music.id}`),
+      },
+      {
+        text: 'Artist',
+        color: '#FF9500',
+        icon: { name: 'person', color: '#FF9500' },
+        style: 'default',
+        onPress: () => openUrl(`tidal://artist/${music.artistId}`),
+      },
+    ];
+
+    if (music.rating > 0) {
+      const account = await refreshTidalConnectionIfNeeded(undefined, { skipPlaylistRefresh: true });
+      if (account.connected) {
+        const ratingKey = music.rating.toFixed(1);
+        const playlistId = account.ratingPlaylists?.[ratingKey];
+        if (playlistId) {
+          actions.push({
+            text: `Rating Playlist (${ratingKey})`,
+            color: '#AF52DE',
+            icon: { name: 'star', color: '#AF52DE' },
+            style: 'default',
+            onPress: () => openUrl(`tidal://playlist/${playlistId}`),
+          });
+        }
+      }
+    }
+
+    const allTags = useTagStore.getState().tags;
+    const musicTagIds = music.tags || [];
+    for (const tagId of musicTagIds) {
+      const tag = allTags.find(t => t.id === tagId);
+      if (tag?.tidalPlaylistId) {
+        actions.push({
+          text: `${tag.name} Playlist`,
+          color: tag.color,
+          icon: { name: 'pricetag', color: tag.color },
+          style: 'default',
+          onPress: () => openUrl(`tidal://playlist/${tag.tidalPlaylistId!}`),
+        });
+      }
+    }
+
+    actions.push({
+      text: 'Cancel',
+      style: 'cancel',
+      onPress: () => {},
+    });
+
+    showOpenTidalModal({
+      title: 'Open on TIDAL',
+      message: `Open "${music.title}" on TIDAL as...`,
+      actions,
+    });
+  }, [showOpenTidalModal]);
+
   const handleLongPress = useCallback((music: SavedMusic) => {
     const savedAtText = music.savedAt
       ? `\nSaved on: ${formatDateTimeDDMMYY_HHMM(music.savedAt.toISOString())}`
@@ -79,15 +150,24 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
       actions: [
         {
           text: 'Rating History',
-          icon: { name: 'time-outline', color: '#006effff' },
+          color: '#4CD964',
+          icon: { name: 'time-outline', color: '#4CD964' },
           style: 'default',
           onPress: () => handleShowHistory(music),
         },
         {
           text: 'Edit',
-          icon: { name: 'create-outline', color: '#006effff' },
+          color: '#007AFF',
+          icon: { name: 'create-outline', color: '#007AFF' },
           style: 'default',
           onPress: () => { setEditMusic(music); setEditModalVisible(true); },
+        },
+        {
+          text: 'Open on TIDAL',
+          color: '#FF9500',
+          icon: { name: 'open-outline', color: '#FF9500' },
+          style: 'default',
+          onPress: () => handleOpenOnTidal(music),
         },
         {
           text: 'Delete',
@@ -103,7 +183,7 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
         },
       ],
     });
-  }, [showOptionsModal, handleMusicAction, handleShowHistory]);
+  }, [showOptionsModal, handleMusicAction, handleShowHistory, handleOpenOnTidal]);
 
   const handleShowInfoModal = useCallback((title: string, message: string) => {
     showInfoModal({
@@ -232,6 +312,9 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
 
       {/* OPTIONS MODAL - for long press actions */}
       <OptionsModal {...optionsModalProps} />
+
+      {/* OPEN ON TIDAL MODAL - sub-modal for choosing song/album/artist */}
+      <OptionsModal {...openTidalModalProps} />
 
       {/* CONFIRMATION MODALS - for delete confirmations and error messages */}
       <OptionsModal {...libraryModalProps} />

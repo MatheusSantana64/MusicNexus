@@ -16,6 +16,7 @@ export interface ModalAction {
   text: string;
   onPress: () => void;
   style?: 'default' | 'cancel' | 'destructive';
+  color?: string;
   icon?: {
     name: keyof typeof Ionicons.glyphMap;
     color?: string;
@@ -42,7 +43,6 @@ export function OptionsModal({
     if (onBackdropPress) {
       onBackdropPress();
     } else {
-      // Find cancel action as fallback
       const cancelAction = actions.find(action => action.style === 'cancel');
       if (cancelAction) {
         cancelAction.onPress();
@@ -50,26 +50,20 @@ export function OptionsModal({
     }
   };
 
-  const getButtonStyle = (style?: string) => {
-    switch (style) {
-      case 'destructive':
-        return [styles.actionButton, styles.destructiveButton];
-      case 'cancel':
-        return [styles.actionButton, styles.cancelButton];
-      default:
-        return [styles.actionButton, styles.defaultButton];
+  const getButtonStyle = (action: ModalAction) => {
+    if (action.style === 'destructive') return [styles.actionButton, styles.destructiveButton];
+    if (action.style === 'cancel') return [styles.actionButton, styles.cancelButton];
+    if (action.color) {
+      return [styles.actionButton, { borderColor: action.color, backgroundColor: action.color + '25' }];
     }
+    return [styles.actionButton, styles.defaultButton];
   };
 
-  const getButtonTextStyle = (style?: string) => {
-    switch (style) {
-      case 'destructive':
-        return [styles.actionButtonText, styles.destructiveButtonText];
-      case 'cancel':
-        return [styles.actionButtonText, styles.cancelButtonText];
-      default:
-        return [styles.actionButtonText, styles.defaultButtonText];
-    }
+  const getButtonTextStyle = (action: ModalAction) => {
+    if (action.style === 'destructive') return [styles.actionButtonText, styles.destructiveButtonText];
+    if (action.style === 'cancel') return [styles.actionButtonText, styles.cancelButtonText];
+    if (action.color) return [styles.actionButtonText, { color: '#FFFFFF' }];
+    return [styles.actionButtonText, styles.defaultButtonText];
   };
 
   return (
@@ -95,7 +89,7 @@ export function OptionsModal({
           {actions.map((action, index) => (
             <TouchableOpacity
               key={index}
-              style={getButtonStyle(action.style)}
+              style={getButtonStyle(action)}
               onPress={action.onPress}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
@@ -107,7 +101,7 @@ export function OptionsModal({
                     style={{ marginRight: 8 }}
                   />
                 )}
-                <Text style={getButtonTextStyle(action.style)}>
+                <Text style={getButtonTextStyle(action)}>
                   {action.text}
                 </Text>
               </View>
