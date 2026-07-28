@@ -21,6 +21,7 @@ import { getTags } from '../services/tagService';
 import { Tag } from '../types';
 import { ImportPlaylistModal } from './ImportPlaylistModal';
 import { SyncWithTidalModal } from './SyncWithTidalModal';
+import { SyncTagPlaylistsModal } from './SyncTagPlaylistsModal';
 
 export default function SearchScreen({ navigation }: { navigation?: any }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,6 +52,7 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
   // Import playlist modal state
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [syncModalVisible, setSyncModalVisible] = useState(false);
+  const [syncTagsModalVisible, setSyncTagsModalVisible] = useState(false);
 
   // Fetch tags on mount
   React.useEffect(() => {
@@ -178,6 +180,10 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
     setSyncModalVisible(true);
   };
 
+  const handleOpenSyncTagsModal = () => {
+    setSyncTagsModalVisible(true);
+  };
+
   return (
     <ErrorBoundary>
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -206,6 +212,7 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
               searchMode={searchMode}
               onImportPlaylist={handleOpenImportModal}
               onSyncWithTidal={handleOpenSyncModal}
+              onSyncWithTags={handleOpenSyncTagsModal}
               hasSearched={hasSearched}
             />
           )}
@@ -240,10 +247,16 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
           onImport={() => setImportModalVisible(false)}
         />
 
-        {/* Sync with TIDAL Modal */}
+        {/* Sync Ratings with TIDAL Modal */}
         <SyncWithTidalModal
           visible={syncModalVisible}
           onClose={() => setSyncModalVisible(false)}
+        />
+
+        {/* Sync Tags with TIDAL Modal */}
+        <SyncTagPlaylistsModal
+          visible={syncTagsModalVisible}
+          onClose={() => setSyncTagsModalVisible(false)}
         />
       </SafeAreaView>
     </ErrorBoundary>
