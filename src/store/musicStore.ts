@@ -72,7 +72,7 @@ interface MusicState {
   startTidalSync: (trackId: string) => void;
   finishTidalSync: (trackId: string) => void;
   isTidalSyncing: (trackId: string) => boolean;
-  updateRatingHistory: (firebaseId: string, entryIdx: number) => Promise<void>;
+  updateRatingHistory: (firebaseId: string, entryIdx: number, newRating?: number) => Promise<void>;
 }
 
 // 🔥 Internal state (not exposed in MusicState)
@@ -804,29 +804,76 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
     get().isOnline && get().tidalSyncingIds.has(trackId),
 
   // ===== HELPER FUNCTIONS =====
-  updateRatingHistory: async (firebaseId: string, entryIdx: number) => {
+  updateRatingHistory: async (firebaseId: string, entryIdx: number, newRating?: number) => {
     const { savedMusic } = get();
+    let prevRating: number | undefined;
+    let prevTags: string[] = [];
+
     const updatedMusic = savedMusic.map(music => {
       if (music.firebaseId === firebaseId && music.ratingHistory) {
+        prevRating = music.rating;
+        prevTags = music.tags;
         const newHistory = music.ratingHistory.filter((_, idx) => idx !== entryIdx);
-        return { ...music, ratingHistory: newHistory };
+        return { ...music, rating: newRating ?? music.rating, ratingHistory: newHistory };
       }
       return music;
     });
 
     set({ savedMusic: updatedMusic, _dirty: true });
-    await setCachedMusic(updatedMusic, Date.now());
+    const newLastModified = Date.now();
+    await setDirtyFlag(true);
+    await addDirtyMusicId(firebaseId);
+    await setCachedMusic(updatedMusic, newLastModified);
 
     try {
       const music = updatedMusic.find(m => m.firebaseId === firebaseId);
       if (music?.firebaseId) {
         await updateDoc(
           doc(db, 'savedMusic', music.firebaseId),
-          { ratingHistory: music.ratingHistory || [] }
+          { rating: music.rating, ratingHistory: music.ratingHistory || [] }
         );
       }
     } catch (err) {
       console.error('[musicStore] updateRatingHistory error:', err);
+      return;
+    }
+
+    await removeDirtyMusicId(firebaseId);
+    const dirtyIds = await getDirtyMusicIds();
+    if (dirtyIds.size === 0) {
+      set({ _dirty: false });
+      await setDirtyFlag(false);
+    }
+
+    const syncedTimestamp = Date.now();
+    await setSavedMusicMeta(syncedTimestamp);
+    await setCachedMusic(updatedMusic, syncedTimestamp);
+    set({ lastUpdated: syncedTimestamp });
+
+    const updatedTrack = updatedMusic.find(m => m.firebaseId === firebaseId);
+    if (updatedTrack && newRating !== undefined) {
+      const trackName = `${updatedTrack.title} - ${updatedTrack.artist}`;
+      await enqueueTidalSync({
+        trackId: updatedTrack.id,
+        trackName: updatedTrack.title,
+        rating: newRating,
+        previousRating: prevRating,
+        firebaseId,
+      });
+      get().startTidalSync(updatedTrack.id);
+      void syncTrackToConfiguredTidalPlaylist({
+        id: updatedTrack.id,
+        rating: newRating,
+        previousRating: prevRating,
+        firebaseId,
+        trackName,
+      }).then(async () => {
+        await removeFromTidalSyncQueue(firebaseId);
+      }).catch((err) => {
+        console.error('[musicStore] Online TIDAL sync failed (queued for retry):', err);
+      }).finally(() => {
+        get().finishTidalSync(updatedTrack.id);
+      });
     }
   },
 

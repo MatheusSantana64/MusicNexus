@@ -78,7 +78,7 @@ export function RatingHistoryModal({ visible, music, onClose, onDeleteEntry }: R
                       <Text style={styles.timestamp}>
                         {formatDateTimeDDMMYY_HHMM(item.timestamp)}
                       </Text>
-                      {onDeleteEntry && index > 0 ? (
+                      {onDeleteEntry && (
                         <TouchableOpacity
                           style={styles.deleteButton}
                           onPress={() => handleRequestDelete(originalIdx)}
@@ -86,10 +86,6 @@ export function RatingHistoryModal({ visible, music, onClose, onDeleteEntry }: R
                         >
                           <Ionicons name="trash-outline" size={16} color="#FF453A" />
                         </TouchableOpacity>
-                      ) : (
-                        <View style={styles.deleteButton}>
-                          <Ionicons name="trash-outline" size={16} color="#444" />
-                        </View>
                       )}
                     </View>
                   );

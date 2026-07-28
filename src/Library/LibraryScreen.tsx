@@ -222,13 +222,25 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
   // Handler to delete a rating history entry
   const handleDeleteHistoryEntry = useCallback(async (music: SavedMusic, entryIdx: number) => {
     if (!music.firebaseId) return;
-    await useMusicStore.getState().updateRatingHistory(music.firebaseId, entryIdx);
-    // Optionally update local modal state
-    setHistoryMusic(prev =>
-      prev && prev.firebaseId === music.firebaseId
-        ? { ...prev, ratingHistory: prev.ratingHistory?.filter((_, i) => i !== entryIdx) }
-        : prev
-    );
+
+    const history = music.ratingHistory || [];
+    const deletedEntry = history[entryIdx];
+    if (!deletedEntry) return;
+
+    const latestTimestamp = Math.max(...history.map(h => Date.parse(h.timestamp)));
+    const isLatest = Date.parse(deletedEntry.timestamp) >= latestTimestamp;
+
+    if (isLatest) {
+      const remaining = history.filter((_, i) => i !== entryIdx);
+      const sorted = [...remaining].sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
+      const newRating = sorted.length > 0 ? sorted[0].rating : 0;
+      await useMusicStore.getState().updateRatingHistory(music.firebaseId, entryIdx, newRating);
+    } else {
+      await useMusicStore.getState().updateRatingHistory(music.firebaseId, entryIdx);
+    }
+
+    const updated = useMusicStore.getState().savedMusic.find(m => m.firebaseId === music.firebaseId);
+    if (updated) setHistoryMusic(updated);
   }, []);
 
   const handleEditSave = useCallback(async (updates: Partial<SavedMusic>) => {
