@@ -20,7 +20,6 @@ export function RatingHistoryModal({ visible, music, onClose, onDeleteEntry }: R
   const history: RatingHistoryEntry[] = music.ratingHistory || [];
   const sortedHistory = [...history].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-  // Helper to map sorted index to original index
   const getOriginalIndex = (sortedIdx: number) => {
     const entry = sortedHistory[sortedIdx];
     return history.findIndex(
@@ -28,7 +27,6 @@ export function RatingHistoryModal({ visible, music, onClose, onDeleteEntry }: R
     );
   };
 
-  // State for confirmation modal
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [pendingDeleteIdx, setPendingDeleteIdx] = useState<number | null>(null);
 
@@ -60,9 +58,7 @@ export function RatingHistoryModal({ visible, music, onClose, onDeleteEntry }: R
       >
         <View style={styles.overlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.title}>
-              Rating History
-            </Text>
+            <Text style={styles.title}>Rating History</Text>
             <Text style={styles.musicTitle}>{music.title}</Text>
             <Text style={styles.artist}>{music.artist}</Text>
             {sortedHistory.length === 0 ? (
@@ -73,40 +69,27 @@ export function RatingHistoryModal({ visible, music, onClose, onDeleteEntry }: R
                 keyExtractor={(_, idx) => idx.toString()}
                 renderItem={({ item, index }) => {
                   const originalIdx = getOriginalIndex(index);
+                  const color = getRatingColor(item.rating);
                   return (
                     <View style={styles.historyRow}>
-                      <Ionicons
-                        name="star"
-                        size={18}
-                        color={getRatingColor(item.rating)}
-                        style={styles.ratingIcon}
-                      />
-                      <Text style={[styles.rating, { color: getRatingColor(item.rating) }]}>
-                        {getRatingText(item.rating)}
-                      </Text>
+                      <View style={[styles.ratingBadge, { backgroundColor: color + '25', borderWidth: 1, borderColor: color }]}>
+                        <Text style={[styles.ratingText, { color }]}>{getRatingText(item.rating)}</Text>
+                      </View>
                       <Text style={styles.timestamp}>
                         {formatDateTimeDDMMYY_HHMM(item.timestamp)}
                       </Text>
-                      {/* Only show delete button for entries after the first (index > 0) */}
-                      {onDeleteEntry && index > 0 && (
+                      {onDeleteEntry && index > 0 ? (
                         <TouchableOpacity
                           style={styles.deleteButton}
                           onPress={() => handleRequestDelete(originalIdx)}
                           accessibilityLabel="Delete rating entry"
                         >
-                          <Ionicons
-                            name="trash-outline"
-                            size={18}
-                            color={styles.deleteButton.color}
-                          />
+                          <Ionicons name="trash-outline" size={16} color="#FF453A" />
                         </TouchableOpacity>
-                      )}
-                      {index === 0 && (
-                        <Ionicons
-                          name="trash-outline"
-                          size={18}
-                          style={{ ...styles.deleteButton, color: 'gray' }}
-                        />
+                      ) : (
+                        <View style={styles.deleteButton}>
+                          <Ionicons name="trash-outline" size={16} color="#444" />
+                        </View>
                       )}
                     </View>
                   );
@@ -120,11 +103,10 @@ export function RatingHistoryModal({ visible, music, onClose, onDeleteEntry }: R
           </View>
         </View>
       </Modal>
-      {/* Confirmation Modal */}
       <OptionsModal
         visible={confirmVisible}
         title="Delete Rating Entry"
-        message="Are you sure you want to delete this rating entry? This action cannot be undone."
+        message="This action cannot be undone."
         actions={[
           {
             text: 'Delete',
