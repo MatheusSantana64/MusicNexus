@@ -2,6 +2,7 @@
 // Main application entry point
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, TouchableOpacity } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -101,15 +102,17 @@ function TabNavigator() {
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <SafeAreaProvider>
-        <NavigationContainer>
-          <TabNavigator />
-          <ToastContainer />
-          <StatusBar style="light" />
-        </NavigationContainer>
-      </SafeAreaProvider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <SafeAreaProvider>
+          <NavigationContainer>
+            <TabNavigator />
+            <ToastContainer />
+            <StatusBar style="light" />
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }
 

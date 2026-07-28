@@ -2,7 +2,8 @@
 // TagsScreen component for managing music tags
 import React, { useState } from 'react';
 import { View, Text, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { TouchableOpacity as RNGHTouchableOpacity } from 'react-native-gesture-handler';
+import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import { theme } from '../styles/theme';
 import { TagColorPicker } from './TagColorPicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,37 +16,36 @@ function TagRow({
   tag,
   onEdit,
   onDelete,
-  onMoveUp,
+  drag,
+  isActive,
 }: {
   tag: Tag;
   onEdit: (tag: Tag) => void;
   onDelete: (id: string) => void;
-  onMoveUp: (id: string) => void;
+  drag: () => void;
+  isActive: boolean;
 }) {
   return (
-    <View style={styles.tagRow}>
-      <TouchableOpacity
-        onPress={() => onMoveUp(tag.id)}
-        style={styles.moveUpButton}
-        accessibilityLabel="Move Up"
-        disabled={tag.position === 1}
-      >
-        <Ionicons
-          name="arrow-up"
-          size={18}
-          color={tag.position === 1 ? theme.colors.text.placeholder : theme.colors.text.primary}
-        />
-      </TouchableOpacity>
-      <Text style={[styles.tagName, { backgroundColor: tag.color }]}>{tag.name}</Text>
-      <TouchableOpacity onPress={() => onEdit(tag)} style={styles.editButton}>
-        <Ionicons name="pencil" size={16} color={theme.colors.text.blue} style={styles.icon} />
-        <Text style={styles.editText}>Edit</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => onDelete(tag.id)} style={styles.deleteButton}>
-        <Ionicons name="trash" size={16} color={theme.colors.text.error} style={styles.icon} />
-        <Text style={styles.deleteText}>Delete</Text>
-      </TouchableOpacity>
-    </View>
+    <ScaleDecorator>
+      <View style={[styles.tagRow, isActive && { opacity: 0.8 }]}>
+        <RNGHTouchableOpacity
+          onPressIn={drag}
+          style={styles.dragHandle}
+          accessibilityLabel="Drag to reorder"
+        >
+          <Ionicons name="reorder-three" size={20} color={isActive ? theme.colors.text.primary : theme.colors.text.placeholder} />
+        </RNGHTouchableOpacity>
+        <Text style={[styles.tagName, { backgroundColor: tag.color }]}>{tag.name}</Text>
+        <TouchableOpacity onPress={() => onEdit(tag)} style={styles.editButton}>
+          <Ionicons name="pencil" size={16} color={theme.colors.text.blue} style={styles.icon} />
+          <Text style={styles.editText}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => onDelete(tag.id)} style={styles.deleteButton}>
+          <Ionicons name="trash" size={16} color={theme.colors.text.error} style={styles.icon} />
+          <Text style={styles.deleteText}>Delete</Text>
+        </TouchableOpacity>
+      </View>
+    </ScaleDecorator>
   );
 }
 
@@ -58,6 +58,7 @@ export default function TagsScreen() {
     addTag,
     updateTag,
     deleteTag,
+    reorderTags,
     refresh,
   } = useTagStore();
 
@@ -110,23 +111,6 @@ export default function TagsScreen() {
   const handleDeleteTag = async (id: string) => {
     await deleteTag(id);
     refresh();
-  };
-
-  // Move tag up by 1 position
-  const handleMoveUp = async (id: string) => {
-    // Always work with tags sorted by position
-    const sortedTags = [...tags].sort((a, b) => a.position - b.position);
-    const idx = sortedTags.findIndex(tag => tag.id === id);
-    if (idx > 0) {
-      const tagAbove = sortedTags[idx - 1];
-      const tagCurrent = sortedTags[idx];
-      // Swap their positions
-      await Promise.all([
-        updateTag(tagCurrent.id, { position: tagAbove.position }),
-        updateTag(tagAbove.id, { position: tagCurrent.position }),
-      ]);
-      refresh();
-    }
   };
 
   return (
@@ -198,17 +182,18 @@ export default function TagsScreen() {
             </Text>
           </View>
         ) : (
-          <FlashList
+          <DraggableFlatList
             data={[...tags].sort((a, b) => a.position - b.position)}
             keyExtractor={tag => tag.id}
-            estimatedItemSize={48}
+            onDragEnd={({ data }) => reorderTags(data)}
             contentContainerStyle={{ paddingBottom: 24 }}
-            renderItem={({ item }) => (
+            renderItem={({ item, drag, isActive }) => (
               <TagRow
                 tag={item}
                 onEdit={openEdit}
                 onDelete={handleDeleteTag}
-                onMoveUp={handleMoveUp}
+                drag={drag}
+                isActive={isActive}
               />
             )}
           />

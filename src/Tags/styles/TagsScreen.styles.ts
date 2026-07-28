@@ -112,10 +112,8 @@ export const tagsScreenStyles = StyleSheet.create({
     icon: {
         marginRight: 0,
     },
-    moveUpButton: {
+    dragHandle: {
         marginRight: 8,
         padding: 4,
-        borderRadius: 12,
-        backgroundColor: theme.colors.background.surface,
     },
 });

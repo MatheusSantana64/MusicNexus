@@ -24,6 +24,7 @@ interface TagState {
   addTag: (tag: Omit<Tag, 'id'>) => Promise<string | null>;
   updateTag: (id: string, tag: Partial<Tag>) => Promise<boolean>;
   deleteTag: (id: string) => Promise<boolean>;
+  reorderTags: (orderedTags: Tag[]) => Promise<void>;
   refresh: () => void;
   clearError: () => void;
 }
@@ -211,6 +212,19 @@ export const useTagStore = create<TagState & { _dirty?: boolean; syncTagsWithFir
       // No loading spinner for offline delete
       return true;
     }
+  },
+
+  reorderTags: async (orderedTags: Tag[]) => {
+    const newLastModified = Date.now();
+    const withPositions = orderedTags.map((t, i) => ({ ...t, position: i + 1 }));
+    set({ tags: withPositions, lastUpdated: newLastModified, _dirty: true });
+    setCachedTags(withPositions, newLastModified);
+    (get() as any).syncTagsWithFirestore();
+    try {
+      for (const tag of withPositions) {
+        await updateTag(tag.id, { position: tag.position });
+      }
+    } catch {}
   },
 
   refresh: () => {
