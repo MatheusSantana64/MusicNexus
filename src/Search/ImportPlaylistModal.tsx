@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, TextInput, Button, TouchableOpacity } from 'react-native';
+import { Modal, View, Text, TextInput, TouchableOpacity } from 'react-native';
 import StarRating from 'react-native-star-rating-widget';
 import { importPlaylistModalStyles as styles } from './styles/ImportPlaylistModal.styles';
 import { MusicItem } from '../components/MusicItem';
@@ -11,6 +11,7 @@ import { getTidalTracksByIds } from '../services/tidal/tidalApiClient';
 import { refreshTidalConnectionIfNeeded, fetchTidalPlaylistItems } from '../services/tidal/tidalAccountService';
 import { saveMusicBatch } from '../services/music/musicService';
 import { useMusicStore } from '../store/musicStore';
+import { NeonButton } from '../components/NeonButton';
 
 function savedMusicToTrack(music: SavedMusic): MusicTrack {
   return {
@@ -390,18 +391,26 @@ export function ImportPlaylistModal({ visible, onCancel, onImport }: ImportPlayl
           )}
           {importError && <Text style={styles.errorText}>{importError}</Text>}
           <View style={styles.modalButtonRow}>
-            <Button title="Cancel" onPress={onCancel} color="#444444" />
-            <Button
-              title={previewLoading ? "Loading..." : "Preview"}
+            <NeonButton text="Cancel" onPress={onCancel} color="#555" fullWidth={false} compact style={{ paddingVertical: 10 }} />
+            <NeonButton
+              text={previewLoading ? "Loading..." : "Preview"}
               onPress={handlePreview}
-              disabled={!canPreview}
               color="#007AFF"
+              disabled={!canPreview}
+              loading={previewLoading}
+              fullWidth={false}
+              compact
+              style={{ paddingVertical: 10 }}
             />
-            <Button
-              title={importLoading ? "Importing..." : "Import"}
+            <NeonButton
+              text={importLoading ? "Importing..." : "Import"}
               onPress={handleImport}
+              color="#4CD964"
               disabled={!canImport}
-              color="#003f82ff"
+              loading={importLoading}
+              fullWidth={false}
+              compact
+              style={{ paddingVertical: 10 }}
             />
           </View>
         </View>

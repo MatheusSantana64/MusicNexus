@@ -1,9 +1,10 @@
 // src/Search/SearchEmptyState.tsx
 // SearchEmptyState component for displaying empty states in the SearchScreen
 import React from 'react';
-import { View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { SearchMode } from '../types';
 import { searchStyles as styles } from './styles/SearchScreen.styles';
+import { NeonButton } from '../components/NeonButton';
 
 interface SearchEmptyStateProps {
   loading: boolean;
@@ -114,25 +115,17 @@ export function SearchEmptyState({ loading, error, searchQuery, tracksLength, se
         <View style={{ marginVertical: 12 }}>
           {instructions}
         </View>
-        <TouchableOpacity style={styles.importButton} onPress={onImportPlaylist}>
-          <Text style={styles.importButtonText}>
-            Import Playlist
-          </Text>
-        </TouchableOpacity>
-        {onSyncWithTidal && (
-          <TouchableOpacity style={[styles.importButton, { marginTop: 8, backgroundColor: 'rgb(104, 97, 0)' }]} onPress={onSyncWithTidal}>
-            <Text style={styles.importButtonText}>
-              Sync Ratings with TIDAL
-            </Text>
-          </TouchableOpacity>
-        )}
-        {onSyncWithTags && (
-          <TouchableOpacity style={[styles.importButton, { marginTop: 8, backgroundColor: '#450058' }]} onPress={onSyncWithTags}>
-            <Text style={styles.importButtonText}>
-              Sync Tags with TIDAL
-            </Text>
-          </TouchableOpacity>
-        )}
+        <View style={{ gap: 12, width: '100%' }}>
+          {onImportPlaylist && (
+            <NeonButton text="Import Playlist" onPress={onImportPlaylist} color="#007AFF" icon="download-outline" />
+          )}
+          {onSyncWithTidal && (
+            <NeonButton text="Sync Ratings with TIDAL" onPress={onSyncWithTidal} color="#FF9500" icon="sync-outline" />
+          )}
+          {onSyncWithTags && (
+            <NeonButton text="Sync Tags with TIDAL" onPress={onSyncWithTags} color="#AF52DE" icon="pricetags-outline" />
+          )}
+        </View>
       </View>
     );
   }

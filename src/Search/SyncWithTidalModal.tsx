@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Modal, View, Text, Image, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { Modal, View, Text, Image, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import { MusicTrack } from '../types';
@@ -11,6 +11,7 @@ import { saveMusicBatch } from '../services/music/musicService';
 import { showToast } from '../utils/toast';
 import { formatDateTimeDDMMYY_HHMM } from '../utils/dateUtils';
 import { updatePlaylistCacheBatch, loadCache, getCachedPlaylistEntry } from '../services/tidal/tidalPlaylistCache';
+import { NeonButton } from '../components/NeonButton';
 
 interface PlaylistOption {
   rating: string;
@@ -787,24 +788,14 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
             {(data.showSyncAll || data.showSyncFromTidal || data.showSyncFromLibrary) && (
               <View style={styles.syncButtonRow}>
                 {data.showSyncAll && (
-                  <TouchableOpacity onPress={() => Alert.alert('Sync All', 'Resolve all conflicts using timestamps to pick newest?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sync', onPress: resolveAllIssues }])} disabled={bulkResolving} style={styles.syncAllButton}>
-                    {bulkResolving ? (
-                      <ActivityIndicator size="small" color={theme.colors.text.primary} />
-                    ) : (
-                      <Text style={styles.syncAllText}>Sync All</Text>
-                    )}
-                  </TouchableOpacity>
+                  <NeonButton text="Sync All" onPress={() => Alert.alert('Sync All', 'Resolve all conflicts using timestamps to pick newest?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sync', onPress: resolveAllIssues }])} disabled={bulkResolving} loading={bulkResolving} color="#007AFF" fullWidth={false} compact style={{ paddingVertical: 4, paddingHorizontal: 10 }} />
                 )}
                 <View style={styles.syncRightButtons}>
                   {data.showSyncFromTidal && (
-                    <TouchableOpacity onPress={() => Alert.alert('From TIDAL', 'Overwrite library to match TIDAL playlists?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sync', onPress: syncFromTidal }])} disabled={bulkResolving} style={styles.syncButtonTidal}>
-                      <Text style={styles.syncAllText}>From TIDAL</Text>
-                    </TouchableOpacity>
+                    <NeonButton text="From TIDAL" onPress={() => Alert.alert('From TIDAL', 'Overwrite library to match TIDAL playlists?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sync', onPress: syncFromTidal }])} disabled={bulkResolving} loading={bulkResolving} color="#4CD964" fullWidth={false} compact style={{ paddingVertical: 4, paddingHorizontal: 10 }} />
                   )}
                   {data.showSyncFromLibrary && (
-                    <TouchableOpacity onPress={() => Alert.alert('From Library', 'Overwrite TIDAL playlists to match library ratings?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sync', onPress: syncFromLibrary }])} disabled={bulkResolving} style={styles.syncButtonLibrary}>
-                      <Text style={styles.syncAllText}>From Library</Text>
-                    </TouchableOpacity>
+                    <NeonButton text="From Library" onPress={() => Alert.alert('From Library', 'Overwrite TIDAL playlists to match library ratings?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sync', onPress: syncFromLibrary }])} disabled={bulkResolving} loading={bulkResolving} color="#AF52DE" fullWidth={false} compact style={{ paddingVertical: 4, paddingHorizontal: 10 }} />
                   )}
                 </View>
               </View>
@@ -909,54 +900,67 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
               {issue.conflictType === 'not_in_playlist' ? (
                 <>
                   {Array.from(uniquePlaylistButtons.values()).map(({ playlistId, rating }) => (
-                    <TouchableOpacity
+                    <NeonButton
                       key={playlistId}
+                      text={busy ? 'Working...' : `Add to TIDAL with rating ${rating}`}
                       onPress={() => resolveIssue(issue, 'add_to_playlist', playlistId)}
                       disabled={busy}
-                      style={[styles.issueActionButton, styles.issueActionButtonPlaylist]}
-                    >
-                      <Text style={styles.issueActionButtonText}>{busy ? 'Working...' : `Add to TIDAL with rating ${rating}`}</Text>
-                    </TouchableOpacity>
+                      loading={busy}
+                      color="#007AFF"
+                      fullWidth={false}
+                      compact
+                      style={{ paddingHorizontal: 12, minWidth: 120 }}
+                    />
                   ))}
-                  <TouchableOpacity
+                  <NeonButton
+                    text={busy ? 'Working...' : 'Remove from app'}
                     onPress={() => resolveIssue(issue, 'remove_from_app')}
                     disabled={busy}
-                    style={[styles.issueActionButton, styles.issueActionButtonRemove]}
-                  >
-                    <Text style={styles.issueActionButtonText}>{busy ? 'Working...' : 'Remove from app'}</Text>
-                  </TouchableOpacity>
+                    loading={busy}
+                    color="#FF453A"
+                    fullWidth={false}
+                    compact
+                    style={{ paddingHorizontal: 12, minWidth: 120 }}
+                  />
                 </>
               ) : (
                 <>
                   {!isMissing && (
-                    <TouchableOpacity
+                    <NeonButton
+                      text={busy ? 'Working...' : 'Keep library'}
                       onPress={() => resolveIssue(issue, 'library')}
                       disabled={busy}
-                      style={[styles.issueActionButton, styles.issueActionButtonLibrary]}
-                    >
-                      <Text style={styles.issueActionButtonText}>{busy ? 'Working...' : 'Keep library'}</Text>
-                    </TouchableOpacity>
+                      loading={busy}
+                      color="#555"
+                      fullWidth={false}
+                      compact
+                      style={{ paddingHorizontal: 12, minWidth: 120 }}
+                    />
                   )}
                   {Array.from(uniquePlaylistButtons.values()).map(({ playlistId, rating }) => (
-                    <TouchableOpacity
+                    <NeonButton
                       key={playlistId}
+                      text={busy ? 'Working...' : isMissing ? `Import with rating ${rating}` : `Keep ${rating}`}
                       onPress={() => resolveIssue(issue, 'playlist', playlistId)}
                       disabled={busy}
-                      style={[styles.issueActionButton, styles.issueActionButtonPlaylist]}
-                    >
-                      <Text style={styles.issueActionButtonText}>
-                        {busy ? 'Working...' : isMissing ? `Import to app with rating ${rating}` : `Keep ${rating}`}
-                      </Text>
-                    </TouchableOpacity>
+                      loading={busy}
+                      color="#007AFF"
+                      fullWidth={false}
+                      compact
+                      style={{ paddingHorizontal: 12, minWidth: 120 }}
+                    />
                   ))}
                   {isMissing && (
-                    <TouchableOpacity
+                    <NeonButton
+                      text={busy ? 'Working...' : 'Remove from TIDAL'}
                       onPress={() => resolveIssue(issue, 'remove')}
                       disabled={busy}
-                      style={[styles.issueActionButton, styles.issueActionButtonRemove]}
-                    >
-                      <Text style={styles.issueActionButtonText}>{busy ? 'Working...' : 'Remove from TIDAL'}</Text>
-                    </TouchableOpacity>
+                      loading={busy}
+                      color="#FF453A"
+                      fullWidth={false}
+                      compact
+                      style={{ paddingHorizontal: 12, minWidth: 120 }}
+                    />
                   )}
                 </>
               )}
@@ -967,21 +971,16 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
 
       case 'action':
         return (
-          <TouchableOpacity
+          <NeonButton
+            text={data.label}
             onPress={data.onPress}
             disabled={data.disabled}
-            style={[
-              styles.actionButton,
-              data.primary && styles.actionButtonPrimary,
-              data.loading && styles.actionButtonLoading,
-            ]}
-          >
-            {data.loading ? (
-              <ActivityIndicator color={theme.colors.text.primary} />
-            ) : (
-              <Text style={styles.actionButtonText}>{data.label}</Text>
-            )}
-          </TouchableOpacity>
+            loading={data.loading}
+            color="#007AFF"
+            icon="search-outline"
+            fullWidth={false}
+            style={{ paddingVertical: 12, paddingHorizontal: 16, marginHorizontal: 16, marginTop: 16 }}
+          />
         );
 
       case 'status':
@@ -1024,9 +1023,7 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
             contentContainerStyle={{ paddingBottom: 20 }}
             nestedScrollEnabled
           />
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
+          <NeonButton text="Close" onPress={onClose} color="#555" fullWidth style={{ paddingVertical: 14, borderTopWidth: 1, borderTopColor: theme.colors.divider, borderRadius: 0 }} />
         </View>
       </View>
     </Modal>
@@ -1048,17 +1045,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     maxHeight: '95%',
     overflow: 'hidden',
-  },
-  closeButton: {
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.divider,
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    color: theme.colors.text.primary,
-    fontSize: theme.sizes.body,
-    fontWeight: theme.weights.bold,
   },
   stickyHeader: {
     backgroundColor: theme.colors.background.amoled,
@@ -1090,34 +1076,6 @@ const styles = StyleSheet.create({
   selectAllButton: {
     paddingVertical: 4,
     paddingHorizontal: 8,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  syncAllButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    backgroundColor: theme.colors.button.primary,
-    borderRadius: theme.borderRadius.sm,
-  },
-  syncButtonTidal: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    backgroundColor: '#2b5a2b',
-    borderRadius: theme.borderRadius.sm,
-  },
-  syncButtonLibrary: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    backgroundColor: '#5a2b5a',
-    borderRadius: theme.borderRadius.sm,
-  },
-  syncAllText: {
-    color: theme.colors.text.primary,
-    fontSize: theme.sizes.small,
-    fontWeight: theme.weights.bold,
   },
   selectAllText: {
     color: theme.colors.text.blue,
@@ -1179,28 +1137,6 @@ const styles = StyleSheet.create({
   playlistCardTimestamp: {
     color: theme.colors.text.muted,
     fontSize: 9,
-  },
-  actionButton: {
-    backgroundColor: theme.colors.button.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: theme.borderRadius.md,
-    alignItems: 'center',
-    minHeight: 48,
-    justifyContent: 'center',
-    marginHorizontal: 16,
-    marginTop: 16,
-  },
-  actionButtonPrimary: {
-    backgroundColor: theme.colors.button.success,
-  },
-  actionButtonLoading: {
-    opacity: 0.7,
-  },
-  actionButtonText: {
-    color: theme.colors.text.primary,
-    fontWeight: theme.weights.bold,
-    fontSize: theme.sizes.body,
   },
   statusText: {
     marginTop: 8,
@@ -1304,26 +1240,5 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 10,
     flexWrap: 'wrap',
-  },
-  issueActionButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: theme.borderRadius.sm,
-    minWidth: 120,
-    alignItems: 'center',
-  },
-  issueActionButtonLibrary: {
-    backgroundColor: '#2b2b2b',
-  },
-  issueActionButtonPlaylist: {
-    backgroundColor: theme.colors.button.primary,
-  },
-  issueActionButtonRemove: {
-    backgroundColor: theme.colors.button.delete,
-  },
-  issueActionButtonText: {
-    color: theme.colors.text.primary,
-    fontWeight: theme.weights.bold,
-    fontSize: theme.sizes.small,
   },
 });

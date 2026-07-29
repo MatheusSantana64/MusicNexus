@@ -1,11 +1,11 @@
 // src/Search/AlbumHeader.tsx
 // Defines the AlbumHeader component which displays album information
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text } from 'react-native';
 import { MusicTrack } from '../types';
 import { useMusicStore } from '../store/musicStore';
 import { searchStyles as styles } from './styles/SearchScreen.styles';
-import { theme } from '../styles/theme';
+import { NeonButton } from '../components/NeonButton';
 
 export interface AlbumGroup {
   albumId: string;
@@ -49,19 +49,16 @@ export function AlbumHeader({
           )}
         </Text>
       </View>
-      <TouchableOpacity
-        style={[styles.saveAlbumButton, isFullySaved ? { backgroundColor: theme.colors.button.success } : {}, isLoading && styles.saveAlbumButtonLoading]}
-        onPress={() => !isLoading && onSaveAlbum(albumGroup)}
+      <NeonButton
+        text={isLoading ? 'Saving...' : isFullySaved ? 'Saved' : 'Save'}
+        onPress={() => onSaveAlbum(albumGroup)}
         disabled={isLoading}
-      >
-        {isLoading ? (
-          <ActivityIndicator size="small" color={theme.colors.text.primary} />
-        ) : (
-          <Text style={styles.saveAlbumButtonText}>
-            {isFullySaved ? 'Saved' : 'Save'}
-          </Text>
-        )}
-      </TouchableOpacity>
+        color={isFullySaved ? '#4CD964' : '#007AFF'}
+        icon={isFullySaved ? 'checkmark-circle' : undefined}
+        fullWidth={false}
+        compact
+        style={{ paddingHorizontal: 12, minWidth: 80 }}
+      />
     </View>
   );
 }

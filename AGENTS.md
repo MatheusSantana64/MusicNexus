@@ -102,6 +102,8 @@ Buttons span full width with `gap: 12` between them. Icons are recommended for a
 
 Use this component in all new modals, bottom sheets, dialogs, and option lists.
 
+**IMPORTANT — Size preservation:** When converting existing buttons to `NeonButton`, preserve the original button's padding and dimensions. Only change the visual style (colored border, tinted background, white text). Use the `style` prop to match original padding values. Do NOT add icons to buttons that didn't have them originally. For tiny header action links (e.g. "Select all", sync header buttons), use `compact` with explicit `paddingVertical: 4` and `paddingHorizontal: 10` via `style` to match original sizing. Issue action buttons inside cards should use `compact` with `style={{ paddingHorizontal: 12 }}` to match original `issueActionButton` padding. Always remove icons from small inline action buttons — they add unnecessary width.
+
 - **Dark theme only** — AMOLED black backgrounds (`theme.colors.background.amoled = '#000000'`). All styling via `theme` object in `src/styles/theme.ts`
 - **Style files** live alongside components in `styles/` subdirectories (e.g., `LibraryScreen.styles.ts`)
 - **Single-user app** — security is relaxed, no multi-tenant concerns

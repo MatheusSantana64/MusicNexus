@@ -84,36 +84,6 @@ export const searchStyles = StyleSheet.create({
     color: theme.colors.text.blue,
     fontWeight: theme.weights.medium,
   },
-  saveAlbumButton: {
-    backgroundColor: theme.colors.button.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: theme.borderRadius.md,
-    minWidth: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveAlbumButtonLoading: {
-    opacity: 0.6,
-  },
-  saveAlbumButtonText: {
-    color: theme.colors.text.primary,
-    fontSize: theme.sizes.small,
-    fontWeight: theme.weights.medium,
-  },
-  importButton: {
-    marginTop: 16,
-    backgroundColor: theme.colors.button.primary,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  importButtonText: {
-    color: theme.colors.text.primary,
-    fontWeight: theme.weights.bold,
-    fontSize: 16,
-  },
 
   // === Import Modal ===
   modalOverlay: {
@@ -156,9 +126,4 @@ export const searchStyles = StyleSheet.create({
     paddingHorizontal: 0,
   },
 
-  modalButtonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
 });

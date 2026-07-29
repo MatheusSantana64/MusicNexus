@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface NeonButtonProps {
@@ -10,30 +10,35 @@ interface NeonButtonProps {
   disabled?: boolean;
   fullWidth?: boolean;
   compact?: boolean;
+  loading?: boolean;
   style?: any;
 }
 
-export function NeonButton({ text, onPress, color = '#007AFF', icon, disabled, fullWidth = true, compact, style }: NeonButtonProps) {
+export function NeonButton({ text, onPress, color = '#007AFF', icon, disabled, fullWidth = true, compact, loading, style }: NeonButtonProps) {
   return (
     <TouchableOpacity
       onPress={onPress}
-      disabled={disabled}
+      disabled={disabled || loading}
       style={[
         styles.button,
         fullWidth && styles.fullWidth,
         compact && styles.compact,
         { borderColor: color, backgroundColor: color + '25' },
-        disabled && { opacity: 0.5 },
+        (disabled || loading) && { opacity: 0.5 },
         style,
       ]}
       activeOpacity={0.7}
     >
-      <View style={styles.inner}>
-        {icon && (
-          <Ionicons name={icon} size={20} color={color} style={{ marginRight: 4 }} />
-        )}
-        <Text style={[styles.text, disabled && { opacity: 0.5 }]}>{text}</Text>
-      </View>
+      {loading ? (
+        <ActivityIndicator size="small" color="#FFFFFF" />
+      ) : (
+        <View style={styles.inner}>
+          {icon && (
+            <Ionicons name={icon} size={20} color={color} style={{ marginRight: 4 }} />
+          )}
+          <Text style={[styles.text, (disabled || loading) && { opacity: 0.5 }]}>{text}</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
