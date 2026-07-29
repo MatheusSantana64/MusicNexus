@@ -95,7 +95,7 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
       },
     ];
 
-    if (music.rating > 0) {
+    if (music.rating >= 0) {
       const account = await refreshTidalConnectionIfNeeded(undefined, { skipPlaylistRefresh: true });
       if (account.connected) {
         const ratingKey = music.rating.toFixed(1);
