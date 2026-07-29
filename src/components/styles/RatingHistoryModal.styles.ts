@@ -86,21 +86,6 @@ export const ratingHistoryModalStyles = StyleSheet.create({
   deleteIconDisabled: {
     color: '#444',
   },
-  closeButton: {
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.blue,
-    width: '100%',
-    alignItems: 'center',
-  },
-  closeText: {
-    color: theme.colors.blue,
-    fontWeight: theme.weights.bold,
-    fontSize: theme.sizes.medium,
-  },
   list: {
     maxHeight: 260,
     width: '100%',

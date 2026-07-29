@@ -11,6 +11,7 @@ import Modal from 'react-native-modal';
 import { optionsModalStyles as styles } from './styles/OptionsModal.styles';
 
 import { Ionicons } from '@expo/vector-icons';
+import { NeonButton } from './NeonButton';
 
 export interface ModalAction {
   text: string;
@@ -50,22 +51,6 @@ export function OptionsModal({
     }
   };
 
-  const getButtonStyle = (action: ModalAction) => {
-    if (action.style === 'destructive') return [styles.actionButton, styles.destructiveButton];
-    if (action.style === 'cancel') return [styles.actionButton, styles.cancelButton];
-    if (action.color) {
-      return [styles.actionButton, { borderColor: action.color, backgroundColor: action.color + '25' }];
-    }
-    return [styles.actionButton, styles.defaultButton];
-  };
-
-  const getButtonTextStyle = (action: ModalAction) => {
-    if (action.style === 'destructive') return [styles.actionButtonText, styles.destructiveButtonText];
-    if (action.style === 'cancel') return [styles.actionButtonText, styles.cancelButtonText];
-    if (action.color) return [styles.actionButtonText, { color: '#FFFFFF' }];
-    return [styles.actionButtonText, styles.defaultButtonText];
-  };
-
   return (
     <Modal
       isVisible={visible}
@@ -86,27 +71,23 @@ export function OptionsModal({
         )}
         
         <View style={styles.actionsContainer}>
-          {actions.map((action, index) => (
-            <TouchableOpacity
-              key={index}
-              style={getButtonStyle(action)}
-              onPress={action.onPress}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                {action.icon && (
-                  <Ionicons
-                    name={action.icon.name}
-                    size={action.icon.size || 20}
-                    color={action.icon.color || '#333'}
-                    style={{ marginRight: 8 }}
-                  />
-                )}
-                <Text style={getButtonTextStyle(action)}>
-                  {action.text}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          {actions.map((action, index) => {
+            let btnColor = '#007AFF';
+            if (action.style === 'destructive') btnColor = '#FF453A';
+            else if (action.style === 'cancel') btnColor = '#555';
+            else if (action.color) btnColor = action.color;
+
+            return (
+              <NeonButton
+                key={index}
+                text={action.text}
+                onPress={action.onPress}
+                color={btnColor}
+                icon={action.icon?.name}
+                fullWidth
+              />
+            );
+          })}
         </View>
       </View>
     </Modal>

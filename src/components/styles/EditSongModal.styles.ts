@@ -53,32 +53,4 @@ export const editSongModalStyles = StyleSheet.create({
     paddingBottom: 4,
     gap: 12,
   },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.button.cancel,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-  },
-  cancelBtnText: {
-    color: theme.colors.text.primary,
-    fontSize: theme.sizes.body,
-    fontWeight: theme.weights.medium,
-  },
-  saveBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.button.primary,
-    borderWidth: 1,
-    borderColor: theme.colors.blue,
-    alignItems: 'center',
-  },
-  saveBtnText: {
-    color: theme.colors.text.primary,
-    fontSize: theme.sizes.body,
-    fontWeight: theme.weights.medium,
-  },
 });

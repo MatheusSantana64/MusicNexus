@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { SavedMusic } from '../types';
+import { NeonButton } from './NeonButton';
 import { theme } from '../styles/theme';
 import { editSongModalStyles as styles } from './styles/EditSongModal.styles';
 
@@ -112,12 +113,8 @@ export function EditSongModal({ visible, music, onSave, onCancel }: EditSongModa
             </View>
 
             <View style={styles.buttons}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={onCancel}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                <Text style={styles.saveBtnText}>Save</Text>
-              </TouchableOpacity>
+              <NeonButton text="Cancel" onPress={onCancel} color="#555" icon="close-outline" compact fullWidth={false} style={{ flex: 1 }} />
+              <NeonButton text="Save" onPress={handleSave} color="#007AFF" icon="save-outline" compact fullWidth={false} style={{ flex: 1 }} />
             </View>
           </ScrollView>
         </View>

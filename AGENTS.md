@@ -78,7 +78,29 @@ All modals use `useModal()` hook → returns `{ showModal, modalProps }`. Spread
 - Backups include `_meta` documents (used for cache invalidation tracking)
 - `backupAllCollections()` backs up `savedMusic`, `tags`, `userProfile` collections
 
-## Conventions
+## Neon-Outlined Button Style (preferred for all new UI)
+
+Use the `<NeonButton>` component at `src/components/NeonButton.tsx`:
+
+```tsx
+import { NeonButton } from '../components/NeonButton';
+
+<NeonButton text="Action" onPress={handlePress} color="#007AFF" icon="star-outline" />
+```
+
+Props: `text`, `onPress`, `color` (accent), `icon` (Ionicons name), `disabled`, `fullWidth` (default `true`), `style`.
+
+The button automatically renders:
+- **Container** — AMOLED black background, 1px colored border, 8px border radius
+- **Tinted background** — `color` + `'25'` hex alpha (~15% opacity) for a subtle glow
+- **Text** — white (`#FFFFFF`), medium weight, 16px, with `marginTop: -1` for vertical centering
+- **Icon** — white, 20px, 4px right margin
+
+Convention for button colors: green (`#4CD964`) for primary/success, blue (`#007AFF`) for info, orange (`#FF9500`) for navigation/navigation-adjacent, purple (`#AF52DE`) for special, gray (`#555`) for cancel/back, red (`#FF453A`) for destructive.
+
+Buttons span full width with `gap: 12` between them. Icons are recommended for all action buttons. Padding is 14px vertical, 20px horizontal.
+
+Use this component in all new modals, bottom sheets, dialogs, and option lists.
 
 - **Dark theme only** — AMOLED black backgrounds (`theme.colors.background.amoled = '#000000'`). All styling via `theme` object in `src/styles/theme.ts`
 - **Style files** live alongside components in `styles/` subdirectories (e.g., `LibraryScreen.styles.ts`)

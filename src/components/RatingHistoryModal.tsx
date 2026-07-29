@@ -8,6 +8,7 @@ import { formatDateTimeDDMMYY_HHMM } from '../utils/dateUtils';
 import { ratingHistoryModalStyles as styles } from './styles/RatingHistoryModal.styles';
 import { Ionicons } from '@expo/vector-icons';
 import { OptionsModal } from './OptionsModal';
+import { NeonButton } from './NeonButton';
 
 interface RatingHistoryModalProps {
   visible: boolean;
@@ -93,9 +94,7 @@ export function RatingHistoryModal({ visible, music, onClose, onDeleteEntry }: R
                 style={styles.list}
               />
             )}
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeText}>Close</Text>
-            </TouchableOpacity>
+            <NeonButton text="Close" onPress={onClose} color="#555" icon="close-outline" compact style={{ marginTop: 12 }} />
           </View>
         </View>
       </Modal>

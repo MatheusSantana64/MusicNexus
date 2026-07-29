@@ -1,5 +1,3 @@
-// src/styles/components/OptionsModal.styles.ts
-// Styles for the OptionsModal component
 import { StyleSheet, Dimensions } from 'react-native';
 import { theme } from '../../styles/theme';
 
@@ -37,37 +35,5 @@ export const optionsModalStyles = StyleSheet.create({
   actionsContainer: {
     width: '100%',
     gap: 12,
-  },
-  actionButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  defaultButton: {
-    backgroundColor: theme.colors.button.primary,
-    borderColor: theme.colors.blue,
-  },
-  destructiveButton: {
-    backgroundColor: theme.colors.button.delete,
-    borderColor: theme.colors.text.error,
-  },
-  cancelButton: {
-    backgroundColor: theme.colors.button.cancel,
-    borderColor: theme.colors.border,
-  },
-  actionButtonText: {
-    fontSize: theme.sizes.medium,
-    fontWeight: theme.weights.medium,
-  },
-  defaultButtonText: {
-    color: theme.colors.text.primary,
-  },
-  destructiveButtonText: {
-    color: theme.colors.text.primary,
-  },
-  cancelButtonText: {
-    color: theme.colors.text.primary,
   },
 });

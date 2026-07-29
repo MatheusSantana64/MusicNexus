@@ -14,6 +14,7 @@ import { getRatingColor, getRatingText } from '../utils/ratingUtils';
 import { starRatingModalStyles as styles } from './styles/StarRatingModal.styles';
 import { useTagStore } from '../store/tagStore';
 import { Tag } from '../types';
+import { NeonButton } from './NeonButton';
 import { getProfileData, addProfileChangeListener } from '../services/profileService';
 
 interface StarRatingModalProps {
@@ -205,12 +206,8 @@ export function StarRatingModal({
           </View>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableOpacity>
+            <NeonButton text="Cancel" onPress={handleCancel} color="#555" icon="close-outline" compact fullWidth={false} style={{ flex: 1 }} />
+            <NeonButton text="Save" onPress={handleSave} color="#007AFF" icon="save-outline" compact fullWidth={false} style={{ flex: 1.5 }} />
           </View>
         </View>
       </View>
