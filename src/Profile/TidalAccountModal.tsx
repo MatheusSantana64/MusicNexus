@@ -39,6 +39,7 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
   const [importStatus, setImportStatus] = React.useState('');
   const [activeRating, setActiveRating] = React.useState<string | null>(null);
   const [ratingInputs, setRatingInputs] = React.useState<Record<string, string>>({});
+  const preservedRatingPlaylists = React.useRef<Record<string, string> | null>(null);
   const connectedUsername = React.useMemo(() => {
     const value = account?.displayName?.trim();
     if (!value) return 'TIDAL user';
@@ -126,18 +127,29 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
     if (response.type !== 'success' || !response.params?.code) return;
 
     setConnecting(true);
+    const savedPlaylists = preservedRatingPlaylists.current;
     finalizeTidalAuthorization(response.params.code, request?.codeVerifier)
-      .then(connected => {
-        setAccount(connected);
+      .then(async connected => {
+        if (savedPlaylists && Object.keys(savedPlaylists).length > 0) {
+          const merged = { ...savedPlaylists, ...connected.ratingPlaylists };
+          const updated = await updateTidalRatingPlaylists(merged);
+          setAccount(updated);
+        } else {
+          setAccount(connected);
+        }
         Alert.alert('TIDAL connected', 'Your TIDAL account has been linked successfully.');
       })
       .catch(error => {
         Alert.alert('Connection failed', error instanceof Error ? error.message : 'Unable to connect your TIDAL account.');
       })
-      .finally(() => setConnecting(false));
+      .finally(() => {
+        setConnecting(false);
+        preservedRatingPlaylists.current = null;
+      });
   }, [request?.codeVerifier, response]);
 
   const handleConnect = async () => {
+    preservedRatingPlaylists.current = account?.ratingPlaylists || null;
     setConnecting(true);
     try {
       await promptAsync();
@@ -299,7 +311,7 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { paddingBottom: 0, overflow: 'hidden' }]}>
+        <View style={[styles.modalContent, { paddingBottom: 0, overflow: 'hidden', maxHeight: '95%' }]}>          
           <ScrollView
             style={{ width: '100%' }}
             contentContainerStyle={{ paddingBottom: 18 }}
@@ -360,24 +372,29 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
                   )}
                 </View>
 
-                <View style={{ width: '100%', marginTop: 18 }}>
-                  <NeonButton
-                    text="Import All from TIDAL Playlists"
-                    onPress={handleImportAll}
-                    disabled={importing}
-                    loading={importing}
-                    color="#4CD964"
-                    icon="download-outline"
-                    style={{ paddingVertical: 10, paddingHorizontal: 14, marginBottom: 8 }}
-                  />
-                  {importStatus ? (
-                    <Text style={{ color: theme.colors.text.secondary, fontSize: 11, marginBottom: 8 }}>{importStatus}</Text>
-                  ) : (
-                    <Text style={{ color: theme.colors.text.secondary, fontSize: 11, marginBottom: 8 }}>
-                      Import all songs from your configured rating playlists into the app.
-                    </Text>
-                  )}
-                </View>
+                <NeonButton
+                  text="Import All from TIDAL Playlists"
+                  onPress={handleImportAll}
+                  disabled={importing}
+                  loading={importing}
+                  color="#4CD964"
+                  icon="download-outline"
+                  style={{ paddingVertical: 10, paddingHorizontal: 14, marginTop: 18 }}
+                />
+                {importStatus ? (
+                  <Text style={{ color: theme.colors.text.secondary, fontSize: 11, textAlign: 'center', marginTop: 6, marginBottom: 2 }}>{importStatus}</Text>
+                ) : null}
+
+                <NeonButton
+                  text="Re-authorize TIDAL"
+                  onPress={handleConnect}
+                  disabled={connecting}
+                  loading={connecting}
+                  color="#FF9500"
+                  icon="refresh-outline"
+                  fullWidth={false}
+                  style={{ paddingVertical: 10, paddingHorizontal: 32, alignSelf: 'center', marginTop: 8 }}
+                />
 
                 <NeonButton
                   text="Disconnect TIDAL"
@@ -387,7 +404,7 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
                   color="#FF453A"
                   icon="log-out-outline"
                   fullWidth={false}
-                  style={{ paddingVertical: 10, paddingHorizontal: 32, alignSelf: 'center', marginTop: 12 }}
+                  style={{ paddingVertical: 10, paddingHorizontal: 32, alignSelf: 'center', marginTop: 8 }}
                 />
               </>
             )}

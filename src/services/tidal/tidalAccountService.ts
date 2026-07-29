@@ -5,6 +5,7 @@ import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../../config/firebaseConfig';
 import { MusicTrack } from '../../types';
 import { getTidalTracksByIds } from './tidalApiClient';
+import { getProfileData } from '../profileService';
 
 const TIDAL_API_URL = 'https://openapi.tidal.com/v2';
 const TIDAL_ACCOUNT_DOC_ID = 'tidal';
@@ -908,7 +909,7 @@ export function getTidalAuthRequestConfig() {
   const { clientId } = getTidalConfig();
   return {
     clientId,
-    scopes: ['playlists.read', 'playlists.write', 'user.read'],
+    scopes: ['playlists.read', 'playlists.write', 'user.read', 'collection.read', 'collection.write'],
     redirectUri: 'musicnexus://tidal-auth',
     usePKCE: true,
   };
@@ -968,4 +969,64 @@ export async function refreshTidalPlaylistsOnly(): Promise<TidalAccountData> {
 
 export function getTidalRatingKeys(): string[] {
   return Array.from({ length: 21 }, (_, index) => (10 - index * 0.5).toFixed(1));
+}
+
+export async function addTrackToTidalFavorites(trackId: string): Promise<void> {
+  const account = await refreshTidalConnectionIfNeeded();
+  if (!account.connected || !account.tokenSet?.accessToken || !account.userId) return;
+  const response = await fetch(
+    `${TIDAL_API_URL}/userCollectionTracks/${encodeURIComponent(account.userId)}/relationships/items?countryCode=US`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${account.tokenSet.accessToken}`,
+        Accept: 'application/vnd.api+json',
+        'Content-Type': 'application/vnd.api+json',
+      },
+      body: JSON.stringify({
+        data: [{ id: trackId, type: 'tracks' }],
+      }),
+    }
+  );
+  if (!response.ok) {
+    const body = await response.text();
+    console.warn('[tidalAccountService] addTrackToTidalFavorites failed', { trackId, status: response.status, body });
+    debugTidal('addTrackToTidalFavorites error', { trackId, status: response.status, body });
+  }
+}
+
+export async function removeTrackFromTidalFavorites(trackId: string): Promise<void> {
+  const account = await refreshTidalConnectionIfNeeded();
+  if (!account.connected || !account.tokenSet?.accessToken || !account.userId) return;
+  const response = await fetch(
+    `${TIDAL_API_URL}/userCollectionTracks/${encodeURIComponent(account.userId)}/relationships/items?countryCode=US`,
+    {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${account.tokenSet.accessToken}`,
+        Accept: 'application/vnd.api+json',
+        'Content-Type': 'application/vnd.api+json',
+      },
+      body: JSON.stringify({
+        data: [{ id: trackId, type: 'tracks' }],
+      }),
+    }
+  );
+  if (!response.ok) {
+    const body = await response.text();
+    console.warn('[tidalAccountService] removeTrackFromTidalFavorites failed', { trackId, status: response.status, body });
+    debugTidal('removeTrackFromTidalFavorites error', { trackId, status: response.status, body });
+  }
+}
+
+export async function syncTrackToTidalLibrary(track: { id: string; rating: number; previousRating?: number }): Promise<void> {
+  const profile = await getProfileData();
+  const threshold = profile.minimumRatingForTidalSave;
+  if (threshold === undefined || threshold <= 0) return;
+
+  if (track.rating >= threshold) {
+    await addTrackToTidalFavorites(track.id);
+  } else if (track.previousRating !== undefined && track.previousRating >= threshold && track.rating < threshold) {
+    await removeTrackFromTidalFavorites(track.id);
+  }
 }

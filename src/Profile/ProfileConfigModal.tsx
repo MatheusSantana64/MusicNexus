@@ -147,11 +147,11 @@ export function ProfileConfigModal({
 
   return (
     <>
-      <TouchableOpacity onPress={onOpenAccount} style={[styles.gearIcon, { right: 88 }]}>
+      <TouchableOpacity onPress={onOpenAccount} style={[styles.gearIcon, { right: 105 }]}>
           <Ionicons name="person-circle-outline" size={28} color={theme.colors.text.primary} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={onOpenTips} style={[styles.gearIcon, { right: 52 }]}>
-          <Ionicons name="document-text-outline" size={28} color={theme.colors.text.primary} />
+        <TouchableOpacity onPress={onOpenTips} style={[styles.gearIcon, { right: 60 }]}>
+          <Ionicons name="star-outline" size={28} color={theme.colors.text.primary} />
         </TouchableOpacity>
         <TouchableOpacity onPress={onOpen} style={styles.gearIcon}>
           <Ionicons name="settings-outline" size={28} color={theme.colors.text.primary} />

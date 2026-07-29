@@ -11,7 +11,7 @@ import {
 import { setSavedMusicMeta } from '../services/firestoreMetaHelper';
 import NetInfo from '@react-native-community/netinfo';
 import { deleteMusic, SortMode } from '../services/music/musicService';
-import { syncTrackToConfiguredTidalPlaylist, addTrackToConfiguredPlaylist, removeTrackFromConfiguredPlaylist } from '../services/tidal/tidalAccountService';
+import { syncTrackToConfiguredTidalPlaylist, syncTrackToTidalLibrary, addTrackToConfiguredPlaylist, removeTrackFromConfiguredPlaylist } from '../services/tidal/tidalAccountService';
 import { showToast } from '../utils/toast';
 import { doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
@@ -327,6 +327,11 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
             previousRating: item.previousRating,
             firebaseId: item.firebaseId,
           });
+          await syncTrackToTidalLibrary({
+            id: item.trackId,
+            rating: item.rating,
+            previousRating: item.previousRating,
+          });
           await removeFromTidalSyncQueue(item.firebaseId);
           succeeded.push(item);
         } catch (err) {
@@ -568,6 +573,13 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
             console.error('[musicStore] Online TIDAL sync failed (queued for retry):', err);
           }).finally(() => {
             get().finishTidalSync(updatedTrack.id);
+            syncTrackToTidalLibrary({
+              id: updatedTrack.id,
+              rating,
+              previousRating: prevRating,
+            }).catch((err) => {
+              console.error('[musicStore] TIDAL library sync failed:', err);
+            });
           });
 
           if (tags) {
@@ -873,6 +885,13 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
         console.error('[musicStore] Online TIDAL sync failed (queued for retry):', err);
       }).finally(() => {
         get().finishTidalSync(updatedTrack.id);
+        syncTrackToTidalLibrary({
+          id: updatedTrack.id,
+          rating: newRating,
+          previousRating: prevRating,
+        }).catch((err) => {
+          console.error('[musicStore] TIDAL library sync failed:', err);
+        });
       });
     }
   },

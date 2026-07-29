@@ -8,7 +8,7 @@ const PROFILE_DOC_ID = 'main';
 const PROFILE_CACHE_KEY = 'profileCache';
 const PROFILE_LAST_MODIFIED_KEY = 'profileCacheLastModified';
 
-type ProfileData = { notes?: string; ratingTooltips?: Record<string, string> };
+type ProfileData = { notes?: string; ratingTooltips?: Record<string, string>; minimumRatingForTidalSave?: number };
 
 // In-memory listener registry + single snapshot unsubscribe
 const profileListeners = new Set<(data: ProfileData) => void>();
@@ -67,7 +67,7 @@ export function subscribeToProfileChanges(callback: (data: ProfileData) => void)
   return addProfileChangeListener(callback);
 }
 
-export async function getProfileData(): Promise<{ notes?: string; ratingTooltips?: Record<string, string> }> {
+export async function getProfileData(): Promise<{ notes?: string; ratingTooltips?: Record<string, string>; minimumRatingForTidalSave?: number }> {
   // 1. Try cache
   const [cacheJson, cacheLastModifiedStr] = await Promise.all([
     AsyncStorage.getItem(PROFILE_CACHE_KEY),
@@ -99,7 +99,7 @@ export async function getProfileData(): Promise<{ notes?: string; ratingTooltips
   }
 }
 
-export async function setProfileData(data: Partial<{ notes: string; ratingTooltips: Record<string, string> }>) {
+export async function setProfileData(data: Partial<{ notes: string; ratingTooltips: Record<string, string>; minimumRatingForTidalSave: number }>) {
   // 1. Get current cache and merge
   const cacheJson = await AsyncStorage.getItem(PROFILE_CACHE_KEY);
   const cache = cacheJson ? JSON.parse(cacheJson) : {};

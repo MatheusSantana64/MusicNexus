@@ -1,8 +1,8 @@
 // src/Profile/RatingTipsModal.tsx
-// Modal for Notes and Rating Tooltips
 import React from 'react';
-import { View, Text, Modal, ScrollView, TextInput } from 'react-native';
+import { View, Text, Modal, ScrollView, TextInput, TouchableOpacity } from 'react-native';
 import { theme } from '../styles/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { profileScreenStyles as styles } from './styles/ProfileScreen.styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getProfileData, setProfileData, subscribeToProfileChanges } from '../services/profileService';
@@ -17,7 +17,7 @@ interface RatingTipsModalProps {
 
 export function RatingTipsModal({ visible, onClose }: RatingTipsModalProps) {
   const [tooltips, setTooltips] = React.useState<{ [rating: string]: string }>({});
-  const [notes, setNotes] = React.useState('');
+  const [minimumRatingForTidalSave, setMinimumRatingForTidalSave] = React.useState<number>(0);
 
   React.useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -25,18 +25,13 @@ export function RatingTipsModal({ visible, onClose }: RatingTipsModalProps) {
       AsyncStorage.getItem('ratingTooltips').then(val => {
         if (val) setTooltips(JSON.parse(val));
       });
-      AsyncStorage.getItem('profileNotes').then(val => {
-        if (val !== null) setNotes(val);
-      });
-
       getProfileData().then(data => {
         if (data.ratingTooltips) {
           setTooltips(data.ratingTooltips);
           AsyncStorage.setItem('ratingTooltips', JSON.stringify(data.ratingTooltips));
         }
-        if (data.notes !== undefined) {
-          setNotes(data.notes);
-          AsyncStorage.setItem('profileNotes', data.notes);
+        if (data.minimumRatingForTidalSave !== undefined) {
+          setMinimumRatingForTidalSave(data.minimumRatingForTidalSave);
         }
       }).catch(() => {});
 
@@ -45,9 +40,8 @@ export function RatingTipsModal({ visible, onClose }: RatingTipsModalProps) {
           setTooltips(data.ratingTooltips);
           AsyncStorage.setItem('ratingTooltips', JSON.stringify(data.ratingTooltips));
         }
-        if (data.notes !== undefined) {
-          setNotes(data.notes);
-          AsyncStorage.setItem('profileNotes', data.notes);
+        if (data.minimumRatingForTidalSave !== undefined) {
+          setMinimumRatingForTidalSave(data.minimumRatingForTidalSave);
         }
       });
     }
@@ -62,43 +56,46 @@ export function RatingTipsModal({ visible, onClose }: RatingTipsModalProps) {
     setProfileData({ ratingTooltips: updated });
   };
 
-  const handleNotesChange = (text: string) => {
-    setNotes(text);
-    AsyncStorage.setItem('profileNotes', text);
-    setProfileData({ notes: text });
+  const handleMinRatingChange = (value: number) => {
+    setMinimumRatingForTidalSave(value);
+    setProfileData({ minimumRatingForTidalSave: value });
+  };
+
+  const decreaseMinRating = () => {
+    const next = Math.max(0, minimumRatingForTidalSave - 0.5);
+    handleMinRatingChange(next);
+  };
+
+  const increaseMinRating = () => {
+    const next = Math.min(10, minimumRatingForTidalSave + 0.5);
+    handleMinRatingChange(next);
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.configSectionTitle}>Notes</Text>
-            <TextInput
-              style={{
-                minHeight: 80,
-                maxHeight: 160,
-                backgroundColor: theme.colors.background.surface,
-                color: theme.colors.text.primary,
-                borderRadius: 8,
-                padding: 12,
-                fontSize: 16,
-                borderWidth: 1,
-                borderColor: theme.colors.border,
-                width: '100%',
-                marginBottom: 16,
-              }}
-              placeholder="Write your notes here..."
-              placeholderTextColor={theme.colors.text.secondary}
-              multiline
-              value={notes}
-              onChangeText={handleNotesChange}
-            />
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 16 }}>
+        <View style={{ flex: 1, backgroundColor: theme.colors.background.amoled, borderRadius: theme.borderRadius.lg, borderColor: theme.colors.border, borderWidth: 1, maxHeight: '95%', overflow: 'hidden' }}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ padding: 12, paddingBottom: 20 }}
+            style={{ flex: 1 }}
+          >
+            <Text style={styles.configSectionTitle}>Auto-Save to TIDAL Library</Text>
+            <Text style={{ color: theme.colors.text.secondary, fontSize: 12, marginBottom: 12 }}>
+              Songs rated at or above this threshold are automatically saved to your TIDAL library. Songs that drop below are removed.
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16, height: 28 }}>
+              <TouchableOpacity onPress={decreaseMinRating} style={{ width: 28, height: 28, justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="chevron-back" size={20} color={theme.colors.text.secondary} />
+              </TouchableOpacity>
+              <Text style={{ color: theme.colors.text.primary, fontSize: 22, fontWeight: '700', marginHorizontal: 16, minWidth: 44, textAlign: 'center' }}>
+                {minimumRatingForTidalSave === 0 ? 'Off' : minimumRatingForTidalSave.toFixed(1)}
+              </Text>
+              <TouchableOpacity onPress={increaseMinRating} style={{ width: 28, height: 28, justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="chevron-forward" size={20} color={theme.colors.text.secondary} />
+              </TouchableOpacity>
+            </View>
+
             <Text style={styles.configSectionTitle}>Rating Tooltips</Text>
             {RATING_STEPS.map(rating => (
               <View
@@ -129,8 +126,8 @@ export function RatingTipsModal({ visible, onClose }: RatingTipsModalProps) {
                 />
               </View>
             ))}
-            <NeonButton text="Close" onPress={onClose} color="#555" fullWidth={false} compact style={{ paddingVertical: 10, paddingHorizontal: 32, alignSelf: 'center', marginTop: 8 }} />
           </ScrollView>
+          <NeonButton text="Close" onPress={onClose} color="#555" fullWidth style={{ paddingVertical: 14, borderTopWidth: 1, borderTopColor: theme.colors.divider, borderRadius: 0 }} />
         </View>
       </View>
     </Modal>
