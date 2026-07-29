@@ -1,13 +1,12 @@
-// src/Tags/TagsScreen.tsx
-// TagsScreen component for managing music tags
 import React, { useState } from 'react';
-import { View, Text, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { TouchableOpacity as RNGHTouchableOpacity } from 'react-native-gesture-handler';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
+import ColorPicker, { Panel3, Preview, BrightnessSlider } from 'reanimated-color-picker';
 import { theme } from '../styles/theme';
-import { TagColorPicker } from './TagColorPicker';
 import { TagTidalConfigModal } from './TagTidalConfigModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NeonButton } from '../components/NeonButton';
 import { Ionicons } from '@expo/vector-icons';
 import { tagsScreenStyles as styles } from './styles/TagsScreen.styles';
 import { Tag } from '../types';
@@ -23,7 +22,7 @@ function TagRow({
 }: {
   tag: Tag;
   onEdit: (tag: Tag) => void;
-  onDelete: (id: string) => void;
+  onDelete: (tag: Tag) => void;
   onConfig: (tag: Tag) => void;
   drag: () => void;
   isActive: boolean;
@@ -45,7 +44,7 @@ function TagRow({
         <TouchableOpacity onPress={() => onConfig(tag)} style={styles.actionButton}>
           <Ionicons name="settings-outline" size={16} color={tag.tidalPlaylistId ? theme.colors.text.success : theme.colors.text.muted} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onDelete(tag.id)} style={styles.actionButton}>
+        <TouchableOpacity onPress={() => onDelete(tag)} style={styles.actionButton}>
           <Ionicons name="trash" size={16} color={theme.colors.text.error} />
         </TouchableOpacity>
       </View>
@@ -54,7 +53,6 @@ function TagRow({
 }
 
 export default function TagsScreen() {
-  // Use Zustand store for tags
   const {
     tags,
     loading,
@@ -70,16 +68,15 @@ export default function TagsScreen() {
   const [inputName, setInputName] = useState('');
   const [inputColor, setInputColor] = useState('#002a55');
   const [inputVisible, setInputVisible] = useState(false);
-  const [colorPickerVisible, setColorPickerVisible] = useState(false);
   const [configTag, setConfigTag] = useState<Tag | null>(null);
 
-  // Open create or edit
   const openCreate = () => {
     setEditingTag(null);
     setInputName('');
     setInputColor('#002a55');
     setInputVisible(true);
   };
+
   const openEdit = (tag: Tag) => {
     setEditingTag(tag);
     setInputName(tag.name);
@@ -87,7 +84,6 @@ export default function TagsScreen() {
     setInputVisible(true);
   };
 
-  // Save create or edit
   const handleSave = async () => {
     if (!inputName.trim()) return;
     setInputVisible(false);
@@ -113,9 +109,18 @@ export default function TagsScreen() {
     setInputColor('#002a55');
   };
 
-  const handleDeleteTag = async (id: string) => {
-    await deleteTag(id);
-    refresh();
+  const handleDeleteTag = (tag: Tag) => {
+    Alert.alert(
+      'Delete Tag',
+      `Are you sure you want to delete "${tag.name}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: async () => {
+          await deleteTag(tag.id);
+          refresh();
+        }},
+      ]
+    );
   };
 
   const handleSaveTidalPlaylist = async (playlistId: string) => {
@@ -139,58 +144,27 @@ export default function TagsScreen() {
       keyboardVerticalOffset={0}
     >
       <SafeAreaView style={styles.container} edges={['top']}>
-
-        {inputVisible ? (
-          <View style={styles.inputRow}>
-            <TextInput
-              placeholder={editingTag ? "Edit Tag Name" : "Tag Name"}
-              placeholderTextColor={theme.colors.text.placeholder}
-              value={inputName}
-              onChangeText={setInputName}
-              style={styles.input}
-            />
+        <View style={styles.titleRow}>
+          <View style={{ flex: 1 }} />
+          <Text style={{ ...theme.styles.title, textAlign: 'center' }}>Tags</Text>
+          <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end' }}>
             <TouchableOpacity
-              onPress={() => setColorPickerVisible(true)}
-              style={[styles.colorButton, { backgroundColor: inputColor }]}
+              style={styles.actionButton}
+              onPress={openCreate}
+              accessibilityLabel="Add Tag"
             >
-              <Text style={styles.colorButtonText}>Color</Text>
+              <Ionicons name="add" size={18} color={theme.colors.text.blue} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={handleSave}
-              style={[styles.saveButton, { flex: 0.5, marginRight: 4 }]}
-              disabled={!inputName.trim()}
-              accessibilityLabel={editingTag ? "Save" : "Create"}
+              style={[styles.actionButton, { opacity: loading ? 0.2 : 0.6 }]}
+              onPress={refresh}
+              disabled={loading}
+              accessibilityLabel="Refresh Tags"
             >
-              <Ionicons
-                name={editingTag ? "checkmark" : "add"}
-                size={22}
-                color={theme.colors.text.primary}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleCancel}
-              style={[styles.cancelButton, { flex: 0.5 }]}
-              accessibilityLabel="Cancel"
-            >
-              <Ionicons
-                name="close"
-                size={22}
-                color={theme.colors.text.primary}
-              />
+              <Ionicons name="refresh" size={18} color={theme.colors.text.blue} />
             </TouchableOpacity>
           </View>
-        ) : (
-          <TouchableOpacity style={styles.addButton} onPress={openCreate}>
-            <Text style={styles.addButtonText}>+ Add Tag</Text>
-          </TouchableOpacity>
-        )}
-
-        <TagColorPicker
-          visible={colorPickerVisible}
-          value={inputColor}
-          onChange={setInputColor}
-          onClose={() => setColorPickerVisible(false)}
-        />
+        </View>
 
         <TagTidalConfigModal
           visible={configTag !== null}
@@ -201,10 +175,29 @@ export default function TagsScreen() {
           onCancel={() => setConfigTag(null)}
         />
 
-        {loading ? (
+        {inputVisible ? (
+          <View style={styles.inputSection}>
+            <TextInput
+              placeholder={editingTag ? 'Edit Tag Name' : 'Tag Name'}
+              placeholderTextColor={theme.colors.text.placeholder}
+              value={inputName}
+              onChangeText={setInputName}
+              style={styles.input}
+            />
+            <ColorPicker
+              style={{ width: '100%', gap: 12, marginTop: 12, flex: 1 }}
+              value={inputColor}
+              onChangeJS={color => setInputColor(color.hex)}
+            >
+              <Preview style={styles.preview} />
+              <Panel3 style={styles.panel} />
+              <BrightnessSlider reverse={true} style={styles.slider} />
+            </ColorPicker>
+          </View>
+        ) : loading ? (
           <ActivityIndicator size="large" color={theme.colors.text.primary} style={{ marginTop: 32 }} />
         ) : tags.length === 0 ? (
-          <View style={{ alignItems: 'center', marginTop: 48 }}>
+          <View style={{ alignItems: 'center', marginTop: 48, paddingHorizontal: 16 }}>
             <Text style={{ color: theme.colors.text.primary, marginBottom: 12 }}>
               No tags found.
             </Text>
@@ -214,7 +207,7 @@ export default function TagsScreen() {
             data={[...tags].sort((a, b) => a.position - b.position)}
             keyExtractor={tag => tag.id}
             onDragEnd={({ data }) => reorderTags(data)}
-            contentContainerStyle={{ paddingBottom: 24 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
             renderItem={({ item, drag, isActive }) => (
               <TagRow
                 tag={item}
@@ -228,24 +221,30 @@ export default function TagsScreen() {
           />
         )}
 
-        {/* Refresh Button at the bottom */}
-        <View style={{ alignItems: 'flex-end' }}>
-          <TouchableOpacity
-            style={{
-              flexDirection: 'row',
-              alignItems: 'flex-end',
-              backgroundColor: theme.colors.button.primary,
-              padding: 6,
-              borderRadius: 8,
-              opacity: loading ? 0.2 : 0.6,
-            }}
-            onPress={refresh}
-            disabled={loading}
-            accessibilityLabel="Refresh Tags"
-          >
-            <Ionicons name="refresh" size={20} color={theme.colors.text.primary} />
-          </TouchableOpacity>
-        </View>
+        {inputVisible && (
+          <View style={styles.bottomBar}>
+            <View style={styles.bottomActions}>
+              <NeonButton
+                text="Cancel"
+                onPress={handleCancel}
+                color="#FF453A"
+                icon="close"
+                fullWidth={false}
+                compact
+              />
+              <View style={{ flex: 1 }} />
+              <NeonButton
+                text={editingTag ? 'Save' : 'Add'}
+                onPress={handleSave}
+                color="#4CD964"
+                icon={editingTag ? 'checkmark' : 'add'}
+                disabled={!inputName.trim()}
+                fullWidth={false}
+                compact
+              />
+            </View>
+          </View>
+        )}
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
