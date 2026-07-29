@@ -20,6 +20,7 @@ import {
 } from '../services/tidal/tidalAccountService';
 import { useMusicStore } from '../store/musicStore';
 import { saveMusicBatch } from '../services/music/musicService';
+import { NeonButton } from '../components/NeonButton';
 
 interface TidalAccountModalProps {
   visible: boolean;
@@ -263,35 +264,28 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
               }}
             />
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity
+              <NeonButton
+                text="Save"
                 onPress={() => saveRatingPlaylist(ratingKey, normalizePlaylistId(currentValue) || null)}
                 disabled={savingMappings}
-                style={{
-                  flex: 1,
-                  paddingVertical: 8,
-                  paddingHorizontal: 10,
-                  borderRadius: 6,
-                  backgroundColor: theme.colors.button.primary,
+                color="#007AFF"
+                icon="checkmark"
+                fullWidth={false}
+                compact
+                style={{ paddingVertical: 8, paddingHorizontal: 10, flex: 1 }}
+              />
+              <NeonButton
+                text="Clear"
+                onPress={() => {
+                  setRatingInputs(prev => ({ ...prev, [ratingKey]: '' }));
+                  saveRatingPlaylist(ratingKey, null);
                 }}
-              >
-                <Text style={{ color: theme.colors.text.primary, textAlign: 'center', fontWeight: '700' }}>Save</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-              onPress={() => {
-                setRatingInputs(prev => ({ ...prev, [ratingKey]: '' }));
-                saveRatingPlaylist(ratingKey, null);
-              }}
                 disabled={savingMappings}
-                style={{
-                  paddingVertical: 8,
-                  paddingHorizontal: 10,
-                  borderRadius: 6,
-                  backgroundColor: '#222',
-                  minWidth: 100,
-                }}
-              >
-                <Text style={{ color: theme.colors.text.primary, textAlign: 'center' }}>Clear</Text>
-              </TouchableOpacity>
+                color="#555"
+                fullWidth={false}
+                compact
+                style={{ paddingVertical: 8, paddingHorizontal: 10, minWidth: 100 }}
+              />
             </View>
             <Text style={{ color: theme.colors.text.secondary, fontSize: 11, marginTop: 8 }}>
               Example: {`https://tidal.com/playlist/4f0f3200-64eb-46f4-97ce-c78b7c6d3e1e`}
@@ -322,24 +316,16 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
                 <Text style={{ color: theme.colors.text.secondary, textAlign: 'center', marginBottom: 16 }}>
                   Connect your TIDAL account to load your playlists and prepare playlist synchronization.
                 </Text>
-                <TouchableOpacity
+                <NeonButton
+                  text="Connect TIDAL"
                   onPress={handleConnect}
                   disabled={connecting}
-                  style={{
-                    backgroundColor: theme.colors.button.primary,
-                    paddingVertical: 12,
-                    paddingHorizontal: 18,
-                    borderRadius: 10,
-                    minWidth: 180,
-                    alignItems: 'center',
-                  }}
-                >
-                  {connecting ? (
-                    <ActivityIndicator color={theme.colors.text.primary} />
-                  ) : (
-                    <Text style={{ color: theme.colors.text.primary, fontWeight: '700' }}>Connect TIDAL</Text>
-                  )}
-                </TouchableOpacity>
+                  loading={connecting}
+                  color="#007AFF"
+                  icon="log-in-outline"
+                  fullWidth={false}
+                  style={{ paddingVertical: 12, paddingHorizontal: 18, minWidth: 180 }}
+                />
               </View>
             ) : (
               <>
@@ -375,24 +361,15 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
                 </View>
 
                 <View style={{ width: '100%', marginTop: 18 }}>
-                  <TouchableOpacity
+                  <NeonButton
+                    text="Import All from TIDAL Playlists"
                     onPress={handleImportAll}
                     disabled={importing}
-                    style={{
-                      backgroundColor: '#1a5c2a',
-                      paddingVertical: 10,
-                      paddingHorizontal: 14,
-                      borderRadius: 8,
-                      alignItems: 'center',
-                      marginBottom: 8,
-                    }}
-                  >
-                    {importing ? (
-                      <ActivityIndicator color={theme.colors.text.primary} />
-                    ) : (
-                      <Text style={{ color: theme.colors.text.primary, fontWeight: '700' }}>Import All from TIDAL Playlists</Text>
-                    )}
-                  </TouchableOpacity>
+                    loading={importing}
+                    color="#4CD964"
+                    icon="download-outline"
+                    style={{ paddingVertical: 10, paddingHorizontal: 14, marginBottom: 8 }}
+                  />
                   {importStatus ? (
                     <Text style={{ color: theme.colors.text.secondary, fontSize: 11, marginBottom: 8 }}>{importStatus}</Text>
                   ) : (
@@ -402,23 +379,20 @@ export function TidalAccountModal({ visible, onClose }: TidalAccountModalProps) 
                   )}
                 </View>
 
-                <TouchableOpacity
+                <NeonButton
+                  text="Disconnect TIDAL"
                   onPress={handleDisconnect}
                   disabled={disconnecting}
-                  style={[styles.closeButton, { backgroundColor: theme.colors.button.delete, marginTop: 12 }]}
-                >
-                  {disconnecting ? (
-                    <ActivityIndicator color={theme.colors.text.primary} />
-                  ) : (
-                    <Text style={styles.closeButtonText}>Disconnect TIDAL</Text>
-                  )}
-                </TouchableOpacity>
+                  loading={disconnecting}
+                  color="#FF453A"
+                  icon="log-out-outline"
+                  fullWidth={false}
+                  style={{ paddingVertical: 10, paddingHorizontal: 32, alignSelf: 'center', marginTop: 12 }}
+                />
               </>
             )}
 
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
+            <NeonButton text="Close" onPress={onClose} color="#555" fullWidth={false} compact style={{ paddingVertical: 10, paddingHorizontal: 32, alignSelf: 'center', marginTop: 8 }} />
           </ScrollView>
         </View>
       </View>

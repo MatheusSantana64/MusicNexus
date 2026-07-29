@@ -1,11 +1,12 @@
 // src/Profile/RatingTipsModal.tsx
 // Modal for Notes and Rating Tooltips
 import React from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, Modal, ScrollView, TextInput } from 'react-native';
 import { theme } from '../styles/theme';
 import { profileScreenStyles as styles } from './styles/ProfileScreen.styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getProfileData, setProfileData, subscribeToProfileChanges } from '../services/profileService';
+import { NeonButton } from '../components/NeonButton';
 
 const RATING_STEPS = Array.from({ length: 21 }, (_, i) => (i * 0.5).toFixed(1)).reverse();
 
@@ -128,9 +129,7 @@ export function RatingTipsModal({ visible, onClose }: RatingTipsModalProps) {
                 />
               </View>
             ))}
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
+            <NeonButton text="Close" onPress={onClose} color="#555" fullWidth={false} compact style={{ paddingVertical: 10, paddingHorizontal: 32, alignSelf: 'center', marginTop: 8 }} />
           </ScrollView>
         </View>
       </View>

@@ -1,13 +1,14 @@
 ﻿// src/Profile/ProfileConfigModal.tsx
 // ProfileConfigModal for configuring profile settings
 import React from 'react';
-import { View, Text, Button, Modal, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import { profileScreenStyles as styles } from './styles/ProfileScreen.styles';
 import { useMusicStore } from '../store/musicStore';
 import { backupAllCollections, exportLocalBackup, importLocalBackup } from '../services/backupService';
 import { showToast } from '../utils/toast';
+import { NeonButton } from '../components/NeonButton';
 
 interface ProfileConfigModalProps {
   visible: boolean;
@@ -166,11 +167,15 @@ export function ProfileConfigModal({
             <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.configSectionTitle}>Backup</Text>
             <View style={{ marginBottom: 12 }}>
-              <Button
-                title={isBackingUp ? 'Backing up...' : 'Backup to Cloud'}
-                color={theme.colors.button.primary}
+              <NeonButton
+                text={isBackingUp ? 'Backing up...' : 'Backup to Cloud'}
                 onPress={handleBackup}
-                disabled={busy}
+                disabled={busy || isBackingUp}
+                loading={isBackingUp}
+                color="#007AFF"
+                icon="cloud-upload-outline"
+                compact
+                style={{ paddingVertical: 10 }}
               />
               {backupProgress && (
                 <View style={{ marginTop: 8 }}>
@@ -184,11 +189,15 @@ export function ProfileConfigModal({
               )}
             </View>
             <View style={{ marginBottom: 12 }}>
-              <Button
-                title={isExporting ? 'Exporting...' : 'Export to File'}
-                color={theme.colors.button.primary}
+              <NeonButton
+                text={isExporting ? 'Exporting...' : 'Export to File'}
                 onPress={handleExportLocal}
-                disabled={busy}
+                disabled={busy || isExporting}
+                loading={isExporting}
+                color="#007AFF"
+                icon="download-outline"
+                compact
+                style={{ paddingVertical: 10 }}
               />
               {exportProgress && (
                 <View style={{ marginTop: 8 }}>
@@ -202,11 +211,15 @@ export function ProfileConfigModal({
               )}
             </View>
             <View style={{ marginBottom: 12 }}>
-              <Button
-                title={isImporting ? 'Restoring...' : 'Restore from File'}
-                color={theme.colors.button.delete}
+              <NeonButton
+                text={isImporting ? 'Restoring...' : 'Restore from File'}
                 onPress={handleImportLocal}
-                disabled={busy}
+                disabled={busy || isImporting}
+                loading={isImporting}
+                color="#FF453A"
+                icon="cloud-download-outline"
+                compact
+                style={{ paddingVertical: 10 }}
               />
               {importProgress && (
                 <View style={{ marginTop: 8 }}>
@@ -221,9 +234,8 @@ export function ProfileConfigModal({
             </View>
             <Text style={[styles.configSectionTitle, { marginTop: 16 }]}>Data</Text>
             <View style={{ marginBottom: 12 }}>
-              <Button
-                title="Delete All Songs"
-                color={theme.colors.button.delete}
+              <NeonButton
+                text="Delete All Songs"
                 onPress={() =>
                   Alert.alert(
                     'Delete All Songs',
@@ -246,12 +258,15 @@ export function ProfileConfigModal({
                     ]
                   )
                 }
+                color="#FF453A"
+                icon="trash-outline"
+                compact
+                style={{ paddingVertical: 10 }}
               />
             </View>
-            <View>
-              <Button
-                title="Delete All Tags"
-                color={theme.colors.button.delete}
+            <View style={{ marginBottom: 12 }}>
+              <NeonButton
+                text="Delete All Tags"
                 onPress={() =>
                   Alert.alert(
                     'Delete All Tags',
@@ -274,12 +289,14 @@ export function ProfileConfigModal({
                     ]
                   )
                 }
+                color="#FF453A"
+                icon="pricetag-outline"
+                compact
+                style={{ paddingVertical: 10 }}
               />
             </View>
 
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
+            <NeonButton text="Close" onPress={onClose} color="#555" fullWidth={false} compact style={{ paddingVertical: 10, paddingHorizontal: 32, alignSelf: 'center', marginTop: 8 }} />
             </ScrollView>
           </View>
         </View>
