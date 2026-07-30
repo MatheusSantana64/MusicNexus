@@ -973,9 +973,9 @@ export function getTidalRatingKeys(): string[] {
 
 export async function addTrackToTidalFavorites(trackId: string): Promise<void> {
   const account = await refreshTidalConnectionIfNeeded();
-  if (!account.connected || !account.tokenSet?.accessToken || !account.userId) return;
+  if (!account.connected || !account.tokenSet?.accessToken) return;
   const response = await fetch(
-    `${TIDAL_API_URL}/userCollectionTracks/${encodeURIComponent(account.userId)}/relationships/items?countryCode=US`,
+    `${TIDAL_API_URL}/userCollectionTracks/me/relationships/items?countryCode=US`,
     {
       method: 'POST',
       headers: {
@@ -984,7 +984,7 @@ export async function addTrackToTidalFavorites(trackId: string): Promise<void> {
         'Content-Type': 'application/vnd.api+json',
       },
       body: JSON.stringify({
-        data: [{ id: trackId, type: 'tracks' }],
+        data: [{ type: 'tracks', id: trackId }],
       }),
     }
   );
@@ -997,9 +997,9 @@ export async function addTrackToTidalFavorites(trackId: string): Promise<void> {
 
 export async function removeTrackFromTidalFavorites(trackId: string): Promise<void> {
   const account = await refreshTidalConnectionIfNeeded();
-  if (!account.connected || !account.tokenSet?.accessToken || !account.userId) return;
+  if (!account.connected || !account.tokenSet?.accessToken) return;
   const response = await fetch(
-    `${TIDAL_API_URL}/userCollectionTracks/${encodeURIComponent(account.userId)}/relationships/items?countryCode=US`,
+    `${TIDAL_API_URL}/userCollectionTracks/me/relationships/items?countryCode=US`,
     {
       method: 'DELETE',
       headers: {
@@ -1008,7 +1008,7 @@ export async function removeTrackFromTidalFavorites(trackId: string): Promise<vo
         'Content-Type': 'application/vnd.api+json',
       },
       body: JSON.stringify({
-        data: [{ id: trackId, type: 'tracks' }],
+        data: [{ type: 'tracks', id: trackId }],
       }),
     }
   );
