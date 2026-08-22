@@ -34,6 +34,10 @@ export async function updatePlaylistCacheBatch(entries: Array<{ playlistId: stri
   const cache = await loadCache();
   const now = Date.now();
   for (const { playlistId, lastModifiedAt, trackIds } of entries) {
+    if (!lastModifiedAt) {
+      delete cache[playlistId];
+      continue;
+    }
     cache[playlistId] = { lastModifiedAt, cachedAt: now, trackIds: trackIds ?? cache[playlistId]?.trackIds };
   }
   await saveCache(cache);

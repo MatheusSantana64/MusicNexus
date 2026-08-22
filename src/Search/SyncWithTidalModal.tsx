@@ -186,9 +186,11 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
         setScanStatus(`Scanning rating ${rating}... (${scannedCount + 1}/${metadataResults.length})`);
         const currentLastModified = meta?.lastModifiedAt || '';
         const cached = await getCachedPlaylistEntry(playlistId);
+        const cachedTrackIds = Array.isArray(cached?.trackIds) ? cached.trackIds : [];
+        const canUseCache = !!cached && !!currentLastModified && cached.lastModifiedAt === currentLastModified && cachedTrackIds.length > 0;
 
-        if (cached && cached.lastModifiedAt === currentLastModified && cached.trackIds) {
-          for (const trackId of cached.trackIds) {
+        if (canUseCache) {
+          for (const trackId of cachedTrackIds) {
             const locations = trackLocations.get(trackId) || [];
             locations.push({ playlistId, rating });
             trackLocations.set(trackId, locations);
@@ -204,7 +206,9 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
             locations.push({ playlistId, rating, addedAt: item.meta?.addedAt });
             trackLocations.set(trackId, locations);
           }
-          cacheUpdates.push({ playlistId, lastModifiedAt: currentLastModified, trackIds });
+          if (currentLastModified) {
+            cacheUpdates.push({ playlistId, lastModifiedAt: currentLastModified, trackIds });
+          }
         }
         scannedCount++;
       }

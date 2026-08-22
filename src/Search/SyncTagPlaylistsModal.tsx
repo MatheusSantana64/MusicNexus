@@ -193,15 +193,19 @@ export function SyncTagPlaylistsModal({ visible, onClose }: SyncTagPlaylistsModa
         const meta = await fetchTidalPlaylistMetadata(pl.playlistId, token);
         const currentLastModified = meta?.lastModifiedAt || '';
         const cached = await getCachedPlaylistEntry(pl.playlistId);
+        const cachedTrackIds = Array.isArray(cached?.trackIds) ? cached.trackIds : [];
+        const canUseCache = !!cached && !!currentLastModified && cached.lastModifiedAt === currentLastModified && cachedTrackIds.length > 0;
 
         let trackIds: string[];
-        if (cached && cached.lastModifiedAt === currentLastModified && cached.trackIds) {
-          trackIds = cached.trackIds;
+        if (canUseCache) {
+          trackIds = cachedTrackIds;
           cacheHitCount++;
         } else {
           const items = await fetchTidalPlaylistItems(pl.playlistId, token);
           trackIds = items.map(item => String(item.id || '')).filter(Boolean);
-          cacheUpdates.push({ playlistId: pl.playlistId, lastModifiedAt: currentLastModified, trackIds });
+          if (currentLastModified) {
+            cacheUpdates.push({ playlistId: pl.playlistId, lastModifiedAt: currentLastModified, trackIds });
+          }
         }
 
         playlistTrackMap.set(pl.playlistId, { tagId: pl.tagId, trackIds });
