@@ -178,7 +178,7 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
       );
 
       const trackLocations = new Map<string, Array<{ playlistId: string; rating: string; addedAt?: string }>>();
-      const cacheUpdates: Array<{ playlistId: string; lastModifiedAt: string; trackIds?: string[] }> = [];
+      const cacheUpdates: Array<{ playlistId: string; lastModifiedAt: string; trackIds?: string[]; trackEntries?: Array<{ id: string; addedAt?: string }> }> = [];
       let scannedCount = 0;
       let cacheHitCount = 0;
 
@@ -187,19 +187,24 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
         const currentLastModified = meta?.lastModifiedAt || '';
         const cached = await getCachedPlaylistEntry(playlistId);
         const cachedTrackIds = Array.isArray(cached?.trackIds) ? cached.trackIds : [];
-        const canUseCache = !!cached && !!currentLastModified && cached.lastModifiedAt === currentLastModified && cachedTrackIds.length > 0;
+        const cachedTrackEntries = Array.isArray(cached?.trackEntries) ? cached.trackEntries : [];
+        const canUseCache = !!cached && !!currentLastModified && cached.lastModifiedAt === currentLastModified && (cachedTrackIds.length > 0 || cachedTrackEntries.length > 0);
 
         if (canUseCache) {
-          for (const trackId of cachedTrackIds) {
-            const locations = trackLocations.get(trackId) || [];
-            locations.push({ playlistId, rating });
-            trackLocations.set(trackId, locations);
+          const entriesToUse = cachedTrackEntries.length > 0 ? cachedTrackEntries : cachedTrackIds.map(id => ({ id, addedAt: undefined }));
+          for (const entry of entriesToUse) {
+            if (!entry?.id) continue;
+            const locations = trackLocations.get(entry.id) || [];
+            locations.push({ playlistId, rating, addedAt: entry.addedAt });
+            trackLocations.set(entry.id, locations);
           }
           cacheHitCount++;
         } else {
           const items = await fetchTidalPlaylistItems(playlistId, token);
-          const trackIds = items.map(item => String(item.id || '')).filter(Boolean);
-          for (const item of items) {
+          const validItems = items.filter(item => String(item.id || ''));
+          const trackIds = validItems.map(item => String(item.id || ''));
+          const trackEntries = validItems.map(item => ({ id: String(item.id || ''), addedAt: item.meta?.addedAt }));
+          for (const item of validItems) {
             const trackId = String(item.id || '');
             if (!trackId) continue;
             const locations = trackLocations.get(trackId) || [];
@@ -207,7 +212,7 @@ export function SyncWithTidalModal({ visible, onClose }: SyncWithTidalModalProps
             trackLocations.set(trackId, locations);
           }
           if (currentLastModified) {
-            cacheUpdates.push({ playlistId, lastModifiedAt: currentLastModified, trackIds });
+            cacheUpdates.push({ playlistId, lastModifiedAt: currentLastModified, trackIds, trackEntries });
           }
         }
         scannedCount++;

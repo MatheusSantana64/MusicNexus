@@ -8,6 +8,7 @@ export interface PlaylistCacheEntry {
   lastModifiedAt: string;
   cachedAt: number;
   trackIds?: string[];
+  trackEntries?: Array<{ id: string; addedAt?: string }>;
 }
 
 export type PlaylistCache = Record<string, PlaylistCacheEntry>;
@@ -30,15 +31,20 @@ export async function getCachedPlaylistEntry(playlistId: string): Promise<Playli
   return cache[playlistId] ?? null;
 }
 
-export async function updatePlaylistCacheBatch(entries: Array<{ playlistId: string; lastModifiedAt: string; trackIds?: string[] }>): Promise<void> {
+export async function updatePlaylistCacheBatch(entries: Array<{ playlistId: string; lastModifiedAt: string; trackIds?: string[]; trackEntries?: Array<{ id: string; addedAt?: string }> }>): Promise<void> {
   const cache = await loadCache();
   const now = Date.now();
-  for (const { playlistId, lastModifiedAt, trackIds } of entries) {
+  for (const { playlistId, lastModifiedAt, trackIds, trackEntries } of entries) {
     if (!lastModifiedAt) {
       delete cache[playlistId];
       continue;
     }
-    cache[playlistId] = { lastModifiedAt, cachedAt: now, trackIds: trackIds ?? cache[playlistId]?.trackIds };
+    cache[playlistId] = {
+      lastModifiedAt,
+      cachedAt: now,
+      trackIds: trackIds ?? cache[playlistId]?.trackIds,
+      trackEntries: trackEntries ?? cache[playlistId]?.trackEntries,
+    };
   }
   await saveCache(cache);
 }

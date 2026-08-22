@@ -182,7 +182,7 @@ export function SyncTagPlaylistsModal({ visible, onClose }: SyncTagPlaylistsModa
 
       const selectedPlaylists = playlists.filter(p => selectedPlaylistIds.has(p.playlistId));
 
-      const cacheUpdates: Array<{ playlistId: string; lastModifiedAt: string; trackIds?: string[] }> = [];
+      const cacheUpdates: Array<{ playlistId: string; lastModifiedAt: string; trackIds?: string[]; trackEntries?: Array<{ id: string; addedAt?: string }> }> = [];
       const playlistTrackMap = new Map<string, { tagId: string; trackIds: string[] }>();
       let scannedCount = 0;
       let cacheHitCount = 0;
@@ -194,17 +194,24 @@ export function SyncTagPlaylistsModal({ visible, onClose }: SyncTagPlaylistsModa
         const currentLastModified = meta?.lastModifiedAt || '';
         const cached = await getCachedPlaylistEntry(pl.playlistId);
         const cachedTrackIds = Array.isArray(cached?.trackIds) ? cached.trackIds : [];
-        const canUseCache = !!cached && !!currentLastModified && cached.lastModifiedAt === currentLastModified && cachedTrackIds.length > 0;
+        const cachedTrackEntries = Array.isArray(cached?.trackEntries) ? cached.trackEntries : [];
+        const canUseCache = !!cached && !!currentLastModified && cached.lastModifiedAt === currentLastModified && (cachedTrackIds.length > 0 || cachedTrackEntries.length > 0);
 
         let trackIds: string[];
         if (canUseCache) {
-          trackIds = cachedTrackIds;
+          trackIds = cachedTrackEntries.length > 0 ? cachedTrackEntries.map(entry => entry.id).filter(Boolean) : cachedTrackIds;
           cacheHitCount++;
         } else {
           const items = await fetchTidalPlaylistItems(pl.playlistId, token);
-          trackIds = items.map(item => String(item.id || '')).filter(Boolean);
+          const validItems = items.filter(item => String(item.id || ''));
+          trackIds = validItems.map(item => String(item.id || ''));
           if (currentLastModified) {
-            cacheUpdates.push({ playlistId: pl.playlistId, lastModifiedAt: currentLastModified, trackIds });
+            cacheUpdates.push({
+              playlistId: pl.playlistId,
+              lastModifiedAt: currentLastModified,
+              trackIds,
+              trackEntries: validItems.map(item => ({ id: String(item.id || ''), addedAt: item.meta?.addedAt })),
+            });
           }
         }
 
