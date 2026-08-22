@@ -60,35 +60,30 @@ export async function getFirestoreLastModified(): Promise<number | null> {
 }
 
 export async function fetchMusicFromFirestore(): Promise<{ music: SavedMusic[]; lastModified: number }> {
-  try {
-    const colRef = collection(db, 'savedMusic');
-    const snapshot = await getDocs(colRef);
-    let lastModified = 0;
-    const music: SavedMusic[] = [];
-    snapshot.forEach(docSnap => {
-      if (docSnap.id === META_DOC_ID) {
-        const meta = docSnap.data();
-        if (typeof meta.lastModified === 'number') lastModified = meta.lastModified;
+  const colRef = collection(db, 'savedMusic');
+  const snapshot = await getDocs(colRef);
+  let lastModified = 0;
+  const music: SavedMusic[] = [];
+  snapshot.forEach(docSnap => {
+    if (docSnap.id === META_DOC_ID) {
+      const meta = docSnap.data();
+      if (typeof meta.lastModified === 'number') lastModified = meta.lastModified;
+    } else {
+      const raw = {
+        ...docSnap.data(),
+        firebaseId: docSnap.id,
+        savedAt: docSnap.data().savedAt?.toDate?.() ?? new Date(),
+        ratingHistory: docSnap.data().ratingHistory ?? [],
+      };
+      const validated = safeParseFirebaseMusicDocument(raw);
+      if (validated) {
+        music.push(validated);
       } else {
-        const raw = { 
-          ...docSnap.data(), 
-          firebaseId: docSnap.id, 
-          savedAt: docSnap.data().savedAt?.toDate?.() ?? new Date(),
-          ratingHistory: docSnap.data().ratingHistory ?? [],
-        };
-        const validated = safeParseFirebaseMusicDocument(raw);
-        if (validated) {
-          music.push(validated);
-        } else {
-          console.warn('[firestoreCacheService] fetchMusicFromFirestore: Invalid music doc skipped:', docSnap.id, raw, '🌐⚠️');
-        }
+        console.warn('[firestoreCacheService] fetchMusicFromFirestore: Invalid music doc skipped:', docSnap.id, raw, '🌐⚠️');
       }
-    });
-    return { music, lastModified };
-  } catch (err) {
-    console.error('[firestoreCacheService] fetchMusicFromFirestore: Error fetching music:', err, '🌐❌');
-    return { music: [], lastModified: Date.now() };
-  }
+    }
+  });
+  return { music, lastModified };
 }
 
 export async function getCachedTags(): Promise<{ tags: Tag[]; lastModified: number | null }> {

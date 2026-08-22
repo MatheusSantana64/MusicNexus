@@ -419,10 +419,32 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
         music = cachedMusic;
         lastModified = cachedLastModified!;
       } else {
-        const result = await fetchMusicFromFirestore();
-        music = result.music;
-        lastModified = result.lastModified || Date.now();
-        await setCachedMusic(music, lastModified);
+        try {
+          const result = await fetchMusicFromFirestore();
+          music = result.music;
+          lastModified = result.lastModified || Date.now();
+          if (music.length > 0 || cachedMusic.length === 0) {
+            await setCachedMusic(music, lastModified);
+          } else {
+            console.warn('[musicStore] Refusing to overwrite non-empty cache with empty fetch result');
+            music = cachedMusic;
+            lastModified = cachedLastModified ?? lastModified;
+          }
+        } catch (fetchError) {
+          console.error('[musicStore] Firestore fetch failed, using offline cache:', fetchError);
+          if (cachedMusic.length > 0) {
+            set({
+              savedMusic: cachedMusic,
+              currentSortMode: sortMode,
+              loading: false,
+              refreshing: false,
+              lastUpdated: Date.now()
+            });
+            void get().drainTidalSyncQueue();
+            return;
+          }
+          throw fetchError;
+        }
       }
 
       set({ 
@@ -436,8 +458,16 @@ export const useMusicStore = create<InternalMusicState>((set, get) => ({
       void get().drainTidalSyncQueue();
     } catch (error) {
       console.error('[musicStore] loadMusic error:', error);
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to load music',
+      let offlineFallback: SavedMusic[] | null = null;
+      try {
+        const { music: cached } = await getCachedMusic();
+        if (cached.length > 0) offlineFallback = cached;
+      } catch (cacheError) {
+        console.error('[musicStore] Failed to read offline cache after load error:', cacheError);
+      }
+      set({
+        savedMusic: offlineFallback ?? [],
+        error: offlineFallback ? null : (error instanceof Error ? error.message : 'Failed to load music'),
         loading: false,
         refreshing: false
       });
@@ -936,6 +966,9 @@ NetInfo.addEventListener(async state => {
     const tidalQueue = await getTidalSyncQueue();
     if (store._dirty || tidalQueue.length > 0) {
       store.syncMusicWithFirestore();
+    }
+    if (!store.loading && (store.error || store.savedMusic.length === 0)) {
+      store.loadMusic();
     }
   }
 });
