@@ -3,6 +3,7 @@
 import React, { useCallback, useState, useRef } from 'react';
 import { RatingHistoryModal } from '../components/RatingHistoryModal';
 import { RefreshControl, TextInput, Linking, Alert } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SavedMusic } from '../types';
@@ -19,6 +20,7 @@ import { useTagStore } from '../store/tagStore';
 import { useMusicStore } from '../store/musicStore';
 import { refreshTidalConnectionIfNeeded } from '../services/tidal/tidalAccountService';
 import { formatDateTimeDDMMYY_HHMM } from '../utils/dateUtils';
+import { showToast } from '../utils/toast';
 
 export default function LibraryScreen({ navigation }: { navigation?: any }) {
   const [ratingFilter, setRatingFilter] = useState<[number, number]>([0, 10]);
@@ -140,6 +142,32 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
     });
   }, [showOpenTidalModal]);
 
+  const handleCopyAlbumRatings = useCallback(async (music: SavedMusic) => {
+    const allMusic = useMusicStore.getState().savedMusic;
+    const albumTracks = allMusic
+      .filter(m => (music.albumId ? m.albumId === music.albumId : m.album === music.album && m.artist === music.artist))
+      .sort((a, b) =>
+        a.diskNumber - b.diskNumber ||
+        a.trackPosition - b.trackPosition ||
+        a.title.localeCompare(b.title)
+      );
+
+    if (albumTracks.length === 0) return;
+
+    const formatRating = (rating: number) => Number.isInteger(rating) ? String(rating) : rating.toFixed(1);
+    const text = [
+      `${music.album} by ${music.artist}:`,
+      ...albumTracks.map(m => `${m.title}: ${formatRating(m.rating)}`),
+    ].join('\n');
+
+    try {
+      await Clipboard.setStringAsync(text);
+      showToast('Album ratings copied to clipboard');
+    } catch (err) {
+      showToast(`Failed to copy: ${err instanceof Error ? err.message : err}`, 'error');
+    }
+  }, []);
+
   const handleLongPress = useCallback((music: SavedMusic) => {
     const savedAtText = music.savedAt
       ? `\nSaved on: ${formatDateTimeDDMMYY_HHMM(music.savedAt.toISOString())}`
@@ -163,6 +191,13 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
           onPress: () => { setEditMusic(music); setEditModalVisible(true); },
         },
         {
+          text: 'Copy Album Ratings',
+          color: '#5AC8FA',
+          icon: { name: 'copy-outline', color: '#5AC8FA' },
+          style: 'default',
+          onPress: () => handleCopyAlbumRatings(music),
+        },
+        {
           text: 'Open on TIDAL',
           color: '#FF9500',
           icon: { name: 'open-outline', color: '#FF9500' },
@@ -183,7 +218,7 @@ export default function LibraryScreen({ navigation }: { navigation?: any }) {
         },
       ],
     });
-  }, [showOptionsModal, handleMusicAction, handleShowHistory, handleOpenOnTidal]);
+  }, [showOptionsModal, handleMusicAction, handleShowHistory, handleOpenOnTidal, handleCopyAlbumRatings]);
 
   const handleShowInfoModal = useCallback((title: string, message: string) => {
     showInfoModal({
