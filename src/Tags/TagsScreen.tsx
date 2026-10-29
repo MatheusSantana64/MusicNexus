@@ -42,7 +42,7 @@ function TagRow({
           <Ionicons name="pencil" size={16} color={theme.colors.text.blue} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => onConfig(tag)} style={styles.actionButton}>
-          <Ionicons name="settings-outline" size={16} color={tag.tidalPlaylistId ? theme.colors.text.success : theme.colors.text.muted} />
+          <Ionicons name="link" size={16} color={tag.tidalPlaylistId ? theme.colors.text.success : theme.colors.text.muted} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => onDelete(tag)} style={styles.actionButton}>
           <Ionicons name="trash" size={16} color={theme.colors.text.error} />
