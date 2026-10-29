@@ -12,10 +12,12 @@ import { searchFiltersStyles as styles } from './styles/SearchFilters.styles';
 
 interface SearchFiltersProps {
   currentMode: SearchMode;
+  exactMatch: boolean;
   onModeChange: (mode: SearchMode) => void;
+  onExactMatchChange: (value: boolean) => void;
 }
 
-export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps) {
+export function SearchFilters({ currentMode, exactMatch, onModeChange, onExactMatchChange }: SearchFiltersProps) {
   // Helper to get the other provider for the same type
   const getToggledMode = (mode: SearchMode): SearchMode => {
     const providerModes: Record<'album' | 'quick', SearchMode[]> = {
@@ -74,6 +76,22 @@ export function SearchFilters({ currentMode, onModeChange }: SearchFiltersProps)
           {getModeIcon(mode)}
         </TouchableOpacity>
       ))}
+      {currentMode.startsWith('tidal') && (
+        <TouchableOpacity
+          style={[
+            styles.iconButton,
+            exactMatch && styles.iconButtonActive
+          ]}
+          onPress={() => onExactMatchChange(!exactMatch)}
+          accessibilityLabel={exactMatch ? 'Disable exact match' : 'Enable exact match'}
+        >
+          <MaterialCommunityIcons
+            name="target"
+            size={exactMatch ? 24 : 16}
+            color={exactMatch ? '#00ffff' : '#888'}
+          />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

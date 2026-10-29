@@ -113,6 +113,43 @@ function firstRelation(
   return Array.isArray(data) ? data[0] : data;
 }
 
+function normalizeSearchTerm(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function albumArtistIds(album: TidalResource): string[] {
+  const data = album.relationships?.artists?.data;
+  if (Array.isArray(data)) return data.map(reference => reference.id);
+  return data?.id ? [data.id] : [];
+}
+
+function albumMatchesExactTerm(
+  album: TidalResource,
+  document: { included?: TidalResource[] },
+  term: string
+): boolean {
+  if (normalizeSearchTerm(String(album.attributes?.title || '')) === term) return true;
+  return albumArtistIds(album).some(id => {
+    const artist = document.included?.find(
+      resource => resource.type === 'artists' && resource.id === id
+    );
+    return normalizeSearchTerm(String(artist?.attributes?.name || '')) === term;
+  });
+}
+
+function cacheSearchResults(key: string, tracks: MusicTrack[]): void {
+  searchCache.set(key, { tracks, timestamp: Date.now() });
+  if (searchCache.size > SEARCH_CACHE_MAX) {
+    const oldestKey = searchCache.keys().next().value;
+    if (oldestKey !== undefined) searchCache.delete(oldestKey);
+  }
+}
+
 function artworkUrl(
   document: { included?: TidalResource[] },
   owner: TidalResource | undefined,
@@ -362,12 +399,55 @@ async function enrichTidalTracks(
     .filter((track): track is MusicTrack => track !== null && track.duration > 0);
 }
 
+async function buildTracksFromAlbums(
+  albums: TidalResource[],
+  albumDocument: TidalCollectionDocument,
+  extraIncluded: TidalResource[],
+  token: string
+): Promise<MusicTrack[]> {
+  const includedTracks = albumDocument.included?.filter(resource => resource.type === 'tracks') || [];
+  const includedById = new Map(includedTracks.map(track => [track.id, track]));
+  const orderedTracks: TidalResource[] = [];
+  const albumTrackPositions = new Map<string, number>();
+
+  for (const album of albums) {
+    const items = album.relationships?.items?.data;
+    let pos = 0;
+    for (const item of Array.isArray(items) ? items : []) {
+      pos++;
+      const track = includedById.get(item.id);
+      if (track) {
+        orderedTracks.push(track);
+        const itemPos = Number(item.attributes?.trackNumber || 0) || pos;
+        albumTrackPositions.set(item.id, itemPos);
+      }
+    }
+  }
+
+  const result = await enrichTidalTracks(
+    orderedTracks,
+    { included: [...extraIncluded, ...albums, ...(albumDocument.included || [])] },
+    token,
+    orderedTracks.length
+  );
+
+  for (const track of result) {
+    if (!track.track_position) {
+      const pos = albumTrackPositions.get(track.id);
+      if (pos) track.track_position = pos;
+    }
+  }
+
+  return result;
+}
+
 export async function searchTidalTracks(
   query: string,
   limit: number = 25,
-  albumMode = false
+  albumMode = false,
+  exactMatch = false
 ): Promise<MusicTrack[]> {
-  const cacheKey = `${query.trim().toLowerCase()}|${albumMode}|${limit}`;
+  const cacheKey = `${query.trim().toLowerCase()}|${albumMode}|${limit}|${exactMatch}`;
   const cached = searchCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL) {
     searchCache.delete(cacheKey);
@@ -405,8 +485,51 @@ export async function searchTidalTracks(
     const albumSearchIncluded = [...(document.included || [])];
     const desiredAlbumCount = Math.max(3, Math.ceil(limit / 12));
     let nextAlbumPage = rootRelationships.albums?.links?.next;
-    let albumPages = 1;
 
+    if (albumIds.length === 0) return [];
+
+    if (exactMatch) {
+      const term = normalizeSearchTerm(query);
+      const matches: MusicTrack[] = [];
+      const seenTrackIds = new Set<string>();
+      let pageIds = [...new Set(albumIds)];
+      let pageIncluded = albumSearchIncluded;
+      let page = 1;
+
+      while (pageIds.length > 0 && page <= 3) {
+        const albumDocument = await fetchTidalResourcesByIds(
+          'albums',
+          pageIds,
+          'items,coverArt,artists',
+          token
+        );
+        const matchingAlbums = (albumDocument.data || []).filter(album =>
+          albumMatchesExactTerm(album, albumDocument, term)
+        );
+
+        if (matchingAlbums.length > 0) {
+          const tracks = await buildTracksFromAlbums(matchingAlbums, albumDocument, pageIncluded, token);
+          for (const track of tracks) {
+            if (seenTrackIds.has(track.id)) continue;
+            seenTrackIds.add(track.id);
+            matches.push(track);
+          }
+        }
+
+        if (matches.length >= limit || !nextAlbumPage) break;
+        const nextDocument = await fetchTidalCollection(nextAlbumPage, token);
+        pageIds = [...new Set((nextDocument.data || []).map(album => album.id).filter(Boolean))];
+        pageIncluded = [...pageIncluded, ...(nextDocument.included || [])];
+        nextAlbumPage = nextDocument.links?.next;
+        page += 1;
+      }
+
+      const result = matches.slice(0, limit);
+      cacheSearchResults(cacheKey, result);
+      return result;
+    }
+
+    let albumPages = 1;
     while (nextAlbumPage && albumIds.length < desiredAlbumCount && albumPages < 10) {
       const nextDocument = await fetchTidalCollection(nextAlbumPage, token);
       albumIds.push(...(nextDocument.data || []).map(album => album.id).filter(Boolean));
@@ -437,57 +560,58 @@ export async function searchTidalTracks(
       'items,coverArt,artists',
       token
     );
-    const albumResources = albumDocument.data || [];
-    const includedTracks = albumDocument.included?.filter(resource => resource.type === 'tracks') || [];
-    const includedById = new Map(includedTracks.map(track => [track.id, track]));
-    const orderedTracks: TidalResource[] = [];
-    const albumTrackPositions = new Map<string, number>();
-
-    for (const album of albumResources) {
-      const items = album.relationships?.items?.data;
-      let pos = 0;
-      for (const item of Array.isArray(items) ? items : []) {
-        pos++;
-        const track = includedById.get(item.id);
-        if (track) {
-          orderedTracks.push(track);
-          const itemPos = Number(item.attributes?.trackNumber || 0) || pos;
-          albumTrackPositions.set(item.id, itemPos);
-        }
-      }
-    }
-
-    const result = await enrichTidalTracks(
-      orderedTracks,
-      {
-        ...document,
-        included: [
-          ...(document.included || []),
-          ...(albumDocument.data || []),
-          ...(albumDocument.included || []),
-        ],
-      },
-      token,
-      orderedTracks.length
+    const result = await buildTracksFromAlbums(
+      albumDocument.data || [],
+      albumDocument,
+      albumSearchIncluded,
+      token
     );
 
-    for (const track of result) {
-      if (!track.track_position) {
-        const pos = albumTrackPositions.get(track.id);
-        if (pos) track.track_position = pos;
-      }
-    }
-
-    searchCache.set(cacheKey, { tracks: result, timestamp: Date.now() });
-    if (searchCache.size > SEARCH_CACHE_MAX) {
-      const oldestKey = searchCache.keys().next().value;
-      if (oldestKey !== undefined) searchCache.delete(oldestKey);
-    }
+    cacheSearchResults(cacheKey, result);
     return result;
   }
 
   const tracksRelationship = rootRelationships.tracks?.data;
   const tracks = Array.isArray(tracksRelationship) ? tracksRelationship : [];
+
+  if (exactMatch) {
+    const term = normalizeSearchTerm(query);
+    const matches: MusicTrack[] = [];
+    const seenTrackIds = new Set<string>();
+    let searchDocument = document;
+    let trackRefs = tracks;
+    let nextTrackPage = rootRelationships.tracks?.links?.next;
+    let page = 1;
+
+    while (trackRefs.length > 0 && page <= 3) {
+      const enriched = await enrichTidalTracks(trackRefs, searchDocument, token, trackRefs.length);
+      for (const track of enriched) {
+        if (seenTrackIds.has(track.id)) continue;
+        if (
+          normalizeSearchTerm(track.title) === term ||
+          normalizeSearchTerm(track.artist.name) === term
+        ) {
+          seenTrackIds.add(track.id);
+          matches.push(track);
+        }
+      }
+
+      if (matches.length >= limit || !nextTrackPage) break;
+      const nextDocument = await fetchTidalCollection(nextTrackPage, token);
+      trackRefs = nextDocument.data || [];
+      searchDocument = {
+        ...searchDocument,
+        included: [...(searchDocument.included || []), ...(nextDocument.included || [])],
+      };
+      nextTrackPage = nextDocument.links?.next;
+      page += 1;
+    }
+
+    const result = matches.slice(0, limit);
+    cacheSearchResults(cacheKey, result);
+    return result;
+  }
+
   const allTrackRefs = [...tracks];
   let next = rootRelationships.tracks?.links?.next;
   let pages = 1;
@@ -499,11 +623,7 @@ export async function searchTidalTracks(
   }
 
   const result = await enrichTidalTracks(allTrackRefs, document, token, limit);
-  searchCache.set(cacheKey, { tracks: result, timestamp: Date.now() });
-  if (searchCache.size > SEARCH_CACHE_MAX) {
-    const oldestKey = searchCache.keys().next().value;
-    if (oldestKey !== undefined) searchCache.delete(oldestKey);
-  }
+  cacheSearchResults(cacheKey, result);
   return result;
 }
 

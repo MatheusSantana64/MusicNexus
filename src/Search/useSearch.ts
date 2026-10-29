@@ -14,9 +14,11 @@ interface UseSearchResult {
   loading: boolean;
   error: string | null;
   searchMode: SearchMode;
-  searchTracks: (query: string, mode?: SearchMode) => Promise<void>;
+  searchTracks: (query: string, mode?: SearchMode, exact?: boolean) => Promise<void>;
   loadMore: () => Promise<void>;
   setSearchMode: (mode: SearchMode) => void;
+  exactMatch: boolean;
+  setExactMatch: (value: boolean) => void;
   clearResults: () => void;
   hasSearched: boolean;
 }
@@ -26,9 +28,11 @@ export function useSearch(): UseSearchResult {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>('tidal_album'); // Use TIDAL Album as default
+  const [exactMatch, setExactMatch] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const currentQueryRef = useRef('');
   const currentModeRef = useRef<SearchMode>('tidal_album');
+  const currentExactRef = useRef(false);
   const requestedLimitRef = useRef(25);
 
   // Refs to control debounce and cancellation
@@ -49,7 +53,7 @@ export function useSearch(): UseSearchResult {
   }, []);
 
   // Internal function to perform the actual search
-  const performSearch = useCallback(async (query: string, mode: SearchMode) => {
+  const performSearch = useCallback(async (query: string, mode: SearchMode, exact: boolean) => {
     // Cancel previous request if it exists
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -65,7 +69,7 @@ export function useSearch(): UseSearchResult {
     setHasSearched(true);
 
     try {
-      const results = await MusicSearchService.searchTracks(query, mode);
+      const results = await MusicSearchService.searchTracks(query, mode, 25, exact);
 
       // Verify if this is still the most recent search
       if (currentSearchRef.current === searchId) {
@@ -92,10 +96,12 @@ export function useSearch(): UseSearchResult {
     }
   }, []);
 
-  const searchTracks = useCallback(async (query: string, mode?: SearchMode) => {
+  const searchTracks = useCallback(async (query: string, mode?: SearchMode, exact?: boolean) => {
     const currentMode = mode || searchMode;
+    const currentExact = exact ?? exactMatch;
     currentQueryRef.current = query.trim();
     currentModeRef.current = currentMode;
+    currentExactRef.current = currentExact;
     requestedLimitRef.current = 25;
     
     // Cancel previous debounce timeout if it exists
@@ -115,9 +121,9 @@ export function useSearch(): UseSearchResult {
 
     // Implement debounce configuration
     debounceTimeoutRef.current = setTimeout(() => {
-      performSearch(query.trim(), currentMode);
+      performSearch(query.trim(), currentMode, currentExact);
     }, SEARCH_CONFIG.DEBOUNCE_DELAY);
-  }, [performSearch, searchMode]);
+  }, [exactMatch, performSearch, searchMode]);
 
   const loadMore = useCallback(async () => {
     const query = currentQueryRef.current;
@@ -132,7 +138,12 @@ export function useSearch(): UseSearchResult {
         ? requestedLimitRef.current + 36
         : tracks.length + 25;
       requestedLimitRef.current = nextLimit;
-      const results = await MusicSearchService.searchTracks(query, mode, nextLimit);
+      const results = await MusicSearchService.searchTracks(
+        query,
+        mode,
+        nextLimit,
+        currentExactRef.current
+      );
       if (currentSearchRef.current === searchId) {
         const existingIds = new Set(tracks.map(track => track.id));
         setTracks(current => [
@@ -182,6 +193,8 @@ export function useSearch(): UseSearchResult {
     searchTracks,
     loadMore,
     setSearchMode: handleSetSearchMode,
+    exactMatch,
+    setExactMatch,
     clearResults,
     hasSearched,
   };

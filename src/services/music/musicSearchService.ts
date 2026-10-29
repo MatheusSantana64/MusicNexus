@@ -50,7 +50,12 @@ async function fetchSpotifyAlbumTracks(albumId: string): Promise<MusicTrack[]> {
 
 export class MusicSearchService {
   // === PUBLIC API METHODS ===
-  static async searchTracks(query: string, mode: SearchMode = 'tidal_album', limit: number = 25): Promise<MusicTrack[]> {
+  static async searchTracks(
+    query: string,
+    mode: SearchMode = 'tidal_album',
+    limit: number = 25,
+    exactMatch = false
+  ): Promise<MusicTrack[]> {
     let formattedQuery = query;
     if (mode === 'spotify_album' || mode === 'deezer_album') {
       // Only search for artist or album, never track title
@@ -66,8 +71,8 @@ export class MusicSearchService {
     const options: SearchOptions = { mode, query: formattedQuery, limit };
 
     const searchMethods = {
-      tidal_album: async (opts: SearchOptions) => searchTidalTracks(opts.query, opts.limit, true),
-      tidal_quick: async (opts: SearchOptions) => searchTidalTracks(opts.query, opts.limit, false),
+      tidal_album: async (opts: SearchOptions) => searchTidalTracks(opts.query, opts.limit, true, exactMatch),
+      tidal_quick: async (opts: SearchOptions) => searchTidalTracks(opts.query, opts.limit, false, exactMatch),
       spotify_album: async (opts: SearchOptions) => {
         try {
           // Spotify album search (use unified search, filter albums)

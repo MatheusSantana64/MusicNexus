@@ -13,7 +13,9 @@ interface SearchBarProps {
   onSearchChange: (query: string) => void;
   loading: boolean;
   searchMode: SearchMode;
+  exactMatch: boolean;
   onModeChange: (mode: SearchMode) => void;
+  onExactMatchChange: (value: boolean) => void;
   searchInputRef?: React.RefObject<TextInput | null>;
 }
 
@@ -22,7 +24,9 @@ export function SearchBar({
   onSearchChange, 
   loading, 
   searchMode, 
+  exactMatch,
   onModeChange,
+  onExactMatchChange,
   searchInputRef
 }: SearchBarProps) {
   return (
@@ -57,7 +61,9 @@ export function SearchBar({
       </View>
       <SearchFilters 
         currentMode={searchMode}
+        exactMatch={exactMatch}
         onModeChange={onModeChange}
+        onExactMatchChange={onExactMatchChange}
       />
     </View>
   );

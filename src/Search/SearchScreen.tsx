@@ -25,7 +25,7 @@ import { SyncTagPlaylistsModal } from './SyncTagPlaylistsModal';
 
 export default function SearchScreen({ navigation }: { navigation?: any }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const { tracks, loading, error, searchMode, searchTracks, loadMore, setSearchMode, clearResults, hasSearched } = useSearch();
+  const { tracks, loading, error, searchMode, exactMatch, searchTracks, loadMore, setSearchMode, setExactMatch, clearResults, hasSearched } = useSearch();
   const { 
     handleTrackPress, 
     handleAlbumSave, 
@@ -89,6 +89,13 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
     setSearchMode(mode);
     await searchTracks(searchQuery, mode);
   }, [setSearchMode, searchTracks, searchQuery]);
+
+  const handleExactMatchChange = useCallback((value: boolean) => {
+    setExactMatch(value);
+    if (searchQuery.trim().length > 0) {
+      searchTracks(searchQuery, searchMode, value);
+    }
+  }, [searchMode, searchQuery, searchTracks, setExactMatch]);
 
   const handleShowInfoModal = useCallback((title: string, message: string) => {
     showInfoModal({
@@ -192,6 +199,8 @@ export default function SearchScreen({ navigation }: { navigation?: any }) {
           onSearchChange={handleSearch}
           loading={loading}
           searchMode={searchMode}
+          exactMatch={exactMatch}
+          onExactMatchChange={handleExactMatchChange}
           onModeChange={handleModeChange}
           searchInputRef={searchInputRef} // Pass ref
         />
