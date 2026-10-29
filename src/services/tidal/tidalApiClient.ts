@@ -81,7 +81,7 @@ type TidalResource = {
 };
 
 type TidalSearchDocument = {
-  data?: TidalResource;
+  data?: TidalResource | TidalResource[];
   included?: TidalResource[];
 };
 
@@ -379,7 +379,7 @@ export async function searchTidalTracks(
   const encodedQuery = encodeURIComponent(query.trim());
   const include = albumMode ? 'albums' : 'tracks';
   const response = await fetch(
-    `${TIDAL_API_URL}/searchResults/${encodedQuery}?countryCode=${TIDAL_COUNTRY_CODE}&explicitFilter=INCLUDE&include=${include}`,
+    `${TIDAL_API_URL}/searchResults?filter%5Bquery%5D=${encodedQuery}&countryCode=${TIDAL_COUNTRY_CODE}&explicitFilter=INCLUDE&include=${include}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -394,7 +394,8 @@ export async function searchTidalTracks(
   }
 
   const document = await response.json() as TidalSearchDocument;
-  const rootRelationships = document.data?.relationships || {};
+  const searchResult = Array.isArray(document.data) ? document.data[0] : document.data;
+  const rootRelationships = searchResult?.relationships || {};
 
   if (albumMode) {
     const albumRefs = rootRelationships.albums?.data;
@@ -485,7 +486,7 @@ export async function searchTidalTracks(
     return result;
   }
 
-  const tracksRelationship = document.data?.relationships?.tracks?.data;
+  const tracksRelationship = rootRelationships.tracks?.data;
   const tracks = Array.isArray(tracksRelationship) ? tracksRelationship : [];
   const allTrackRefs = [...tracks];
   let next = rootRelationships.tracks?.links?.next;

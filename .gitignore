@@ -40,3 +40,4 @@ yarn-error.*
 .env*.local
 .env
 android/
+_codex_*.ps1
